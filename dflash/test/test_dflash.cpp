@@ -21,6 +21,7 @@
 #include "dflash27b.h"
 #include "internal.h"
 #include "dflash_graph.h"
+#include "qwen3_drafter.h"
 
 #include "ggml.h"
 #include "ggml-alloc.h"
@@ -48,6 +49,11 @@ extern "C" void dflash27b_launch_bf16_to_f32(const void * src,
 #include <cinttypes>
 #include <cmath>
 #include <cstdint>
+
+#ifdef _WIN32
+#define setenv(name, value, overwrite) _putenv_s(name, value)
+#define unsetenv(name) _putenv_s(name, "")
+#endif
 
 #if defined(_WIN32)
 #if !defined(NOMINMAX)
@@ -1218,6 +1224,11 @@ int main(int argc, char ** argv) {
 
     StepGraph sg;
     bool daemon_first_iter = true;
+    bool target_parked = false;
+    bool draft_parked  = false;
+    // pflash drafter (lazy-loaded on first `compress` command)
+    dflash27b::DrafterContext drafter_ctx;
+    bool drafter_loaded = false;
 
     while (true) {
         std::string prompt_file_str;
@@ -1386,6 +1397,134 @@ int main(int argc, char ** argv) {
                 // Fall through into the existing prefill path; the cache reset
                 // and restore happen after the cache rebuild block below.
             } else {
+                // ── Park/unpark commands (additive — pflash) ────────────────
+                auto starts_with = [](const std::string& s, const char* pre) {
+                    size_t n = std::strlen(pre);
+                    return s.size() >= n && s.compare(0, n, pre) == 0;
+                };
+                if (starts_with(line, "park")) {
+                    bool want_draft  = (line == "park" || line == "park all" || line == "park draft");
+                    bool want_target = (line == "park" || line == "park all" || line == "park target");
+                    if (want_draft && !draft_parked) {
+                        free_draft_weights(dw);
+                        draft_parked = true;
+                        std::printf("[park] draft released\n"); std::fflush(stdout);
+                    }
+                    if (want_target && !target_parked) {
+                        free_target_weights(w);
+                        target_parked = true;
+                        std::printf("[park] target released\n"); std::fflush(stdout);
+                    }
+                    stream_emit(-1);
+                    continue;
+                }
+                if (line == "free drafter" || line == "drafter free") {
+                    if (drafter_loaded) {
+                        dflash27b::free_drafter(drafter_ctx);
+                        drafter_loaded = false;
+                        std::printf("[drafter] freed\n"); std::fflush(stdout);
+                    }
+                    stream_emit(-1);
+                    continue;
+                }
+                if (starts_with(line, "unpark")) {
+                    bool want_draft  = (line == "unpark" || line == "unpark all" || line == "unpark draft");
+                    bool want_target = (line == "unpark" || line == "unpark all" || line == "unpark target");
+                    if (want_target && target_parked) {
+                        if (!load_target_gguf(target_path, backend, w)) {
+                            std::fprintf(stderr, "[unpark] target: %s\n", dflash27b_last_error());
+                            stream_emit(-1); continue;
+                        }
+                        target_parked = false;
+                        std::printf("[unpark] target restored\n"); std::fflush(stdout);
+                    }
+                    if (want_draft && draft_parked) {
+                        if (!load_draft_safetensors(draft_path, backend, dw)) {
+                            std::fprintf(stderr, "[unpark] draft: %s\n", dflash27b_last_error());
+                            stream_emit(-1); continue;
+                        }
+                        draft_parked = false;
+                        std::printf("[unpark] draft restored\n"); std::fflush(stdout);
+                    }
+                    stream_emit(-1);
+                    continue;
+                }
+
+                // ── Compress command (pflash speculative prefill) ───────────
+                if (starts_with(line, "compress ")) {
+                    char ppath[1024];
+                    int  keep_x1000 = 0;
+                    char drafter_path[1024];
+                    int n = std::sscanf(line.c_str() + 9, "%1023s %d %1023s",
+                                        ppath, &keep_x1000, drafter_path);
+                    if (n != 3) {
+                        std::fprintf(stderr,
+                                     "[compress] bad args, need: <bin> <keep_x1000> <drafter_gguf>\n");
+                        stream_emit(-1); continue;
+                    }
+                    auto src_ids = read_int32_file(ppath);
+                    if (src_ids.empty()) {
+                        std::fprintf(stderr, "[compress] empty input\n");
+                        stream_emit(-1); continue;
+                    }
+
+                    bool restore_target = !target_parked;
+                    bool restore_draft  = !draft_parked;
+                    if (restore_target) {
+                        free_target_weights(w);
+                        target_parked = true;
+                        std::printf("[compress] target parked\n"); std::fflush(stdout);
+                    }
+                    if (restore_draft) {
+                        free_draft_weights(dw);
+                        draft_parked = true;
+                        std::printf("[compress] draft parked\n"); std::fflush(stdout);
+                    }
+
+                    if (!drafter_loaded) {
+                        if (!dflash27b::load_drafter(drafter_path, /*gpu_layers=*/999, drafter_ctx)) {
+                            std::fprintf(stderr, "[compress] load_drafter failed: %s\n",
+                                         dflash27b_last_error());
+                            stream_emit(-1); continue;
+                        }
+                        drafter_loaded = true;
+                        std::printf("[drafter] loaded %s (n_layer=%d n_head=%d n_head_kv=%d)\n",
+                                    drafter_path, drafter_ctx.weights.n_layer,
+                                    drafter_ctx.weights.n_head, drafter_ctx.weights.n_head_kv);
+                        std::fflush(stdout);
+                    }
+
+                    float keep = (float)keep_x1000 / 1000.0f;
+                    auto compressed = dflash27b::drafter_score_and_compress(
+                        drafter_ctx, src_ids, keep);
+                    std::printf("[compress] %zu -> %zu tokens (keep_ratio=%.3f)\n",
+                                src_ids.size(), compressed.size(), keep);
+                    std::fflush(stdout);
+
+                    if (restore_target) {
+                        if (!load_target_gguf(target_path, backend, w)) {
+                            std::fprintf(stderr, "[compress] target restore: %s\n",
+                                         dflash27b_last_error());
+                            stream_emit(-1); continue;
+                        }
+                        target_parked = false;
+                        std::printf("[compress] target restored\n"); std::fflush(stdout);
+                    }
+                    if (restore_draft) {
+                        if (!load_draft_safetensors(draft_path, backend, dw)) {
+                            std::fprintf(stderr, "[compress] draft restore: %s\n",
+                                         dflash27b_last_error());
+                            stream_emit(-1); continue;
+                        }
+                        draft_parked = false;
+                        std::printf("[compress] draft restored\n"); std::fflush(stdout);
+                    }
+
+                    for (int32_t t : compressed) stream_emit(t);
+                    stream_emit(-1);
+                    continue;
+                }
+
                 // Legacy: bare `<prompt_file> <n_gen>` line — full reset path.
                 char ppath[1024];
                 if (std::sscanf(line.c_str(), "%1023s %d", ppath, &n_gen) != 2) continue;
@@ -1401,17 +1540,13 @@ int main(int argc, char ** argv) {
                 }
             }
 
-            // Rebuild cache + step graph between requests so KV / SSM / conv /
-            // target_feat ring start fresh. Weights stay resident.
+            // Reset cache state between requests. On the first request the
+            // cache was promoted from prefill-only to full (with rollback
+            // tensors) by migrate_prefill_cache. On subsequent requests we
+            // just zero all state tensors in place — no GPU buffer free/alloc.
             if (!daemon_first_iter) {
-                step_graph_destroy(sg);
-                free_target_cache(cache);
-                if (!create_target_cache(w, max_ctx, max_verify_tokens, backend, cache,
-                                         /*prefill_only=*/true)) {
-                    std::fprintf(stderr, "cache realloc: %s\n", dflash27b_last_error());
-                    stream_emit(-1);
-                    continue;
-                }
+                step_graph_free(sg);
+                reset_target_cache(cache);
             }
             daemon_first_iter = false;
 

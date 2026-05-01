@@ -5,3 +5,6 @@
 	# Revert to Luce-Org/llama.cpp.git once that PR is merged.
 	url = https://github.com/easel/llama.cpp-dflash-ggml.git
 	branch = fix/cuda-vmm-pool-extension-race
+[submodule "dflash/deps/Block-Sparse-Attention"]
+	path = dflash/deps/Block-Sparse-Attention
+	url = https://github.com/mit-han-lab/Block-Sparse-Attention.git

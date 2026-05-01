@@ -38,6 +38,11 @@ from typing import Any, AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse
+
+from _prefill_hook import (
+    PrefillConfig, add_cli_flags, config_from_args,
+    compress_text_via_daemon, compress_texts_batch_via_daemon,
+)
 from pydantic import BaseModel, Field
 from starlette.concurrency import iterate_in_threadpool
 from transformers import AutoTokenizer
@@ -46,7 +51,10 @@ from prefix_cache import DaemonStdoutBus, PrefixCache
 
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_TARGET = ROOT / "models" / "Qwen3.5-27B-Q4_K_M.gguf"
+DEFAULT_TARGET = Path(os.environ.get(
+    "DFLASH_TARGET",
+    str(ROOT / "models" / "Qwen3.6-27B-Q4_K_M.gguf"),
+))
 DEFAULT_DRAFT_ROOT = ROOT / "models" / "draft"
 DEFAULT_BIN = ROOT / "build" / "test_dflash"
 DEFAULT_BUDGET = 22
@@ -309,7 +317,9 @@ def parse_tool_calls(text: str, tools=None) -> tuple[str, list[dict]]:
 
 def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
               max_ctx: int, tokenizer: AutoTokenizer, stop_ids: set[int],
-              prefix_cache_slots: int = 4) -> FastAPI:
+              prefix_cache_slots: int = 4,
+              prefill_cfg: PrefillConfig | None = None,
+              drafter_tokenizer: AutoTokenizer | None = None) -> FastAPI:
     import asyncio
     app = FastAPI(title="Luce DFlash OpenAI server (tool-aware)")
     daemon_lock = asyncio.Lock()
@@ -358,6 +368,102 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
     def list_models():
         return {"object": "list",
                 "data": [{"id": MODEL_NAME, "object": "model", "owned_by": "luce"}]}
+
+    def _maybe_compress_tool_chat(req: "ChatRequest", prompt_bin: Path,
+                                  prompt_len: int, started_in_thinking: bool
+                                  ) -> tuple[Path, int, bool]:
+        """If prefill is on, compress every role=tool message in place,
+        preserving role / tool_call_id / assistant.tool_calls so the OpenAI
+        tool-call structure is intact end-to-end. One daemon dance covers
+        all tool messages (drafter loads once, compresses N messages, frees
+        once). Falls back to compressing the last user message when there
+        are no tool messages — preserves the original RAG / single-shot
+        path.
+        """
+        if not prefill_cfg or not prefill_cfg.enabled:
+            return prompt_bin, prompt_len, started_in_thinking
+        if req.tools:
+            return prompt_bin, prompt_len, started_in_thinking
+        if not prefill_cfg.should_compress(prompt_len) or drafter_tokenizer is None:
+            return prompt_bin, prompt_len, started_in_thinking
+
+        tool_msg_indices = [i for i, m in enumerate(req.messages)
+                            if m.role == "tool"
+                            and isinstance(m.content, str) and m.content]
+
+        if tool_msg_indices:
+            tool_texts = [req.messages[i].content for i in tool_msg_indices]
+            compressed_texts = compress_texts_batch_via_daemon(
+                daemon_stdin=daemon_proc.stdin,
+                r_pipe=r_pipe,
+                drafter_tokenizer=drafter_tokenizer,
+                cfg=prefill_cfg,
+                prompt_texts=tool_texts,
+            )
+            compressed_by_idx = dict(zip(tool_msg_indices, compressed_texts))
+
+            new_msgs = []
+            for i, m in enumerate(req.messages):
+                d: dict = {"role": m.role}
+                if i in compressed_by_idx:
+                    d["content"] = compressed_by_idx[i]
+                elif m.content is not None:
+                    d["content"] = m.content
+                if m.tool_call_id is not None:
+                    d["tool_call_id"] = m.tool_call_id
+                if m.tool_calls is not None:
+                    d["tool_calls"] = []
+                    for tc in m.tool_calls:
+                        args = tc.function.arguments
+                        if isinstance(args, str):
+                            try:
+                                args = json.loads(args)
+                            except (json.JSONDecodeError, ValueError):
+                                args = {"_raw": tc.function.arguments}
+                        d["tool_calls"].append({
+                            "id": tc.id, "type": tc.type,
+                            "function": {"name": tc.function.name,
+                                         "arguments": args},
+                        })
+                if m.name is not None:
+                    d["name"] = m.name
+                new_msgs.append(d)
+        else:
+            last_user = next((m for m in reversed(req.messages) if m.role == "user"), None)
+            if last_user is None or not isinstance(last_user.content, str):
+                return prompt_bin, prompt_len, started_in_thinking
+            compressed_text = compress_text_via_daemon(
+                daemon_stdin=daemon_proc.stdin,
+                r_pipe=r_pipe,
+                drafter_tokenizer=drafter_tokenizer,
+                cfg=prefill_cfg,
+                prompt_text=last_user.content,
+            )
+            new_msgs = []
+            compressed_emitted = False
+            for m in req.messages:
+                if m is last_user and not compressed_emitted:
+                    new_msgs.append({"role": "user", "content": compressed_text})
+                    compressed_emitted = True
+                else:
+                    d = {"role": m.role}
+                    if m.content is not None:
+                        d["content"] = m.content
+                    new_msgs.append(d)
+
+        kwargs = dict(tokenize=False, add_generation_prompt=True)
+        if req.chat_template_kwargs:
+            kwargs.update(req.chat_template_kwargs)
+        prompt = tokenizer.apply_chat_template(new_msgs, **kwargs)
+        new_started_in_thinking = bool(re.search(r"<think>\s*$", prompt))
+        ids = tokenizer.encode(prompt, add_special_tokens=False)
+        fd, path = tempfile.mkstemp(suffix=".bin")
+        with os.fdopen(fd, "wb") as f:
+            for t in ids:
+                f.write(struct.pack("<i", int(t)))
+        try: prompt_bin.unlink()
+        except Exception: pass
+        return Path(path), len(ids), new_started_in_thinking
 
     def _tokenize_prompt(req: ChatRequest) -> tuple[Path, bool]:
         """Returns (prompt_bin_path, started_in_thinking). started_in_thinking
@@ -445,12 +551,6 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
     async def chat_completions(req: ChatRequest):
         prompt_bin, started_in_thinking = _tokenize_prompt(req)
         prompt_len = prompt_bin.stat().st_size // 4
-        available_gen = max_ctx - prompt_len - 20
-        gen_len = min(req.max_tokens, available_gen)
-        if gen_len <= 0:
-            return JSONResponse(
-                {"detail": f"Prompt length ({prompt_len}) exceeds max_ctx ({max_ctx})"},
-                status_code=400)
 
         # Read back token ids for cache key (cheap — file is small).
         raw = prompt_bin.read_bytes()
@@ -459,6 +559,20 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
 
         completion_id = "chatcmpl-" + uuid.uuid4().hex[:24]
         created = int(time.time())
+
+        # pflash compress hook (no-op when --prefill-compression=off / has tools)
+        async with daemon_lock:
+            prompt_bin, prompt_len, started_in_thinking = await asyncio.to_thread(
+                _maybe_compress_tool_chat, req, prompt_bin, prompt_len, started_in_thinking)
+
+        available_gen = max_ctx - prompt_len - 20
+        gen_len = min(req.max_tokens, available_gen)
+        if gen_len <= 0:
+            try: prompt_bin.unlink()
+            except Exception: pass
+            return JSONResponse(
+                {"detail": f"Prompt length ({prompt_len}) exceeds max_ctx ({max_ctx})"},
+                status_code=400)
 
         if req.stream:
             return await _stream_response(req, prompt_bin, prompt_ids, gen_len,
@@ -725,7 +839,8 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
                 parts.append(b.get("text", ""))
         return "".join(parts)
 
-    def _tokenize_anthropic(req: AnthropicMessagesRequest) -> tuple[Path, int]:
+    def _tokenize_anthropic(req: AnthropicMessagesRequest
+                            ) -> tuple[Path, int, list[dict]]:
         msgs = []
         system_text = _anthropic_text_from_content(req.system) if req.system else None
         if system_text:
@@ -742,7 +857,38 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
         with os.fdopen(fd, "wb") as f:
             for t in ids:
                 f.write(struct.pack("<i", int(t)))
-        return tmp, len(ids)
+        return tmp, len(ids), msgs
+
+    def _maybe_compress_anthropic(prompt_bin: Path, prompt_len: int,
+                                  msgs: list[dict]) -> tuple[Path, int]:
+        if not prefill_cfg or not prefill_cfg.enabled:
+            return prompt_bin, prompt_len
+        if not prefill_cfg.should_compress(prompt_len) or drafter_tokenizer is None:
+            return prompt_bin, prompt_len
+        last_user_idx = next((i for i in range(len(msgs) - 1, -1, -1)
+                              if msgs[i]["role"] == "user"), None)
+        if last_user_idx is None:
+            return prompt_bin, prompt_len
+        long_text = msgs[last_user_idx]["content"]
+        compressed_text = compress_text_via_daemon(
+            daemon_stdin=daemon_proc.stdin,
+            r_pipe=r_pipe,
+            drafter_tokenizer=drafter_tokenizer,
+            cfg=prefill_cfg,
+            prompt_text=long_text,
+        )
+        new_msgs = list(msgs)
+        new_msgs[last_user_idx] = {"role": "user", "content": compressed_text}
+        prompt = tokenizer.apply_chat_template(
+            new_msgs, tokenize=False, add_generation_prompt=True)
+        ids = tokenizer.encode(prompt, add_special_tokens=False)
+        fd, path = tempfile.mkstemp(suffix=".bin")
+        with os.fdopen(fd, "wb") as f:
+            for t in ids:
+                f.write(struct.pack("<i", int(t)))
+        try: prompt_bin.unlink()
+        except Exception: pass
+        return Path(path), len(ids)
 
     async def _astream_tokens(r, n_gen):
         """Yields one token at a time without blocking the event loop.
@@ -768,7 +914,11 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
 
     @app.post("/v1/messages")
     async def anthropic_messages(req: AnthropicMessagesRequest):
-        prompt_bin, prompt_len = _tokenize_anthropic(req)
+        prompt_bin, prompt_len, raw_msgs = _tokenize_anthropic(req)
+
+        async with daemon_lock:
+            prompt_bin, prompt_len = await asyncio.to_thread(
+                _maybe_compress_anthropic, prompt_bin, prompt_len, raw_msgs)
 
         available_gen = max_ctx - prompt_len - 20
         gen_len = min(req.max_tokens, available_gen)
@@ -924,7 +1074,9 @@ def main():
                     help="HF tokenizer id; Qwen3.6 shares this tokenizer.")
     ap.add_argument("--prefix-cache-slots", type=int, default=4,
                     help="Number of prefix-cache snapshot slots (0 to disable)")
+    add_cli_flags(ap)
     args = ap.parse_args()
+    prefill_cfg = config_from_args(args)
 
     # Auto-enable TQ3_0 KV cache when the requested context exceeds what F16 fits.
     # setdefault so an explicit user DFLASH27B_KV_TQ3=0 still wins.
@@ -937,6 +1089,12 @@ def main():
 
     if args.fa_window is not None:
         os.environ["DFLASH27B_FA_WINDOW"] = str(args.fa_window)
+
+    # When pflash is on, daemon needs the same env the bench harness uses
+    # (otherwise post-compress draft graph reserve OOMs at 64K+).
+    if args.prefill_compression != "off":
+        os.environ.setdefault("DFLASH27B_LM_HEAD_FIX", "0")
+        os.environ.setdefault("DFLASH27B_FA_WINDOW", "0")
 
     if not args.bin.is_file():
         raise SystemExit(f"binary not found at {args.bin}")
@@ -952,9 +1110,16 @@ def main():
         ids = tokenizer.encode(s, add_special_tokens=False)
         if ids: stop_ids.add(ids[0])
 
+    drafter_tokenizer = None
+    if prefill_cfg.enabled:
+        drafter_tokenizer = AutoTokenizer.from_pretrained(
+            prefill_cfg.drafter_tokenizer_id, trust_remote_code=True)
+
     app = build_app(args.target, draft, args.bin, args.budget, args.max_ctx,
                     tokenizer, stop_ids,
-                    prefix_cache_slots=args.prefix_cache_slots)
+                    prefix_cache_slots=args.prefix_cache_slots,
+                    prefill_cfg=prefill_cfg if prefill_cfg.enabled else None,
+                    drafter_tokenizer=drafter_tokenizer)
 
     import uvicorn
     print(f"Luce DFlash OpenAI server (tool-aware) on http://{args.host}:{args.port}")
@@ -964,6 +1129,11 @@ def main():
     print(f"  budget = {args.budget}")
     print(f"  max_ctx= {args.max_ctx}")
     print(f"  tokenizer = {args.tokenizer}")
+    if prefill_cfg.enabled:
+        print(f"  pflash = {prefill_cfg.mode} · threshold={prefill_cfg.threshold} "
+              f"keep={prefill_cfg.keep_ratio} drafter={prefill_cfg.drafter_gguf}")
+    else:
+        print("  pflash = off")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
 
