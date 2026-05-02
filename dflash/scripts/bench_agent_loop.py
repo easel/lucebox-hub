@@ -257,15 +257,23 @@ def _stop_server(proc: subprocess.Popen) -> None:
 # ── Bench driver ───────────────────────────────────────────────────────
 
 def run_config(label: str, port: int, slots: int, turns: list[dict],
-               n_gen: int, max_ctx: int, log_path: Path) -> list[dict]:
-    """Spin up server with --prefix-cache-slots=slots, replay each assistant turn."""
+               n_gen: int, max_ctx: int, log_path: Path,
+               extra_server_args: list[str] | None = None) -> list[dict]:
+    """Spin up server, replay each assistant turn. Extra flags pass through."""
     log_f = open(log_path, "w")
+    cmd = [sys.executable, "-u", str(SERVER_SCRIPT),
+           "--target", str(TARGET), "--draft", str(DRAFT), "--bin", str(BIN),
+           "--max-ctx", str(max_ctx), "--port", str(port),
+           "--prefix-cache-slots", str(slots)]
+    if extra_server_args:
+        cmd.extend(extra_server_args)
+    import os as _os
+    env = _os.environ.copy()
+    env["DFLASH_FP_USE_BSA"] = "1"
+    env["DFLASH_FP_ALPHA"] = "0.85"
+    env["PATH"] = "/usr/lib/wsl/lib:" + env.get("PATH", "")
     proc = subprocess.Popen(
-        [sys.executable, "-u", str(SERVER_SCRIPT),
-         "--target", str(TARGET), "--draft", str(DRAFT), "--bin", str(BIN),
-         "--max-ctx", str(max_ctx), "--port", str(port),
-         "--prefix-cache-slots", str(slots)],
-        stdout=log_f, stderr=subprocess.STDOUT, bufsize=1,
+        cmd, stdout=log_f, stderr=subprocess.STDOUT, bufsize=1, env=env,
     )
 
     if not _wait_server_up(port, proc):
@@ -361,13 +369,27 @@ def main():
     n_user = sum(1 for t in turns if t["role"] == "user")
     print(f"Loaded {len(turns)} turns ({n_user} user, {len(asst_indices)} assistant)")
 
-    cold = run_config("COLD (cache disabled)", port=args.cold_port, slots=0,
+    drafter_path = Path(__file__).resolve().parent.parent / "models" / "Qwen3-0.6B-BF16.gguf"
+    if not drafter_path.exists():
+        print(f"SKIP: drafter not found at {drafter_path}")
+        return 1
+
+    pflash_args = [
+        "--prefill-compression", "always",
+        "--prefill-threshold", "1",
+        "--prefill-keep-ratio", "0.05",
+        "--prefill-drafter", str(drafter_path),
+    ]
+
+    cold = run_config("COLD (slots=0, no pflash)", port=args.cold_port, slots=0,
                       turns=turns, n_gen=args.n_gen, max_ctx=args.max_ctx,
-                      log_path=Path("/tmp/bench_cold.log"))
-    warm = run_config(f"WARM (cache slots={args.warm_slots})",
+                      log_path=Path("/tmp/bench_cold.log"),
+                      extra_server_args=[])
+    warm = run_config(f"WARM (slots={args.warm_slots}, pflash on)",
                       port=args.warm_port, slots=args.warm_slots,
                       turns=turns, n_gen=args.n_gen, max_ctx=args.max_ctx,
-                      log_path=Path("/tmp/bench_warm.log"))
+                      log_path=Path("/tmp/bench_warm.log"),
+                      extra_server_args=pflash_args)
 
     print("\n=== Per-call latency (faithful replay) ===", flush=True)
     print(f"{'call':>4} {'in_chars':>9} "

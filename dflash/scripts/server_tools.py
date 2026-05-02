@@ -549,45 +549,79 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
 
     @app.post("/v1/chat/completions")
     async def chat_completions(req: ChatRequest):
-        prompt_bin, started_in_thinking = _tokenize_prompt(req)
-        prompt_len = prompt_bin.stat().st_size // 4
+        uncompressed_bin, started_in_thinking = _tokenize_prompt(req)
+        uncompressed_len = uncompressed_bin.stat().st_size // 4
 
-        # Read back token ids for cache key (cheap — file is small).
-        raw = prompt_bin.read_bytes()
+        # Read back token ids for cache key (uncompressed prompt).
+        raw = uncompressed_bin.read_bytes()
         prompt_ids = [struct.unpack_from("<i", raw, i)[0]
                       for i in range(0, len(raw), 4)]
 
         completion_id = "chatcmpl-" + uuid.uuid4().hex[:24]
         created = int(time.time())
 
-        # pflash compress hook (no-op when --prefill-compression=off / has tools)
+        # ── Path selection (Phase 1: cache-or-pflash, never both) ─────
+        # Cache stores ONLY uncompressed-prefix KV state. Pflash path
+        # never snapshots (its compressed state would mismatch future
+        # uncompressed-keyed lookups). On cache hit we skip pflash
+        # entirely — the cached state lets us prefill the uncompressed
+        # suffix faster than recompressing + prefilling compressed.
+        path_pflash = False
+        compressed_bin = None
         async with daemon_lock:
-            prompt_bin, prompt_len, started_in_thinking = await asyncio.to_thread(
-                _maybe_compress_tool_chat, req, prompt_bin, prompt_len, started_in_thinking)
+            hit = prefix_cache.lookup(prompt_ids)
+        if (not hit
+            and prefill_cfg is not None and prefill_cfg.enabled
+            and prefill_cfg.should_compress(uncompressed_len)
+            and not req.tools):
+            async with daemon_lock:
+                cb, cl, sit = await asyncio.to_thread(
+                    _maybe_compress_tool_chat, req, uncompressed_bin,
+                    uncompressed_len, started_in_thinking)
+            if cb != uncompressed_bin:
+                path_pflash = True
+                compressed_bin = cb
+                # _maybe_compress_tool_chat unlinks the original on success
+                started_in_thinking = sit
+                active_bin = compressed_bin
+                active_len = cl
+            else:
+                active_bin = uncompressed_bin
+                active_len = uncompressed_len
+        else:
+            active_bin = uncompressed_bin
+            active_len = uncompressed_len
 
-        available_gen = max_ctx - prompt_len - 20
+        available_gen = max_ctx - active_len - 20
         gen_len = min(req.max_tokens, available_gen)
         if gen_len <= 0:
-            try: prompt_bin.unlink()
+            try: active_bin.unlink()
             except Exception: pass
             return JSONResponse(
-                {"detail": f"Prompt length ({prompt_len}) exceeds max_ctx ({max_ctx})"},
+                {"detail": f"Prompt length ({active_len}) exceeds max_ctx ({max_ctx})"},
                 status_code=400)
 
         if req.stream:
-            return await _stream_response(req, prompt_bin, prompt_ids, gen_len,
-                                           completion_id, created,
-                                           started_in_thinking, daemon_lock)
+            return await _stream_response(
+                req, active_bin, prompt_ids, gen_len,
+                completion_id, created, started_in_thinking, daemon_lock,
+                hit=hit, path_pflash=path_pflash)
 
         # Non-streaming: collect, parse, return.
         async with daemon_lock:
-            hit = prefix_cache.lookup(prompt_ids)
-            snap_prep = prefix_cache.prepare_inline_snap(prompt_ids)
             if hit:
                 slot, _prefix_len = hit
-                cmd_line = f"RESTORE {slot} {prompt_bin} {gen_len}"
+                snap_prep = prefix_cache.prepare_inline_snap(prompt_ids)
+                cmd_line = f"RESTORE {slot} {active_bin} {gen_len}"
+            elif path_pflash:
+                # Pflash path: do NOT snap; cached compressed state would
+                # mismatch future uncompressed-keyed lookups.
+                snap_prep = None
+                cmd_line = f"{active_bin} {gen_len}"
             else:
-                cmd_line = f"{prompt_bin} {gen_len}"
+                # Cold uncompressed path: snap to seed the cache.
+                snap_prep = prefix_cache.prepare_inline_snap(prompt_ids)
+                cmd_line = f"{active_bin} {gen_len}"
             if snap_prep:
                 cmd_line += f" snap={snap_prep[1]}:{snap_prep[0]}"
             cmd_line += "\n"
@@ -595,9 +629,8 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
             daemon_proc.stdin.flush()
             tokens = list(_token_stream(r_pipe, gen_len))
             if snap_prep:
-
                 prefix_cache.confirm_inline_snap(*snap_prep, prompt_ids)
-        try: prompt_bin.unlink()
+        try: active_bin.unlink()
         except Exception: pass
 
         text = tokenizer.decode(tokens, skip_special_tokens=True)
@@ -642,7 +675,8 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
         })
 
     async def _stream_response(req, prompt_bin, prompt_ids, gen_len, completion_id,
-                                created, started_in_thinking, lock):
+                                created, started_in_thinking, lock,
+                                hit=None, path_pflash=False):
         prompt_len = prompt_bin.stat().st_size // 4
         include_usage = bool(req.stream_options and req.stream_options.get("include_usage"))
         def chunk(delta_obj, finish=None):
@@ -653,12 +687,16 @@ def build_app(target: Path, draft: Path, bin_path: Path, budget: int,
 
         async def sse() -> AsyncIterator[str]:
             async with lock:
-                hit = prefix_cache.lookup(prompt_ids)
-                snap_prep = prefix_cache.prepare_inline_snap(prompt_ids)
+                # Phase 1 dispatch: hit/cold paths snap; pflash never snaps.
                 if hit:
                     slot, _prefix_len = hit
+                    snap_prep = prefix_cache.prepare_inline_snap(prompt_ids)
                     cmd_line = f"RESTORE {slot} {prompt_bin} {gen_len}"
+                elif path_pflash:
+                    snap_prep = None
+                    cmd_line = f"{prompt_bin} {gen_len}"
                 else:
+                    snap_prep = prefix_cache.prepare_inline_snap(prompt_ids)
                     cmd_line = f"{prompt_bin} {gen_len}"
                 if snap_prep:
                     cmd_line += f" snap={snap_prep[1]}:{snap_prep[0]}"
