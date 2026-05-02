@@ -264,7 +264,13 @@ def run_config(label: str, port: int, slots: int, turns: list[dict],
     cmd = [sys.executable, "-u", str(SERVER_SCRIPT),
            "--target", str(TARGET), "--draft", str(DRAFT), "--bin", str(BIN),
            "--max-ctx", str(max_ctx), "--port", str(port),
-           "--prefix-cache-slots", str(slots)]
+           "--prefix-cache-slots", str(slots),
+           # Lock KV quant explicitly per the cache-pool memory budget:
+           # K=Q8_0 (high quality, ~8 bpv), V=TQ3_0 (~3.5 bpv). Prevents the
+           # default DFLASH27B_KV_TQ3=1 fallback that would also push K to
+           # TQ3.
+           "--cache-type-k", "q8_0",
+           "--cache-type-v", "tq3_0"]
     if extra_server_args:
         cmd.extend(extra_server_args)
     import os as _os
@@ -272,10 +278,10 @@ def run_config(label: str, port: int, slots: int, turns: list[dict],
     env["DFLASH_FP_USE_BSA"] = "1"
     env["DFLASH_FP_ALPHA"] = "0.85"
     env["PATH"] = "/usr/lib/wsl/lib:" + env.get("PATH", "")
-    # Phase 2: tell daemon to pre-allocate snap slots eagerly, eliminating
-    # the per-slot first-use lazy-alloc tax (~30s/slot via cuMem pool).
-    if slots > 0:
-        env["DFLASH27B_PREFIX_CACHE_PREALLOC"] = str(slots)
+    # Phase 2 eager pre-alloc disabled by default — the patch interacts
+    # poorly with subsequent inline-snap operations under load. Lazy alloc
+    # on first slot use is paid once per slot per daemon lifetime
+    # (~5–10s with the cuda-VMM sync fix in the submodule).
     proc = subprocess.Popen(
         cmd, stdout=log_f, stderr=subprocess.STDOUT, bufsize=1, env=env,
     )
@@ -378,6 +384,8 @@ def main():
         print(f"SKIP: drafter not found at {drafter_path}")
         return 1
 
+    # Phase 1 baseline behaviour (always pflash) but with KV quant honoring
+    # K=Q8/V=TQ3 floor.
     pflash_args = [
         "--prefill-compression", "always",
         "--prefill-threshold", "1",
