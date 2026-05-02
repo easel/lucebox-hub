@@ -1548,6 +1548,40 @@ int main(int argc, char ** argv) {
                 step_graph_free(sg);
                 reset_target_cache(cache);
             }
+
+            // ── Phase 2: eager snap-slot pre-allocation ────────────────────
+            // Lazy alloc inside snapshot_target_cache fires the first time
+            // each slot is touched, costing ~30 s of cuMem pool extension
+            // per slot. With multi-slot prefix-cache that's a per-call tax
+            // that spikes calls 2–3 of an agent loop. Pre-allocate eagerly
+            // here on the first iter so the cost is paid up-front once.
+            //
+            // Gated on DFLASH27B_PREFIX_CACHE_PREALLOC=N (default 0 = lazy).
+            // Set N to match the python --prefix-cache-slots value.
+            if (daemon_first_iter) {
+                int prealloc_n = 0;
+                if (const char * s = std::getenv("DFLASH27B_PREFIX_CACHE_PREALLOC")) {
+                    prealloc_n = std::atoi(s);
+                    if (prealloc_n < 0) prealloc_n = 0;
+                    if (prealloc_n > PREFIX_CACHE_SLOTS) prealloc_n = PREFIX_CACHE_SLOTS;
+                }
+                if (prealloc_n > 0) {
+                    ggml_backend_synchronize(backend);
+                    for (int sl = 0; sl < prealloc_n; sl++) {
+                        if (prefix_snapshots[sl].ctx != nullptr) continue;
+                        if (!snapshot_target_cache(w, cache, backend,
+                                                   prefix_snapshots[sl])) {
+                            std::fprintf(stderr,
+                                "[snap] eager alloc slot=%d failed: %s\n",
+                                sl, dflash27b_last_error());
+                            break;
+                        }
+                        std::printf("[snap] pre-allocated slot=%d\n", sl);
+                        std::fflush(stdout);
+                    }
+                }
+            }
+
             daemon_first_iter = false;
 
             // After cache is fresh, optionally restore from snapshot.

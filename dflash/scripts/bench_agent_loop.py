@@ -272,6 +272,10 @@ def run_config(label: str, port: int, slots: int, turns: list[dict],
     env["DFLASH_FP_USE_BSA"] = "1"
     env["DFLASH_FP_ALPHA"] = "0.85"
     env["PATH"] = "/usr/lib/wsl/lib:" + env.get("PATH", "")
+    # Phase 2: tell daemon to pre-allocate snap slots eagerly, eliminating
+    # the per-slot first-use lazy-alloc tax (~30s/slot via cuMem pool).
+    if slots > 0:
+        env["DFLASH27B_PREFIX_CACHE_PREALLOC"] = str(slots)
     proc = subprocess.Popen(
         cmd, stdout=log_f, stderr=subprocess.STDOUT, bufsize=1, env=env,
     )
