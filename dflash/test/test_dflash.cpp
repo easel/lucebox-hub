@@ -520,6 +520,10 @@ struct StepGraph {
     ggml_tensor *   hidden_states = nullptr;       // draft hidden-only output
     ggml_tensor *   argmax_tokens = nullptr; // [n_tokens] i32, GPU-side argmax of logits
     ggml_tensor *   topk_indices = nullptr;  // [K, n_tokens] i32, GPU-side top-K indices
+    // Optional: full post-output-norm hidden state for offline draft-training
+    // capture. Shape [hidden, n_tokens] bf16. Populated only when
+    // build_target_step is invoked with capture_normed_hidden=true.
+    ggml_tensor *   normed_hidden = nullptr;
 
     // Per-delta-net-layer captures (verify only). One entry per delta-net layer.
     // Each entry's tensors are graph views on the gated_delta_net result:
@@ -916,7 +920,8 @@ static bool build_target_step(
     bool capture,
     bool capture_delta_intermediate = false,
     int fa_window = 0,
-    bool last_token_logits_only = false) {
+    bool last_token_logits_only = false,
+    bool capture_normed_hidden = false) {
     step_graph_free(sg);
 
     ggml_init_params ip{};
@@ -961,11 +966,13 @@ static bool build_target_step(
     gi.capture_delta_intermediate = capture_delta_intermediate;
     gi.fa_window                  = fa_window;
     gi.last_token_logits_only     = last_token_logits_only;
+    gi.capture_normed_hidden      = capture_normed_hidden;
 
     QwenGraphOutputs go = build_qwen35_graph(sg.ctx, sg.gf, w, cache, gi);
     if (!go.logits) return false;
     sg.logits = go.logits;
     sg.delta_captures = std::move(go.delta_captures);
+    sg.normed_hidden = go.normed_hidden;
     ggml_set_output(sg.logits);
 
     sg.argmax_tokens = ggml_argmax(sg.ctx, sg.logits);
@@ -4275,6 +4282,17 @@ int main(int argc, char ** argv) {
     std::vector<uint16_t> pf_mask_buf;
     std::vector<float>    pf_embed_buf;
     std::vector<int32_t>  pf_pos_buf;
+
+    // Real-verifier capture: when DFLASH_CAPTURE_PATH is set, accumulate the
+    // post-output-norm hidden state for every prefill position into this
+    // host buffer (bf16, [hidden] per token). Speculators uses it as the
+    // training-time `verifier_last_hidden_states` for soft-target distillation.
+    const char * cap_path_env = std::getenv("DFLASH_CAPTURE_PATH");
+    const bool capture_normed = (cap_path_env != nullptr);
+    std::vector<uint16_t> normed_host;  // bf16 stored as uint16
+    if (capture_normed) {
+        normed_host.assign((size_t)prompt.size() * (size_t)DFLASH27B_TARGET_HIDDEN, 0);
+    }
     std::vector<float>    pf_logits_buf;
     const int prompt_len     = (int)prompt.size();
     const int prefill_start  = cache.cur_pos;   // 0 for fresh cache; >0 after snapshot restore
@@ -4343,7 +4361,8 @@ int main(int argc, char ** argv) {
                                 /*with_mask=*/pf_with_mask, /*capture=*/true,
                                 /*capture_delta_intermediate=*/false,
                                 /*fa_window=*/g_fa_window,
-                                /*last_token_logits_only=*/true)) {
+                                /*last_token_logits_only=*/true,
+                                /*capture_normed_hidden=*/capture_normed)) {
             std::fprintf(stderr, "prefill build @%d failed (OOM)\n", start);
             for (int _i = 0; _i < PREFIX_CACHE_SLOTS; _i++) free_prefix_snapshot(prefix_snapshots[_i]);
             std::printf("[snap] all-cleared\n"); std::fflush(stdout);
@@ -4402,6 +4421,17 @@ int main(int argc, char ** argv) {
             : argmax_f32(pf_logits_buf.data(), vocab);
         committed = start + n_tokens;
 
+        // Real-verifier capture: copy this ubatch's post-norm hidden state
+        // ([hidden, n_tokens] bf16) into the global normed_host buffer at
+        // offset `start`.
+        if (capture_normed && sg.normed_hidden) {
+            const size_t row = (size_t)DFLASH27B_TARGET_HIDDEN;
+            ggml_backend_tensor_get(sg.normed_hidden,
+                normed_host.data() + (size_t)start * row,
+                0,
+                sizeof(uint16_t) * row * (size_t)n_tokens);
+        }
+
         // Fire inline snapshot after compute, so cache boundary is exact.
         if (fire_snap_after) {
             cache.cur_pos  = committed;
@@ -4442,37 +4472,55 @@ int main(int argc, char ** argv) {
                 std::chrono::duration<double>(t_pf1 - t_pf0).count(),
                 last_tok);
 
-    // ── Optional: dump target_feat to disk for offline draft training. ──
-    // When DFLASH_CAPTURE_PATH is set, write the per-position concatenated
-    // target hidden states (shape [5*hidden, committed] bf16) to that path.
-    // Header is 32 bytes: u32 magic 'DFCP', u32 version=1, u32 n_pos,
-    // u32 features_per_pos, u32 dtype (2=BF16), then 12 reserved bytes.
-    // Speculators-format conversion happens in a downstream Python script.
+    // ── Optional: dump target_feat (+verifier) to disk for offline draft training. ──
+    // When DFLASH_CAPTURE_PATH is set, dump:
+    //   header (32 bytes) — u32 magic 'DFCP' · u32 version · u32 n_pos
+    //                       · u32 fpp_intermediate · u32 dtype (2=BF16)
+    //                       · u32 fpp_verifier · 8 reserved bytes
+    //   data — n_pos × fpp_intermediate × 2  (z-lab's 5 intermediates @ layers
+    //                                          [1,16,31,46,61])
+    //        + n_pos × fpp_verifier × 2      (post-output-norm hidden state,
+    //                                          only when fpp_verifier > 0)
+    // Version=2 has the verifier stripe; downstream converter must respect it.
     if (const char * cap_path = std::getenv("DFLASH_CAPTURE_PATH")) {
         if (cache.target_feat && committed > 0) {
-            // target_feat: [features_per_pos, target_feat_cap] bf16
             const size_t features_per_pos = (size_t)cache.target_feat->ne[0];
             const size_t row_bytes = features_per_pos * sizeof(uint16_t);   // bf16
-            const size_t total_bytes = (size_t)committed * row_bytes;
-            std::vector<uint8_t> hbuf(total_bytes);
-            ggml_backend_tensor_get(cache.target_feat, hbuf.data(), 0, total_bytes);
+            const size_t inter_bytes = (size_t)committed * row_bytes;
+            std::vector<uint8_t> hbuf(inter_bytes);
+            ggml_backend_tensor_get(cache.target_feat, hbuf.data(), 0, inter_bytes);
+
+            const bool have_verifier =
+                capture_normed && (int)normed_host.size() >= committed * DFLASH27B_TARGET_HIDDEN;
+            const size_t verifier_bytes = have_verifier
+                ? (size_t)committed * (size_t)DFLASH27B_TARGET_HIDDEN * sizeof(uint16_t)
+                : 0;
 
             FILE * fp = std::fopen(cap_path, "wb");
             if (!fp) {
                 std::fprintf(stderr, "[capture] failed to open %s: %s\n",
                              cap_path, std::strerror(errno));
             } else {
-                struct { uint32_t magic, version, n_pos, fpp, dtype; uint32_t rsv[3]; } hdr = {};
-                hdr.magic   = 0x50434644u;  // 'DFCP' little-endian
-                hdr.version = 1;
-                hdr.n_pos   = (uint32_t)committed;
-                hdr.fpp     = (uint32_t)features_per_pos;
-                hdr.dtype   = 2;  // BF16
+                struct {
+                    uint32_t magic, version, n_pos, fpp, dtype, fpp_verifier;
+                    uint32_t rsv[2];
+                } hdr = {};
+                hdr.magic        = 0x50434644u;  // 'DFCP'
+                hdr.version      = 2;
+                hdr.n_pos        = (uint32_t)committed;
+                hdr.fpp          = (uint32_t)features_per_pos;
+                hdr.dtype        = 2;
+                hdr.fpp_verifier = have_verifier ? (uint32_t)DFLASH27B_TARGET_HIDDEN : 0u;
                 std::fwrite(&hdr, sizeof(hdr), 1, fp);
-                std::fwrite(hbuf.data(), 1, total_bytes, fp);
+                std::fwrite(hbuf.data(), 1, inter_bytes, fp);
+                if (have_verifier) {
+                    std::fwrite(normed_host.data(), 1, verifier_bytes, fp);
+                }
                 std::fclose(fp);
-                std::printf("[capture] wrote %d positions × %zu features (bf16) to %s\n",
-                            committed, features_per_pos, cap_path);
+                std::printf("[capture] wrote %d pos · %zu inter feats%s · bf16 → %s\n",
+                            committed, features_per_pos,
+                            have_verifier ? " · 1 verifier feat" : " · NO verifier",
+                            cap_path);
             }
         } else {
             std::fprintf(stderr, "[capture] skipped: target_feat=%p committed=%d\n",

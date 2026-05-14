@@ -1131,6 +1131,20 @@ QwenGraphOutputs build_qwen35_graph(
     // 2. Final norm
     ggml_tensor * out = rms_norm_mul(ctx, inpL, w.out_norm, w.rms_eps);
 
+    // 2b. Optional: expose the post-norm hidden state for ALL positions for
+    //     offline draft-training capture. We have to grab it before the
+    //     last-token slice (step 3) overwrites `out`.
+    ggml_tensor * normed_full = nullptr;
+    if (in.capture_normed_hidden) {
+        // Cast to bf16 to match the existing target_feat dump dtype. The
+        // copy here keeps a graph-output view that survives the lm_head
+        // slice that may follow.
+        normed_full = ggml_cast(ctx, out, GGML_TYPE_BF16);
+        ggml_set_name(normed_full, "normed_hidden_full");
+        ggml_set_output(normed_full);
+        ggml_build_forward_expand(gf, normed_full);
+    }
+
     // 3. LM head — optionally only for the last token (prefill optimization:
     //    reduces logits from [vocab, n_tokens] to [vocab, 1], saving ~233MB
     //    scratch at ubatch=384 and eliminating a large matmul).
@@ -1150,6 +1164,7 @@ QwenGraphOutputs build_qwen35_graph(
 
     QwenGraphOutputs og = std::move(og_early);
     og.logits = logits;
+    og.normed_hidden = normed_full;
     return og;
 }
 

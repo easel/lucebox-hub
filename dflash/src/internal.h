@@ -470,6 +470,10 @@ struct QwenGraphInputs {
     int           fa_window = 0;  // sliding window for FA layers: 0 = full attention
     bool          last_token_logits_only = false; // if true, only compute logits for last token (prefill optimization)
     ggml_tensor * parent_ids = nullptr; // [n_tokens] i32; tree mode when non-null
+    // If true, expose the post-output-norm activation for ALL positions in
+    // QwenGraphOutputs::normed_hidden so the caller can dump it for offline
+    // draft training. Independent of last_token_logits_only.
+    bool          capture_normed_hidden = false;
 };
 
 struct QwenGraphOutputs {
@@ -479,6 +483,9 @@ struct QwenGraphOutputs {
     // views marked as ggml_set_output() so their data persists after
     // graph_compute; the spec-decode loop reads them host-side for rollback.
     std::vector<DeltaNetCapture> delta_captures;
+    // Post-output-norm hidden state for all positions; populated when
+    // capture_normed_hidden is true. Shape [hidden, n_tokens] bf16.
+    ggml_tensor * normed_hidden = nullptr;
 };
 
 QwenGraphOutputs build_qwen35_graph(

@@ -35,26 +35,37 @@ from datasets import load_from_disk
 from safetensors.torch import save_file
 
 
-def read_dump(path: Path) -> tuple[int, int, np.ndarray]:
-    """Read a DFCP target_feat dump.
+def read_dump(path: Path) -> tuple[int, int, int, np.ndarray, np.ndarray | None]:
+    """Read a DFCP target_feat dump (v1 or v2).
 
-    Returns (n_pos, features_per_pos, data) where data is a uint16 ndarray
-    of shape (n_pos, features_per_pos) representing bf16 values.
+    Returns (n_pos, fpp, fpp_verifier, intermediates, verifier_or_None).
+    `intermediates` is shape (n_pos, fpp) uint16 (bf16). `verifier_or_None`
+    is shape (n_pos, fpp_verifier) uint16 when version=2 with a verifier
+    stripe, otherwise None.
     """
     with path.open("rb") as f:
         hdr = f.read(32)
         if len(hdr) != 32:
             raise ValueError(f"{path}: header truncated")
         magic, version, n_pos, fpp, dtype = struct.unpack("<5I", hdr[:20])
+        fpp_verifier = struct.unpack("<I", hdr[20:24])[0] if version >= 2 else 0
         if magic != 0x50434644:
             raise ValueError(f"{path}: bad magic 0x{magic:08x}")
         if dtype != 2:
             raise ValueError(f"{path}: unexpected dtype {dtype} (expected 2=bf16)")
-        raw = f.read(n_pos * fpp * 2)
-        if len(raw) != n_pos * fpp * 2:
-            raise ValueError(f"{path}: data truncated")
-        arr = np.frombuffer(raw, dtype=np.uint16).reshape(n_pos, fpp)
-    return n_pos, fpp, arr
+        inter_bytes = n_pos * fpp * 2
+        raw_inter = f.read(inter_bytes)
+        if len(raw_inter) != inter_bytes:
+            raise ValueError(f"{path}: intermediate data truncated")
+        inter = np.frombuffer(raw_inter, dtype=np.uint16).reshape(n_pos, fpp)
+        verifier = None
+        if fpp_verifier > 0:
+            verifier_bytes = n_pos * fpp_verifier * 2
+            raw_ver = f.read(verifier_bytes)
+            if len(raw_ver) != verifier_bytes:
+                raise ValueError(f"{path}: verifier data truncated")
+            verifier = np.frombuffer(raw_ver, dtype=np.uint16).reshape(n_pos, fpp_verifier)
+    return n_pos, fpp, fpp_verifier, inter, verifier
 
 
 def bf16_uint16_to_tensor(buf: np.ndarray) -> torch.Tensor:
@@ -91,7 +102,7 @@ def main():
             n_skipped += 1
             continue
         try:
-            n_pos, fpp, arr_u16 = read_dump(cap_path)
+            n_pos, fpp, fpp_ver, arr_u16, ver_u16 = read_dump(cap_path)
         except ValueError as e:
             print(f"  [{idx}] skip: {e}")
             n_skipped += 1
@@ -105,10 +116,13 @@ def main():
         arr_3d_u16 = arr_u16.reshape(n_pos, args.n_intermediates, args.hidden_size)
         intermediates = bf16_uint16_to_tensor(arr_3d_u16)  # [n_pos, 5, hidden]
 
-        # Stub verifier_last: duplicate the last intermediate. Replace with
-        # real post-output-norm capture once test_dflash exposes it.
-        verifier_stub = intermediates[:, -1:, :].clone()  # [n_pos, 1, hidden]
-        hidden_states = torch.cat([intermediates, verifier_stub], dim=1)
+        if ver_u16 is not None and fpp_ver == args.hidden_size:
+            verifier = bf16_uint16_to_tensor(ver_u16).unsqueeze(1)  # [n_pos, 1, hidden]
+        else:
+            # Fall back to stubbed verifier (duplicate of last intermediate)
+            # when reading a v1 dump or when verifier stripe is missing.
+            verifier = intermediates[:, -1:, :].clone()
+        hidden_states = torch.cat([intermediates, verifier], dim=1)
         # shape: [n_pos, 6, hidden] — speculators dataloader takes [:, :-1]
         # for the 5*hidden fc input and [:, -1] as verifier.
 
