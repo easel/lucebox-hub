@@ -4442,6 +4442,44 @@ int main(int argc, char ** argv) {
                 std::chrono::duration<double>(t_pf1 - t_pf0).count(),
                 last_tok);
 
+    // ── Optional: dump target_feat to disk for offline draft training. ──
+    // When DFLASH_CAPTURE_PATH is set, write the per-position concatenated
+    // target hidden states (shape [5*hidden, committed] bf16) to that path.
+    // Header is 32 bytes: u32 magic 'DFCP', u32 version=1, u32 n_pos,
+    // u32 features_per_pos, u32 dtype (2=BF16), then 12 reserved bytes.
+    // Speculators-format conversion happens in a downstream Python script.
+    if (const char * cap_path = std::getenv("DFLASH_CAPTURE_PATH")) {
+        if (cache.target_feat && committed > 0) {
+            // target_feat: [features_per_pos, target_feat_cap] bf16
+            const size_t features_per_pos = (size_t)cache.target_feat->ne[0];
+            const size_t row_bytes = features_per_pos * sizeof(uint16_t);   // bf16
+            const size_t total_bytes = (size_t)committed * row_bytes;
+            std::vector<uint8_t> hbuf(total_bytes);
+            ggml_backend_tensor_get(cache.target_feat, hbuf.data(), 0, total_bytes);
+
+            FILE * fp = std::fopen(cap_path, "wb");
+            if (!fp) {
+                std::fprintf(stderr, "[capture] failed to open %s: %s\n",
+                             cap_path, std::strerror(errno));
+            } else {
+                struct { uint32_t magic, version, n_pos, fpp, dtype; uint32_t rsv[3]; } hdr = {};
+                hdr.magic   = 0x50434644u;  // 'DFCP' little-endian
+                hdr.version = 1;
+                hdr.n_pos   = (uint32_t)committed;
+                hdr.fpp     = (uint32_t)features_per_pos;
+                hdr.dtype   = 2;  // BF16
+                std::fwrite(&hdr, sizeof(hdr), 1, fp);
+                std::fwrite(hbuf.data(), 1, total_bytes, fp);
+                std::fclose(fp);
+                std::printf("[capture] wrote %d positions × %zu features (bf16) to %s\n",
+                            committed, features_per_pos, cap_path);
+            }
+        } else {
+            std::fprintf(stderr, "[capture] skipped: target_feat=%p committed=%d\n",
+                         (void*)cache.target_feat, committed);
+        }
+    }
+
     // Promote prefill-only cache to full decode cache with rollback tensors.
     // Copies KV, SSM/conv state, and target_feat device→device (~1 ms).
     auto t_mig0 = std::chrono::steady_clock::now();
