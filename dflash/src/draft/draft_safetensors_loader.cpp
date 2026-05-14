@@ -325,6 +325,82 @@ static void bf16_to_f16_array(const uint16_t * src, uint16_t * dst, size_t n) {
     }
 }
 
+// Optional fields parsed out of the draft's adjacent config.json. Anything
+// the file doesn't supply stays at the sentinel — callers fall back to
+// target metadata or compile-time defaults.
+struct DraftConfigJson {
+    int n_embd        = -1;  // hidden_size
+    int n_head        = -1;  // num_attention_heads
+    int n_head_kv     = -1;  // num_key_value_heads
+    int head_dim      = -1;  // head_dim
+    int n_ff          = -1;  // intermediate_size
+    int swa_window    = -1;  // sliding_window
+    std::vector<bool> layer_is_swa;  // per-layer; "sliding_attention" → true
+};
+
+// Tiny hand-rolled parser for a top-level integer JSON field. Returns -1 if
+// not found. Matches the surrounding code's "no real JSON parser" style; if
+// we ever depend on json-c we should drop this whole helper.
+static int parse_json_int(const std::string & cfg, const char * key) {
+    std::string needle = std::string("\"") + key + "\"";
+    auto p = cfg.find(needle);
+    if (p == std::string::npos) return -1;
+    auto colon = cfg.find(':', p + needle.size());
+    if (colon == std::string::npos) return -1;
+    return std::atoi(cfg.c_str() + colon + 1);
+}
+
+static DraftConfigJson read_draft_config_json(const std::string & model_path) {
+    DraftConfigJson d;
+
+    // config.json sits next to model.safetensors.
+    std::string dir;
+    auto slash = model_path.find_last_of('/');
+    if (slash != std::string::npos) {
+        dir = model_path.substr(0, slash);
+    } else {
+        dir = ".";  // bare filename — look in CWD
+    }
+    std::string cfg_path = dir + "/config.json";
+    FILE * f = std::fopen(cfg_path.c_str(), "r");
+    if (!f) return d;
+    std::fseek(f, 0, SEEK_END);
+    long flen = std::ftell(f);
+    std::fseek(f, 0, SEEK_SET);
+    if (flen <= 0) { std::fclose(f); return d; }
+    std::string cfg((size_t)flen, '\0');
+    std::fread(&cfg[0], 1, (size_t)flen, f);
+    std::fclose(f);
+
+    d.n_embd     = parse_json_int(cfg, "hidden_size");
+    d.n_head     = parse_json_int(cfg, "num_attention_heads");
+    d.n_head_kv  = parse_json_int(cfg, "num_key_value_heads");
+    d.head_dim   = parse_json_int(cfg, "head_dim");
+    d.n_ff       = parse_json_int(cfg, "intermediate_size");
+    d.swa_window = parse_json_int(cfg, "sliding_window");
+
+    // layer_types: ["sliding_attention", "full_attention", ...]
+    auto lt_pos = cfg.find("\"layer_types\"");
+    if (lt_pos != std::string::npos) {
+        auto arr_start = cfg.find('[', lt_pos);
+        auto arr_end   = cfg.find(']', arr_start);
+        if (arr_start != std::string::npos && arr_end != std::string::npos) {
+            std::string arr = cfg.substr(arr_start, arr_end - arr_start + 1);
+            size_t search_pos = 0;
+            while (search_pos < arr.size()) {
+                auto q1 = arr.find('"', search_pos);
+                if (q1 == std::string::npos) break;
+                auto q2 = arr.find('"', q1 + 1);
+                if (q2 == std::string::npos) break;
+                std::string lt = arr.substr(q1 + 1, q2 - q1 - 1);
+                d.layer_is_swa.push_back(lt == "sliding_attention");
+                search_pos = q2 + 1;
+            }
+        }
+    }
+    return d;
+}
+
 // Returns true when this build should keep draft projection weights as BF16.
 // CUDA builds keep BF16 only when built for native BF16 tensor-core support;
 // all other builds convert to F16 unless explicitly overridden.
@@ -343,7 +419,8 @@ static bool build_prefers_bf16_projection() {
 
 bool load_draft_safetensors(const std::string & path,
                             ggml_backend_t       backend,
-                            DraftWeights &       out) {
+                            DraftWeights &       out,
+                            const TargetWeights * target) {
     // ── 1. Open + mmap ────────────────────────────────────────────
     Mmap mm;
     std::string err;
@@ -377,11 +454,51 @@ bool load_draft_safetensors(const std::string & path,
     if (!out.ctx) { set_last_error("ggml_init failed for draft ctx"); return false; }
     out.backend = backend;
     out.n_layer   = n_layers;
-    out.n_head    = DFLASH27B_TARGET_N_HEADS;
-    out.n_head_kv = DFLASH27B_TARGET_N_KV_HEADS;
-    out.head_dim  = DFLASH27B_TARGET_HEAD_DIM;
-    out.n_embd    = DFLASH27B_TARGET_HIDDEN;
-    out.n_ff      = DFLASH27B_TARGET_INTERMEDIATE;
+
+    // Draft model dims — precedence: config.json > target metadata > compile-time defaults.
+    //
+    // Why config.json wins over target: the draft is an independent transformer
+    // whose head count, head dim, and KV-head count are draft-private. The z-lab
+    // Qwen3.6-27B-DFlash draft uses n_head=32 / head_dim=128 while the matching
+    // Qwen3.6-27B verifier uses n_head=24 / head_dim=256. Inheriting from the
+    // target produces a wrong-shape tensor allocation that fails at first norm load.
+    //
+    // n_embd and n_ff *must* agree with the target because the draft's fc.weight
+    // projects from a concatenation of target hidden states. We cross-check below.
+    const DraftConfigJson cfg = read_draft_config_json(path);
+
+    auto pick = [](int from_cfg, int from_target, int fallback) -> int {
+        if (from_cfg > 0)    return from_cfg;
+        if (from_target > 0) return from_target;
+        return fallback;
+    };
+
+    out.n_embd    = pick(cfg.n_embd,    target ? target->n_embd            : -1, DFLASH27B_TARGET_HIDDEN);
+    out.n_ff      = pick(cfg.n_ff,      target ? target->n_ff              : -1, DFLASH27B_TARGET_INTERMEDIATE);
+    out.n_head    = pick(cfg.n_head,    /*draft-private*/ -1,                   DFLASH27B_TARGET_N_HEADS);
+    out.n_head_kv = pick(cfg.n_head_kv, /*draft-private*/ -1,                   DFLASH27B_TARGET_N_KV_HEADS);
+    out.head_dim  = pick(cfg.head_dim,  /*draft-private*/ -1,                   DFLASH27B_TARGET_HEAD_DIM);
+    out.swa_window = cfg.swa_window > 0 ? cfg.swa_window : 0;
+
+    if (target) {
+        out.mask_token_id   = target->mask_token_id;
+        out.n_target_layers = target->n_capture_layers;
+        // fc.weight is [hidden, n_target_layers * hidden] — its inner dim is shared
+        // with the verifier, so n_embd disagreement is a hard error, not a warning.
+        if (cfg.n_embd > 0 && cfg.n_embd != target->n_embd) {
+            char buf[256];
+            std::snprintf(buf, sizeof(buf),
+                "draft config.json n_embd=%d does not match target n_embd=%d "
+                "(fc projection requires equality)", cfg.n_embd, target->n_embd);
+            set_last_error(buf);
+            return false;
+        }
+        if (cfg.n_ff > 0 && cfg.n_ff != target->n_ff) {
+            // Soft warning — MLP intermediate isn't shared with target; just note it.
+            fprintf(stderr, "[draft] note: draft n_ff=%d differs from target n_ff=%d\n",
+                    cfg.n_ff, target->n_ff);
+        }
+    }
     out.layers.assign(n_layers, DraftLayer{});
 
     const int64_t HIDDEN  = out.n_embd;
@@ -389,7 +506,7 @@ bool load_draft_safetensors(const std::string & path,
     const int64_t KV_DIM  = out.n_head_kv * out.head_dim;
     const int64_t INTER   = out.n_ff;
     const int64_t HD      = out.head_dim;
-    const int64_t FC_IN   = DFLASH27B_DRAFT_N_TARGET_LAYERS * HIDDEN;
+    const int64_t FC_IN   = out.n_target_layers * HIDDEN;
 
     // ── 4. Create named tensors in the context ───────────────────
     //
@@ -428,65 +545,18 @@ bool load_draft_safetensors(const std::string & path,
         }
     }
 
-    // ── 4b. Read config.json for SWA layer_types (Qwen3.6 draft) ──
-    {
-        // config.json sits next to model.safetensors
-        std::string dir;
-        auto slash = path.find_last_of('/');
-        if (slash != std::string::npos) {
-            dir = path.substr(0, slash);
-        } else {
-            dir = ".";  // bare filename — look in CWD
+    // ── 4b. Apply SWA layer_types from config.json (z-lab Qwen3.6 pattern) ──
+    // DraftLayer.is_swa / DraftWeights.swa_window are consumed by the graph
+    // builder; main has the struct fields but no parser prior to this change.
+    if (!cfg.layer_is_swa.empty()) {
+        int n_swa = 0;
+        for (size_t il = 0; il < cfg.layer_is_swa.size() && (int)il < n_layers; il++) {
+            out.layers[il].is_swa = cfg.layer_is_swa[il];
+            if (cfg.layer_is_swa[il]) n_swa++;
         }
-        std::string cfg_path = dir + "/config.json";
-        FILE * f = std::fopen(cfg_path.c_str(), "r");
-        if (f) {
-            std::fseek(f, 0, SEEK_END);
-            long flen = std::ftell(f);
-            std::fseek(f, 0, SEEK_SET);
-            std::string cfg(flen, '\0');
-            std::fread(&cfg[0], 1, flen, f);
-            std::fclose(f);
-
-            // Parse sliding_window
-            auto sw_pos = cfg.find("\"sliding_window\"");
-            if (sw_pos != std::string::npos) {
-                auto colon = cfg.find(':', sw_pos);
-                if (colon != std::string::npos) {
-                    int sw = std::atoi(cfg.c_str() + colon + 1);
-                    if (sw > 0) out.swa_window = sw;
-                }
-            }
-
-            // Parse layer_types array
-            auto lt_pos = cfg.find("\"layer_types\"");
-            if (lt_pos != std::string::npos) {
-                auto arr_start = cfg.find('[', lt_pos);
-                auto arr_end   = cfg.find(']', arr_start);
-                if (arr_start != std::string::npos && arr_end != std::string::npos) {
-                    std::string arr = cfg.substr(arr_start, arr_end - arr_start + 1);
-                    int li = 0;
-                    size_t search_pos = 0;
-                    while (li < n_layers && search_pos < arr.size()) {
-                        auto q1 = arr.find('"', search_pos);
-                        if (q1 == std::string::npos) break;
-                        auto q2 = arr.find('"', q1 + 1);
-                        if (q2 == std::string::npos) break;
-                        std::string lt = arr.substr(q1 + 1, q2 - q1 - 1);
-                        out.layers[li].is_swa = (lt == "sliding_attention");
-                        li++;
-                        search_pos = q2 + 1;
-                    }
-                }
-            }
-
-            int n_swa = 0;
-            for (int il = 0; il < n_layers; il++) {
-                if (out.layers[il].is_swa) n_swa++;
-            }
-            if (n_swa > 0) {
-                fprintf(stderr, "[draft] SWA layers: %d/%d (window=%d)\n", n_swa, n_layers, out.swa_window);
-            }
+        if (n_swa > 0) {
+            fprintf(stderr, "[draft] SWA layers: %d/%d (window=%d)\n",
+                    n_swa, n_layers, out.swa_window);
         }
     }
 

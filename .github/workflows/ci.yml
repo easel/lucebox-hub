@@ -76,12 +76,17 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j$(nproc)
 
-      - name: Populate venv with cu130 torch + setuptools
-        # First pass: install the workspace's default deps. dflash declares
-        # torch (which uv pulls from the pytorch-cu130 index per
-        # [tool.uv.sources]) and pflash drags in setuptools. Megakernel is
-        # in the optional `megakernel` extra so its build does NOT run yet.
-        run: uv sync
+      - name: Build sparse FA adapter (sm_86)
+        run: |
+          cd dflash
+          cmake -B build-sm86 \
+            -DCMAKE_CUDA_ARCHITECTURES="86" \
+            -DDFLASH27B_ENABLE_BSA=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-sm86 --target test_flash_attn_sparse -j$(nproc)
+
+      - name: Install megakernel Python deps
+        run: pip install torch --index-url https://download.pytorch.org/whl/cu126
 
       - name: Build megakernel via uv sync (sm_75)
         env:
