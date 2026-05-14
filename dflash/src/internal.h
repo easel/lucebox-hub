@@ -218,7 +218,7 @@ struct DraftWeights {
     int head_dim  = DFLASH27B_TARGET_HEAD_DIM;         // 128
     int n_embd    = DFLASH27B_TARGET_HIDDEN;           // 5120
     int n_ff      = DFLASH27B_TARGET_INTERMEDIATE;     // 17408
-    int swa_window = 0;  // sliding window size (0 = disabled)
+    int swa_window = 0;  // sliding window size (0 = disabled, set by loader)
 };
 
 bool load_draft_safetensors(const std::string & path,
