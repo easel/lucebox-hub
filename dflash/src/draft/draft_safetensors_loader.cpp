@@ -28,6 +28,7 @@
 // ggml_new_tensor_2d(ctx, BF16, in, out) and copy the raw bytes.
 
 #include "internal.h"
+#include "draft_config_json.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -325,82 +326,6 @@ static void bf16_to_f16_array(const uint16_t * src, uint16_t * dst, size_t n) {
     }
 }
 
-// Optional fields parsed out of the draft's adjacent config.json. Anything
-// the file doesn't supply stays at the sentinel — callers fall back to
-// target metadata or compile-time defaults.
-struct DraftConfigJson {
-    int n_embd        = -1;  // hidden_size
-    int n_head        = -1;  // num_attention_heads
-    int n_head_kv     = -1;  // num_key_value_heads
-    int head_dim      = -1;  // head_dim
-    int n_ff          = -1;  // intermediate_size
-    int swa_window    = -1;  // sliding_window
-    std::vector<bool> layer_is_swa;  // per-layer; "sliding_attention" → true
-};
-
-// Tiny hand-rolled parser for a top-level integer JSON field. Returns -1 if
-// not found. Matches the surrounding code's "no real JSON parser" style; if
-// we ever depend on json-c we should drop this whole helper.
-static int parse_json_int(const std::string & cfg, const char * key) {
-    std::string needle = std::string("\"") + key + "\"";
-    auto p = cfg.find(needle);
-    if (p == std::string::npos) return -1;
-    auto colon = cfg.find(':', p + needle.size());
-    if (colon == std::string::npos) return -1;
-    return std::atoi(cfg.c_str() + colon + 1);
-}
-
-static DraftConfigJson read_draft_config_json(const std::string & model_path) {
-    DraftConfigJson d;
-
-    // config.json sits next to model.safetensors.
-    std::string dir;
-    auto slash = model_path.find_last_of('/');
-    if (slash != std::string::npos) {
-        dir = model_path.substr(0, slash);
-    } else {
-        dir = ".";  // bare filename — look in CWD
-    }
-    std::string cfg_path = dir + "/config.json";
-    FILE * f = std::fopen(cfg_path.c_str(), "r");
-    if (!f) return d;
-    std::fseek(f, 0, SEEK_END);
-    long flen = std::ftell(f);
-    std::fseek(f, 0, SEEK_SET);
-    if (flen <= 0) { std::fclose(f); return d; }
-    std::string cfg((size_t)flen, '\0');
-    std::fread(&cfg[0], 1, (size_t)flen, f);
-    std::fclose(f);
-
-    d.n_embd     = parse_json_int(cfg, "hidden_size");
-    d.n_head     = parse_json_int(cfg, "num_attention_heads");
-    d.n_head_kv  = parse_json_int(cfg, "num_key_value_heads");
-    d.head_dim   = parse_json_int(cfg, "head_dim");
-    d.n_ff       = parse_json_int(cfg, "intermediate_size");
-    d.swa_window = parse_json_int(cfg, "sliding_window");
-
-    // layer_types: ["sliding_attention", "full_attention", ...]
-    auto lt_pos = cfg.find("\"layer_types\"");
-    if (lt_pos != std::string::npos) {
-        auto arr_start = cfg.find('[', lt_pos);
-        auto arr_end   = cfg.find(']', arr_start);
-        if (arr_start != std::string::npos && arr_end != std::string::npos) {
-            std::string arr = cfg.substr(arr_start, arr_end - arr_start + 1);
-            size_t search_pos = 0;
-            while (search_pos < arr.size()) {
-                auto q1 = arr.find('"', search_pos);
-                if (q1 == std::string::npos) break;
-                auto q2 = arr.find('"', q1 + 1);
-                if (q2 == std::string::npos) break;
-                std::string lt = arr.substr(q1 + 1, q2 - q1 - 1);
-                d.layer_is_swa.push_back(lt == "sliding_attention");
-                search_pos = q2 + 1;
-            }
-        }
-    }
-    return d;
-}
-
 // Returns true when this build should keep draft projection weights as BF16.
 // CUDA builds keep BF16 only when built for native BF16 tensor-core support;
 // all other builds convert to F16 unless explicitly overridden.
@@ -467,17 +392,11 @@ bool load_draft_safetensors(const std::string & path,
     // projects from a concatenation of target hidden states. We cross-check below.
     const DraftConfigJson cfg = read_draft_config_json(path);
 
-    auto pick = [](int from_cfg, int from_target, int fallback) -> int {
-        if (from_cfg > 0)    return from_cfg;
-        if (from_target > 0) return from_target;
-        return fallback;
-    };
-
-    out.n_embd    = pick(cfg.n_embd,    target ? target->n_embd            : -1, DFLASH27B_TARGET_HIDDEN);
-    out.n_ff      = pick(cfg.n_ff,      target ? target->n_ff              : -1, DFLASH27B_TARGET_INTERMEDIATE);
-    out.n_head    = pick(cfg.n_head,    /*draft-private*/ -1,                   DFLASH27B_TARGET_N_HEADS);
-    out.n_head_kv = pick(cfg.n_head_kv, /*draft-private*/ -1,                   DFLASH27B_TARGET_N_KV_HEADS);
-    out.head_dim  = pick(cfg.head_dim,  /*draft-private*/ -1,                   DFLASH27B_TARGET_HEAD_DIM);
+    out.n_embd    = pick_draft_dim(cfg.n_embd,    target ? target->n_embd : -1, DFLASH27B_TARGET_HIDDEN);
+    out.n_ff      = pick_draft_dim(cfg.n_ff,      target ? target->n_ff   : -1, DFLASH27B_TARGET_INTERMEDIATE);
+    out.n_head    = pick_draft_dim(cfg.n_head,    /*draft-private*/ -1,         DFLASH27B_TARGET_N_HEADS);
+    out.n_head_kv = pick_draft_dim(cfg.n_head_kv, /*draft-private*/ -1,         DFLASH27B_TARGET_N_KV_HEADS);
+    out.head_dim  = pick_draft_dim(cfg.head_dim,  /*draft-private*/ -1,         DFLASH27B_TARGET_HEAD_DIM);
     out.swa_window = cfg.swa_window > 0 ? cfg.swa_window : 0;
 
     if (target) {
