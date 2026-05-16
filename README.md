@@ -23,6 +23,119 @@
 
 ---
 
+## Quick start
+
+Two prebuilt Docker images cover every dflash-supported NVIDIA GPU. The
+host wrapper `lucebox.sh` probes your driver + GPU, picks the right
+variant (`:cuda12` or `:cuda13`), and either runs the server foreground or
+manages it as a user systemd service. All orchestration logic — config,
+autotune, benchmarks, smoke tests, model download — lives in a typed
+Python CLI inside the image.
+
+```bash
+# 1. Install the host wrapper. ~80 lines of bash, zero deps beyond docker +
+#    nvidia-smi. No uv or Python required on the host.
+curl -fsSL https://raw.githubusercontent.com/Luce-Org/lucebox-hub/main/lucebox.sh \
+     -o ~/.local/bin/lucebox.sh && chmod +x ~/.local/bin/lucebox.sh
+
+# 2. Sanity check: driver, docker, NVIDIA Container Toolkit, VRAM, systemd.
+lucebox.sh check
+
+# 3. Pick a CUDA variant + autotune defaults. Writes ~/.lucebox/config.toml.
+lucebox.sh configure
+
+# 4. Pull the image (~14 GB).
+lucebox.sh pull
+
+# 5. Fetch the default target + DFlash draft (~20 GB) via the container —
+#    no host-side huggingface-cli install needed.
+lucebox.sh download-models
+
+# 6. Run the server. Either foreground:
+lucebox.sh serve
+#    …or install + start as a user systemd service:
+lucebox.sh install        # writes ~/.config/systemd/user/lucebox.service
+lucebox.sh start          # systemctl --user start lucebox
+lucebox.sh status         # journalctl-style status
+lucebox.sh logs           # follow the journal
+
+# 7. Use it.
+curl http://localhost:8080/v1/models
+```
+
+Prefer raw docker? `lucebox.sh print-run` emits the exact `docker run`
+command without executing — copy, tweak, paste. Or skip the wrapper
+entirely:
+
+```bash
+docker run --rm --gpus all -p 8080:8080 \
+    -v "$PWD/models:/opt/lucebox-hub/dflash/models" \
+    ghcr.io/luce-org/lucebox-hub:cuda13
+```
+
+The container falls back to VRAM-tiered autotune when env vars aren't
+supplied — ~112K ctx with TQ3_0 KV on a 24 GB card, full 128K on 32+ GB.
+
+### Hardware coverage
+
+| GPU                              | sm   | cuda12 | cuda13 |
+|----------------------------------|------|:------:|:------:|
+| RTX 2080 Ti                      | 75   | ✓      | ✓      |
+| A100                             | 80   | ✓      | ✓      |
+| RTX 3090 / A40 / A10             | 86   | ✓      | ✓      |
+| RTX 4090 / L40                   | 89   | ✓      | ✓      |
+| H100                             | 90   | ✓      | ✓      |
+| Jetson AGX Thor                  | 110  |        | ✓      |
+| RTX 5090 / RTX 5090 Laptop       | 120  | ✓      | ✓      |
+| DGX Spark / GB10                 | 121  | ✓      | ✓      |
+
+Pre-Turing GPUs (Pascal sm_60/61, Volta sm_70) aren't supported — dflash's
+kernels assume sm_75+ with no fallback below.
+
+### Configuration
+
+`lucebox.sh configure` writes `~/.lucebox/config.toml` with VRAM-tiered
+heuristics; edit it, then `lucebox.sh start` (or `serve`). For a tuned
+config, run `lucebox.sh benchmark` after `pull` — it sweeps `DFLASH_BUDGET`
+against an HE-style decode suite inside the container (5-15 min on a 24 GB
+card) and merges the winning budget back into `config.toml`. Or override
+per-run via `-e VAR=value` on `docker run`:
+
+| Env var                       | Default         | What it does
+|-------------------------------|-----------------|--------------
+| `DFLASH_PORT`                 | `8080`          | HTTP port
+| `DFLASH_MAX_CTX`              | autotuned       | Force a specific context length
+| `DFLASH_BUDGET`               | `22`            | DDTree tree budget (8 on AMD RDNA3)
+| `DFLASH_PREFIX_CACHE_SLOTS`   | `1`             | System-prompt prefix cache snapshots
+| `DFLASH_PREFILL_MODE`         | `off`           | `auto` / `always` for pFlash long-prompt speedups
+| `DFLASH_TARGET`               | auto-detected   | Override the target `.gguf` path
+| `DFLASH_DRAFT`                | `models/draft/` | Override the DFlash draft dir/file
+
+CLI reference: [`lucebox.sh`](lucebox.sh) (host) and
+[`lucebox/`](lucebox/) (Python package inside the container).
+
+### Available tags
+
+| Tag                            | Notes
+|--------------------------------|-------
+| `:cuda13`                      | rolling latest cuda13 release (recommended)
+| `:cuda12`                      | rolling latest cuda12 release
+| `:vX.Y.Z-cuda{12,13}`          | pinned to a specific release
+| `:X.Y-cuda{12,13}`             | latest patch in a minor series
+| `:sha-<short>-cuda{12,13}`     | exact commit
+
+### Building from source
+
+Megakernel isn't in the Docker images yet (its CUDA extension links against
+a `torch.utils.cpp_extension` wheel at build time and has to be compiled in
+your venv). For megakernel benchmarks, dflash kernel development, or
+running dflash with a non-default arch list, see
+[`megakernel/README.md`](megakernel/README.md),
+[`dflash/README.md`](dflash/README.md), and
+[`pflash/README.md`](pflash/README.md).
+
+---
+
 ## Inside the box
 
 Three projects today, more coming. Each one is a self-contained release with its own benchmarks and paper-style writeup.
