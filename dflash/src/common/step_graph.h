@@ -35,6 +35,10 @@ struct StepGraph {
     ggml_tensor *   hidden_states = nullptr;       // draft hidden-only output
     ggml_tensor *   argmax_tokens = nullptr; // [n_tokens] i32, GPU-side argmax of logits
     ggml_tensor *   topk_indices = nullptr;  // [K, n_tokens] i32, GPU-side top-K indices
+    ggml_tensor *   normed_hidden = nullptr; // [hidden, n_tokens] bf16, post-output-norm;
+                                             // populated when build_target_step is called
+                                             // with capture_normed_hidden=true (offline
+                                             // draft-training capture path).
 
     // Per-delta-net-layer captures (verify only).
     std::vector<DeltaNetCapture> delta_captures;
@@ -53,6 +57,7 @@ inline void step_graph_free(StepGraph & sg) {
     sg.hidden_states = nullptr;
     sg.argmax_tokens = nullptr;
     sg.topk_indices = nullptr;
+    sg.normed_hidden = nullptr;
     sg.delta_captures.clear();
 }
 

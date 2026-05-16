@@ -11,7 +11,7 @@ set -euo pipefail
 #   DFLASH_BIN       path to test_dflash binary (default: dflash/build/test_dflash)
 #   DFLASH_PORT      server port (default: 8080)
 #   DFLASH_HOST      server host (default: 0.0.0.0)
-#   DFLASH_MAX_CTX   max context length (default: 16384)
+#   DFLASH_MAX_CTX   max context length (autotuned by VRAM; static default 16384)
 #   DFLASH_BUDGET    DDTree budget (default: 22)
 #   DFLASH_LAZY      set to 1 to park draft when idle (default: 0)
 #   DFLASH_PREFIX_CACHE_SLOTS   (default: 1)
@@ -161,27 +161,60 @@ case "$GPU_ARCH" in
 esac
 
 # VRAM-tiered tuning — only when we actually know VRAM (GPU_MEM_GB > 0).
+# Tiers target Qwen3.x-27B Q4_K_M (~16 GB) + DFlash draft (~3.3 GB) + KV cache.
+# server.py auto-enables TQ3_0 KV (3.5 bpv) when max_ctx > 6144, which is what
+# lets a 24 GB-class consumer card carry ~112K ctx. RTX 5090 Laptop reports
+# 23 GiB via nvidia-smi (24 564 MiB integer-divided by 1024), so the 24 GB tier
+# starts at 22 to cover it; desktop 3090/4090/5090 land cleanly in the same tier.
 if [ "$GPU_MEM_GB" -gt 0 ]; then
-    if [ "$GPU_MEM_GB" -lt 24 ]; then
-        # Tight VRAM: park the draft when idle to free ~3.3 GB for ctx/KV.
+    if [ "$GPU_MEM_GB" -lt 12 ]; then
+        # Tiny VRAM (<12 GB) — 27B Q4_K_M won't fit; this is a safety floor.
         if [ -z "${DFLASH_LAZY:-}" ]; then
             DFLASH_LAZY=1
-            AUTOTUNED+=("lazy-draft=1 (VRAM ${GPU_MEM_GB} GB < 24 GB)")
+            AUTOTUNED+=("lazy-draft=1 (VRAM ${GPU_MEM_GB} GB < 12 GB)")
         fi
-        # Keep max-ctx modest on small cards to avoid KV blowup.
         if [ -z "${DFLASH_MAX_CTX:-}" ]; then
-            DFLASH_MAX_CTX=8192
-            AUTOTUNED+=("max_ctx=8192 (small VRAM)")
+            DFLASH_MAX_CTX=4096
+            AUTOTUNED+=("max_ctx=4096 (tiny VRAM)")
         fi
-    elif [ "$GPU_MEM_GB" -ge 40 ]; then
-        # Plenty of headroom — bigger prefix-cache and longer default context.
-        if [ -z "${DFLASH_PREFIX_CACHE_SLOTS:-}" ]; then
-            DFLASH_PREFIX_CACHE_SLOTS=4
-            AUTOTUNED+=("prefix_cache_slots=4 (VRAM ${GPU_MEM_GB} GB ≥ 40 GB)")
+    elif [ "$GPU_MEM_GB" -lt 22 ]; then
+        # 12-21 GB (RTX 4070/4080/3080) — model fits but headroom is tight.
+        if [ -z "${DFLASH_LAZY:-}" ]; then
+            DFLASH_LAZY=1
+            AUTOTUNED+=("lazy-draft=1 (VRAM ${GPU_MEM_GB} GB < 22 GB)")
         fi
         if [ -z "${DFLASH_MAX_CTX:-}" ]; then
             DFLASH_MAX_CTX=32768
-            AUTOTUNED+=("max_ctx=32768 (ample VRAM)")
+            AUTOTUNED+=("max_ctx=32768 (12-21 GB tier)")
+        fi
+    elif [ "$GPU_MEM_GB" -lt 32 ]; then
+        # 22-31 GB — 24 GB-class consumer flagships (RTX 3090/4090/5090,
+        # RTX 5090 Laptop). Q4_K_M target + draft + TQ3_0 KV fits ~112K ctx;
+        # full 128K leaves no margin for verify/rollback buffers (#114-style OOM).
+        if [ -z "${DFLASH_LAZY:-}" ]; then
+            DFLASH_LAZY=1
+            AUTOTUNED+=("lazy-draft=1 (24 GB-class consumer GPU)")
+        fi
+        if [ -z "${DFLASH_MAX_CTX:-}" ]; then
+            DFLASH_MAX_CTX=114688
+            AUTOTUNED+=("max_ctx=114688 (24 GB-class consumer GPU; TQ3_0 KV auto-enabled by server.py)")
+        fi
+    elif [ "$GPU_MEM_GB" -lt 48 ]; then
+        # 32-47 GB (RTX 6000 Ada, A100 40 GB) — full 128K fits comfortably.
+        if [ -z "${DFLASH_MAX_CTX:-}" ]; then
+            DFLASH_MAX_CTX=131072
+            AUTOTUNED+=("max_ctx=131072 (32-47 GB tier)")
+        fi
+    else
+        # ≥48 GB (A100 80 GB, H100, RTX 6000 Pro). Plenty of headroom for
+        # extra prefix-cache snapshots.
+        if [ -z "${DFLASH_PREFIX_CACHE_SLOTS:-}" ]; then
+            DFLASH_PREFIX_CACHE_SLOTS=4
+            AUTOTUNED+=("prefix_cache_slots=4 (VRAM ${GPU_MEM_GB} GB ≥ 48 GB)")
+        fi
+        if [ -z "${DFLASH_MAX_CTX:-}" ]; then
+            DFLASH_MAX_CTX=131072
+            AUTOTUNED+=("max_ctx=131072 (ample VRAM)")
         fi
     fi
 fi
@@ -219,15 +252,28 @@ fi
 : "${DFLASH_PREFILL_THRESHOLD:=32000}"
 : "${DFLASH_PREFILL_DRAFTER:=""}"
 
-# Auto-detect target if not set
+# Auto-detect target if not set.
+# Search recursively (HF downloads sometimes land in subdirs of --local-dir).
+# If multiple .gguf files are present (e.g. 27B target + 0.6B pFlash drafter),
+# pick the largest — the target is ~16-19 GB vs ~1.2 GB for the drafter.
 if [ -z "$DFLASH_TARGET" ]; then
-    CANDIDATES=($(ls "$DFLASH_DIR/models/"*.gguf 2>/dev/null || true))
-    if [ ${#CANDIDATES[@]} -eq 0 ]; then
-        die "No GGUF model found in $DFLASH_DIR/models/. Set DFLASH_TARGET or place a .gguf file there."
+    if [ -d "$DFLASH_DIR/models" ]; then
+        # `find -printf '%s %p\n' | sort -nr` ranks by size, biggest first.
+        DFLASH_TARGET=$(find "$DFLASH_DIR/models" -maxdepth 4 -type f -name "*.gguf" \
+                        -printf '%s %p\n' 2>/dev/null | sort -nr | head -1 | awk '{ $1=""; sub(/^ /,""); print }')
+        CANDIDATE_COUNT=$(find "$DFLASH_DIR/models" -maxdepth 4 -type f -name "*.gguf" 2>/dev/null | wc -l)
+        if [ "$CANDIDATE_COUNT" -gt 1 ]; then
+            warn "Multiple GGUF models in $DFLASH_DIR/models — selected largest: ${DFLASH_TARGET}"
+        fi
     fi
-    DFLASH_TARGET="${CANDIDATES[0]}"
-    if [ ${#CANDIDATES[@]} -gt 1 ]; then
-        warn "Multiple GGUF models found; using ${DFLASH_TARGET}"
+    if [ -z "$DFLASH_TARGET" ]; then
+        printf '\033[1;31m[ERROR]\033[0m No GGUF target found under %s/\n' "$DFLASH_DIR/models"
+        printf '\nDownload one of the supported targets, e.g.:\n'
+        printf '  mkdir -p %s/models %s/models/draft\n' "$DFLASH_DIR" "$DFLASH_DIR"
+        printf '  huggingface-cli download unsloth/Qwen3.6-27B-GGUF Qwen3.6-27B-Q4_K_M.gguf --local-dir %s/models\n' "$DFLASH_DIR"
+        printf '  huggingface-cli download z-lab/Qwen3.6-27B-DFlash --local-dir %s/models/draft\n' "$DFLASH_DIR"
+        printf '\nOr point DFLASH_TARGET at an existing .gguf file.\n' >&2
+        exit 1
     fi
 fi
 
