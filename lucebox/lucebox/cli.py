@@ -16,8 +16,12 @@ Subcommand inventory:
 
 from __future__ import annotations
 
+import json
+import os
 import sys
+from dataclasses import replace
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -29,7 +33,7 @@ from lucebox import config as config_mod
 from lucebox import download as download_mod
 from lucebox import smoke as smoke_mod
 from lucebox.host_facts import from_env
-from lucebox.types import AutotuneMeta, Config, Variant
+from lucebox.types import AutotuneMeta, BenchmarkMeta, Config, Variant
 
 app = typer.Typer(
     name="lucebox",
@@ -62,8 +66,13 @@ def _build_default_config() -> Config:
     host = from_env()
     variant = _pick_variant_from_driver(host.driver_major, host.gpu_sm)
     dflash = autotune_mod.runtime_from_host(host)
+    default = Config()
     return Config(
         variant=variant,
+        image=os.environ.get("LUCEBOX_IMAGE", default.image),
+        container_name=os.environ.get("LUCEBOX_CONTAINER", default.container_name),
+        port=int(os.environ.get("LUCEBOX_PORT", str(default.port))),
+        models_dir=Path(os.environ.get("LUCEBOX_MODELS", str(default.models_dir))),
         dflash=dflash,
         host=host,
         autotune=AutotuneMeta(source="heuristic", timestamp=_now()),
@@ -151,28 +160,212 @@ def print_serve_argv() -> None:
 
 
 @app.command()
-def benchmark() -> None:
+def benchmark(
+    profile: Annotated[
+        str,
+        typer.Option(
+            help="Optimizer profile: quick, context, full, or stress.",
+        ),
+    ] = "quick",
+    budgets: Annotated[
+        str, typer.Option(help="Comma-separated DFLASH_BUDGET values to sweep.")
+    ] = "8,16,22,32",
+    ctx_values: Annotated[
+        str,
+        typer.Option(
+            "--ctx-values",
+            help="Comma-separated DFLASH_MAX_CTX values to sweep.",
+        ),
+    ] = "",
+    min_context_speed_ratio: Annotated[
+        float,
+        typer.Option(
+            help="For context/full, keep candidates at least this fraction of fastest speed.",
+        ),
+    ] = 0.85,
+    lazy_values: Annotated[
+        str, typer.Option(help="Comma-separated lazy-draft values to sweep: 0,1.")
+    ] = "",
+    prefix_cache_slots_values: Annotated[
+        str, typer.Option(help="Comma-separated prefix-cache slot counts to sweep.")
+    ] = "",
+    prefill_cache_slots_values: Annotated[
+        str, typer.Option(help="Comma-separated prefill-cache slot counts to sweep.")
+    ] = "",
+    kv_values: Annotated[
+        str,
+        typer.Option(
+            help="Comma-separated KV modes: auto,f16,q4_0,q4_1,q5_0,q5_1,q8_0,tq3_0."
+        ),
+    ] = "",
+    prefill_modes: Annotated[
+        str, typer.Option(help="Comma-separated PFlash modes to sweep: off,auto,always.")
+    ] = "",
+    prefill_keep_ratios: Annotated[
+        str, typer.Option(help="Comma-separated PFlash keep ratios to sweep.")
+    ] = "",
+    prefill_thresholds: Annotated[
+        str, typer.Option(help="Comma-separated PFlash auto thresholds to sweep.")
+    ] = "",
+    prefill_drafter: Annotated[
+        str, typer.Option(help="PFlash drafter GGUF path for non-off prefill modes.")
+    ] = "",
+    n_prompts: Annotated[
+        int, typer.Option("--n-prompts", help="HE prompts per budget cell.")
+    ] = 5,
+    n_gen: Annotated[
+        int, typer.Option("--n-gen", help="Generated tokens per prompt.")
+    ] = 256,
+    ready_timeout: Annotated[
+        int, typer.Option(help="Seconds to wait for each server cell to become ready.")
+    ] = 180,
+    cell_timeout: Annotated[
+        int, typer.Option(help="Hard wall-clock budget per benchmark cell.")
+    ] = 240,
+    extra_suites: Annotated[
+        str,
+        typer.Option(
+            "--extra-suites",
+            help="Comma-separated post-optimizer suites: http-frontiers,capability,agentic-tools.",
+        ),
+    ] = "",
+    frontiers: Annotated[
+        str, typer.Option(help="Prompt frontiers for the http-frontiers extra suite.")
+    ] = "2048,4096,8192,16384",
+    allow_extra_suite_failures: Annotated[
+        bool,
+        typer.Option(
+            "--allow-extra-suite-failures",
+            help="Persist the winner even if post-winner validation suites fail.",
+        ),
+    ] = False,
+) -> None:
     """Sweep DFLASH_* knobs inside the container, merge winner into config."""
-    console.print("[yellow]benchmark not wired up in this build[/yellow]")
-    console.print("Once landed it will spawn the bench container and merge the")
-    console.print("optimal config back into .lucebox/config.toml. For now see")
-    console.print("dflash/scripts/lucebox_bench.py.")
-    raise typer.Exit(code=2)
+    cfg = _load_or_build()
+    bench_args = [
+        "--profile", profile,
+        "--budgets", budgets,
+        "--ctx-values", ctx_values,
+        "--min-context-speed-ratio", str(min_context_speed_ratio),
+        "--lazy-values", lazy_values,
+        "--prefix-cache-slots-values", prefix_cache_slots_values,
+        "--prefill-cache-slots-values", prefill_cache_slots_values,
+        "--kv-values", kv_values,
+        "--prefill-modes", prefill_modes,
+        "--prefill-keep-ratios", prefill_keep_ratios,
+        "--prefill-thresholds", prefill_thresholds,
+        "--prefill-drafter", prefill_drafter,
+        "--n-prompts", str(n_prompts),
+        "--n-gen", str(n_gen),
+        "--ready-timeout", str(ready_timeout),
+        "--cell-timeout", str(cell_timeout),
+        "--extra-suites", extra_suites,
+        "--frontiers", frontiers,
+    ]
+    if allow_extra_suite_failures:
+        bench_args.append("--allow-extra-suite-failures")
+    spec = docker_run.benchmark_run_spec(cfg, tuple(bench_args))
+    console.print(f"[bold]Running optimizer in {spec.image}[/bold]")
+    rc = docker_run.run(spec.argv(), check=False).returncode
+    if rc != 0:
+        raise typer.Exit(code=rc)
+
+    report_path = Path(cfg.models_dir) / ".lucebox" / "bench-report.json"
+    try:
+        report = json.loads(report_path.read_text())
+    except OSError as e:
+        console.print(f"[red]Benchmark finished but report is missing:[/red] {e}")
+        raise typer.Exit(code=1) from e
+    except json.JSONDecodeError as e:
+        console.print(f"[red]Benchmark report is invalid JSON:[/red] {e}")
+        raise typer.Exit(code=1) from e
+
+    winner = report.get("winner")
+    if not isinstance(winner, dict) or "budget" not in winner or "max_ctx" not in winner:
+        console.print("[red]Benchmark did not produce a winning cell[/red]")
+        raise typer.Exit(code=1)
+
+    try:
+        budget = int(winner["budget"])
+        max_ctx = int(winner["max_ctx"])
+        lazy = bool(winner.get("lazy", cfg.dflash.lazy))
+        prefix_cache_slots = int(winner.get("prefix_cache_slots", cfg.dflash.prefix_cache_slots))
+        prefill_cache_slots = int(winner.get("prefill_cache_slots", cfg.dflash.prefill_cache_slots))
+        cache_type_k = str(winner.get("cache_type_k", ""))
+        cache_type_v = str(winner.get("cache_type_v", ""))
+        prefill_mode = str(winner.get("prefill_mode", cfg.dflash.prefill_mode))
+        prefill_keep_ratio = float(winner.get("prefill_keep_ratio", cfg.dflash.prefill_keep_ratio))
+        prefill_threshold = int(winner.get("prefill_threshold", cfg.dflash.prefill_threshold))
+        prefill_drafter_winner = str(winner.get("prefill_drafter", cfg.dflash.prefill_drafter))
+    except (TypeError, ValueError) as e:
+        console.print(f"[red]Benchmark winner has invalid fields:[/red] {winner!r}")
+        raise typer.Exit(code=1) from e
+
+    mean_tps = winner.get("mean_decode_tps")
+    mean_tps_f = float(mean_tps) if mean_tps is not None else None
+    tuned = replace(
+        cfg,
+        dflash=autotune_mod.merge_benchmark_winner(
+            cfg.dflash,
+            budget=budget,
+            max_ctx=max_ctx,
+            lazy=lazy,
+            prefix_cache_slots=prefix_cache_slots,
+            prefill_cache_slots=prefill_cache_slots,
+            cache_type_k=cache_type_k,
+            cache_type_v=cache_type_v,
+            prefill_mode=prefill_mode,
+            prefill_keep_ratio=prefill_keep_ratio,
+            prefill_threshold=prefill_threshold,
+            prefill_drafter=prefill_drafter_winner,
+        ),
+        autotune=AutotuneMeta(source="benchmark", timestamp=_now()),
+        benchmark=BenchmarkMeta(
+            ran_at=_now(),
+            profile=str(report.get("profile") or profile),
+            winner_budget=budget,
+            winner_max_ctx=max_ctx,
+            winner_lazy=lazy,
+            winner_prefix_cache_slots=prefix_cache_slots,
+            winner_prefill_cache_slots=prefill_cache_slots,
+            winner_cache_type_k=cache_type_k,
+            winner_cache_type_v=cache_type_v,
+            winner_prefill_mode=prefill_mode,
+            mean_tps=mean_tps_f,
+            report_path=str(report_path),
+        ),
+    )
+    written = config_mod.save(tuned)
+    console.print(f"[green]Updated[/green] {written}")
+    console.print(f"  DFLASH_BUDGET [bold]{budget}[/bold]")
+    console.print(f"  DFLASH_MAX_CTX [bold]{max_ctx}[/bold]")
+    console.print(f"  DFLASH_LAZY [bold]{lazy}[/bold]")
+    console.print(f"  prefix slots [bold]{prefix_cache_slots}[/bold]")
+    console.print(f"  KV cache     [bold]{cache_type_k or 'auto'}[/bold]")
+    console.print(f"  PFlash       [bold]{prefill_mode}[/bold]")
+    if mean_tps_f is not None:
+        console.print(f"  mean decode   [bold]{mean_tps_f:.2f} tok/s[/bold]")
+    console.print(f"  report        {report_path}")
 
 
 @app.command()
 def smoke(
     timeout: Annotated[float, typer.Option(help="Per-request timeout (seconds).")] = 60.0,
+    tools: Annotated[
+        bool,
+        typer.Option("--tools/--no-tools", help="Also require a tool-call response."),
+    ] = True,
 ) -> None:
-    """Hit /v1/chat/completions on the running server; report PASS/FAIL.
+    """Hit /props + /v1/chat/completions on the running server; report PASS/FAIL.
 
     Talks to the server container via the host docker bridge (port is mapped
-    from cfg.port → 8080 inside). Pass criteria: HTTP 200 + ≥1 streamed
-    content token within `timeout` seconds.
+    from cfg.port → 8080 inside). Pass criteria: valid /props, HTTP 200,
+    at least one streamed content token, and by default one tool call.
     """
     cfg = _load_or_build()
-    result = smoke_mod.run(cfg, timeout_s=timeout)
+    result = smoke_mod.run(cfg, timeout_s=timeout, check_tools=tools)
     console.print(
+        f"props={result.props_ok}  tools={result.tool_ok}  "
         f"http={result.http_status}  tokens={result.n_tokens}  "
         f"wall={result.wall_s:.2f}s"
     )

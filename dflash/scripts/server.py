@@ -803,6 +803,20 @@ class ChatRequest(BaseModel):
     stream_options: dict | None = None  # e.g. {"include_usage": true}
 
 
+def _chat_template_tools(tools: list[ToolDef] | None) -> list[dict] | None:
+    """Return the function-schema shape expected by Qwen chat templates."""
+    if not tools:
+        return None
+    rendered: list[dict] = []
+    for tool in tools:
+        fn = tool.function
+        if hasattr(fn, "model_dump"):
+            fn = fn.model_dump()
+        if isinstance(fn, dict):
+            rendered.append(fn)
+    return rendered or None
+
+
 class AnthropicMessage(BaseModel):
     role: str
     content: str | list[dict]
@@ -1214,13 +1228,17 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
         ``template_kwargs`` is passed through to ``apply_chat_template`` so callers
         can toggle template knobs like ``enable_thinking`` per-request.
 
-        Thinking is disabled by default, but Qwen3.6's no-thinking template
-        pre-fills a closed ``<think></think>`` block that can make the model emit
-        EOS immediately. We strip that trailing closed block before tokenization
-        so the assistant turn remains open without enabling think mode.
+        Thinking is disabled by default for plain chat because Qwen3.6's think
+        mode can reduce DFlash acceptance rates. Tool prompts need Qwen's
+        thinking template to reliably emit tool tokens, so tool-bearing requests
+        default to ``enable_thinking=True`` unless the client explicitly
+        overrides it. When thinking is disabled, Qwen3.6's no-thinking template
+        may pre-fill a closed ``<think></think>`` block; we strip that trailing
+        block before tokenization so the assistant turn remains open.
         """
+        default_thinking = bool(tools_arg)
         tpl_kwargs: dict = {"tokenize": False, "add_generation_prompt": True,
-                            "enable_thinking": False}
+                            "enable_thinking": default_thinking}
         tpl_kwargs.update(
             {k: v for k, v in (template_kwargs or {}).items() if k in _ALLOWED_TEMPLATE_KWARGS}
         )
@@ -1270,7 +1288,7 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
 
         tools_arg = None
         if req.tools:
-            tools_arg = [t.model_dump() for t in req.tools]
+            tools_arg = _chat_template_tools(req.tools)
 
         path, ids, _prompt = _render_messages(msgs, req.chat_template_kwargs, tools_arg)
         started_in_thinking = bool(re.search(r"<think>\s*$", _prompt))
@@ -1349,6 +1367,32 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
     async def _collect_tokens_sync(r, n_gen, timing=None) -> list[int]:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, lambda: list(_token_stream(r, n_gen, timing)))
+
+    async def _drain_unfinished_stream(timing) -> bool:
+        """Drain daemon tokens after a client disconnects mid-stream.
+
+        The daemon writes all request tokens and a sentinel to one shared pipe.
+        If an HTTP stream is cancelled before the sentinel, releasing
+        daemon_lock would let the next request consume stale bytes and return
+        an empty completion. Keep draining even if cancellation is raised; the
+        caller can re-raise after cache cleanup and draft parking.
+        """
+        if timing.get("daemon_done"):
+            return False
+        log.warning("stream ended before daemon sentinel; draining daemon pipe")
+        cancelled = False
+        task = asyncio.create_task(asyncio.to_thread(_drain_until_sentinel, r_pipe))
+        while not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                cancelled = True
+        try:
+            task.result()
+            timing["daemon_done"] = True
+        except Exception as exc:
+            log.warning("daemon pipe drain after stream close failed: %s", exc)
+        return cancelled
 
     async def _astream_tokens(r, n_gen, timing=None):
         generated = 0
@@ -1674,6 +1718,7 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
                             return None
                         return f"data: {json.dumps(chunk({kind: text}))}\n\n"
 
+                    cancelled_while_draining = False
                     try:
                         async for tok_id in _astream_tokens(r_pipe, gen_len, timing):
                             completion_tokens += 1
@@ -1833,15 +1878,15 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
                                 try: prompt_bin.unlink()
                                 except Exception: pass
                         else:
-                            log.warning(
-                                "stream ended before daemon sentinel; "
-                                "retaining prompt .bin for in-flight daemon read")
+                            cancelled_while_draining = await _drain_unfinished_stream(timing)
 
                     inline_snap_ok = _consume_inline_snap_waiter(snap_waiter)
                     _confirm_or_abort_snap(
                         completion_tokens, full_snap_prep_ref[0], snap_prep,
                         prompt_ids, cur_bin, cur_ids, inline_snap_ok)
                     _park_draft_if_lazy(timing)
+                    if cancelled_while_draining:
+                        raise asyncio.CancelledError
 
                     yield f"data: {json.dumps(chunk({}, finish=finish_reason))}\n\n"
                     if include_usage:
@@ -2146,6 +2191,7 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
 
                     out_tokens = 0
                     tokens: list[int] = []
+                    cancelled_while_draining = False
                     try:
                         async for tok_id in _astream_tokens(r_pipe, gen_len, timing):
                             out_tokens += 1
@@ -2159,15 +2205,15 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
                                 try: prompt_bin.unlink()
                                 except Exception: pass
                         else:
-                            log.warning(
-                                "stream ended before daemon sentinel; "
-                                "retaining prompt .bin for in-flight daemon read")
+                            cancelled_while_draining = await _drain_unfinished_stream(timing)
 
                     inline_snap_ok = _consume_inline_snap_waiter(snap_waiter)
                     _confirm_or_abort_snap(
                         out_tokens, full_snap_prep_ref[0], snap_prep,
                         prompt_ids, cur_bin, cur_ids, inline_snap_ok)
                     _park_draft_if_lazy(timing)
+                    if cancelled_while_draining:
+                        raise asyncio.CancelledError
 
                     text = tokenizer.decode(tokens, skip_special_tokens=True)
                     cleaned, tool_calls = parse_tool_calls(
@@ -2439,7 +2485,7 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
         messages, tools = _map_responses_input(req)
 
         # Build an internal ChatRequest
-        enable_thinking = False
+        enable_thinking = bool(tools)
         if req.reasoning and req.reasoning.effort and req.reasoning.effort != "low":
             enable_thinking = True
 
@@ -2720,6 +2766,7 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
                 completion_tokens = 0
                 tool_call_active = False
 
+                cancelled_while_draining = False
                 try:
                     async for tok_id in _astream_tokens(r_pipe, gen_len, timing):
                         completion_tokens += 1
@@ -2815,15 +2862,15 @@ def build_app(target: Path, draft: Path | None, bin_path: Path, budget: int, max
                             try: prompt_bin.unlink()
                             except Exception: pass
                     else:
-                        log.warning(
-                            "stream ended before daemon sentinel; "
-                            "retaining prompt .bin for in-flight daemon read")
+                        cancelled_while_draining = await _drain_unfinished_stream(timing)
 
                 inline_snap_ok = _consume_inline_snap_waiter(snap_waiter)
                 _confirm_or_abort_snap(
                     completion_tokens, full_snap_prep_ref[0], snap_prep,
                     prompt_ids, cur_bin, cur_ids, inline_snap_ok)
                 _park_draft_if_lazy(timing)
+                if cancelled_while_draining:
+                    raise asyncio.CancelledError
 
                 # Build final output items
                 final_output: list[dict] = []

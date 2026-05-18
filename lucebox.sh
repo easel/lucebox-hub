@@ -96,6 +96,12 @@ probe_host() {
         LUCEBOX_HOST_HAS_SYSTEMD=1
     fi
 
+    LUCEBOX_HOST_IS_WSL=0
+    if grep -qi microsoft /proc/version 2>/dev/null \
+       || [ -e /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+        LUCEBOX_HOST_IS_WSL=1
+    fi
+
     LUCEBOX_HOST_HAS_DOCKER=0
     LUCEBOX_HOST_DOCKER_VERSION=""
     if command -v docker &>/dev/null && docker info &>/dev/null; then
@@ -118,7 +124,8 @@ probe_host() {
     export LUCEBOX_HOST_NPROC LUCEBOX_HOST_RAM_GB LUCEBOX_HOST_GPU_VENDOR
     export LUCEBOX_HOST_GPU_NAME LUCEBOX_HOST_GPU_COUNT LUCEBOX_HOST_VRAM_GB
     export LUCEBOX_HOST_GPU_SM LUCEBOX_HOST_DRIVER_VERSION LUCEBOX_HOST_DRIVER_MAJOR
-    export LUCEBOX_HOST_HAS_SYSTEMD LUCEBOX_HOST_HAS_DOCKER LUCEBOX_HOST_DOCKER_VERSION
+    export LUCEBOX_HOST_HAS_SYSTEMD LUCEBOX_HOST_IS_WSL
+    export LUCEBOX_HOST_HAS_DOCKER LUCEBOX_HOST_DOCKER_VERSION
     export LUCEBOX_HOST_HAS_CTK
 }
 
@@ -217,6 +224,7 @@ build_orchestrator_argv() {
     argv+=(-v "$DOCKER_SOCK_PATH:/var/run/docker.sock")
     argv+=(-v "$HOME:$HOME")
     argv+=(-w "$PWD")
+    argv+=(-e "HOME=$HOME")
     # Host facts — Python side reads these instead of reprobing.
     local var
     for var in $(compgen -e | grep '^LUCEBOX_HOST_' || true); do
@@ -226,6 +234,7 @@ build_orchestrator_argv() {
     argv+=(-e "LUCEBOX_IMAGE=$IMAGE_BASE")
     argv+=(-e "LUCEBOX_PORT=$DEFAULT_PORT")
     argv+=(-e "LUCEBOX_CONTAINER=$CONTAINER_NAME")
+    [ -n "${LUCEBOX_MODELS:-}" ] && argv+=(-e "LUCEBOX_MODELS=$LUCEBOX_MODELS")
     [ -n "${HF_TOKEN:-}" ] && argv+=(-e "HF_TOKEN=$HF_TOKEN")
 
     argv+=("${IMAGE_BASE}:${variant}")
@@ -411,6 +420,7 @@ Environment overrides:
   LUCEBOX_IMAGE         image name without tag (default: ghcr.io/luce-org/lucebox-hub)
   LUCEBOX_PORT          host port for the server (default: 8080)
   LUCEBOX_CONTAINER     server container name (default: lucebox)
+  LUCEBOX_MODELS        host model directory (default: ~/models)
   HF_TOKEN              propagated to download-models for gated HF repos
 EOF
 }

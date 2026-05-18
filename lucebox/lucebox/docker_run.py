@@ -19,6 +19,16 @@ from pathlib import Path
 from lucebox.types import Config
 
 
+def _runtime_volumes(cfg: Config) -> tuple[tuple[str, str], ...]:
+    """Mount models plus $HOME so absolute symlink targets remain valid."""
+    home = str(Path.home())
+    models = str(cfg.models_dir)
+    volumes = [(models, "/opt/lucebox-hub/dflash/models")]
+    if home != models:
+        volumes.append((home, home))
+    return tuple(volumes)
+
+
 @dataclass(frozen=True, slots=True)
 class DockerRunSpec:
     """Pre-render of a docker-run command. Render via `argv()` or `printable()`."""
@@ -85,16 +95,22 @@ def server_run_spec(cfg: Config) -> DockerRunSpec:
         ("DFLASH_MAX_CTX", str(cfg.dflash.max_ctx)),
         ("DFLASH_PREFIX_CACHE_SLOTS", str(cfg.dflash.prefix_cache_slots)),
         ("DFLASH_PREFILL_CACHE_SLOTS", str(cfg.dflash.prefill_cache_slots)),
-        ("DFLASH_PORT", str(cfg.port)),
+        ("DFLASH_PORT", "8080"),
     ]
     if cfg.dflash.lazy:
         env.append(("DFLASH_LAZY", "1"))
+    if cfg.dflash.cache_type_k:
+        env.append(("DFLASH_CACHE_TYPE_K", cfg.dflash.cache_type_k))
+    if cfg.dflash.cache_type_v:
+        env.append(("DFLASH_CACHE_TYPE_V", cfg.dflash.cache_type_v))
     if cfg.dflash.prefill_mode != "off":
         env += [
             ("DFLASH_PREFILL_MODE", cfg.dflash.prefill_mode),
             ("DFLASH_PREFILL_KEEP", str(cfg.dflash.prefill_keep_ratio)),
             ("DFLASH_PREFILL_THRESHOLD", str(cfg.dflash.prefill_threshold)),
         ]
+        if cfg.dflash.prefill_drafter:
+            env.append(("DFLASH_PREFILL_DRAFTER", cfg.dflash.prefill_drafter))
 
     return DockerRunSpec(
         image=f"{cfg.image}:{cfg.variant}",
@@ -103,8 +119,49 @@ def server_run_spec(cfg: Config) -> DockerRunSpec:
         remove=True,
         detach=False,
         port_publish=(cfg.port, 8080),
-        volumes=((str(cfg.models_dir), "/opt/lucebox-hub/dflash/models"),),
+        volumes=_runtime_volumes(cfg),
         env=tuple(env),
+    )
+
+
+def benchmark_run_spec(cfg: Config, args: tuple[str, ...] = ()) -> DockerRunSpec:
+    """One-shot optimizer container.
+
+    The benchmark entrypoint starts short-lived server.py instances on an
+    internal container port, writes its report under the bind-mounted models
+    directory, and exits. The host CLI reads that report back and updates
+    config.toml.
+    """
+    env: list[tuple[str, str]] = [
+        ("DFLASH_BUDGET", str(cfg.dflash.budget)),
+        ("DFLASH_MAX_CTX", str(cfg.dflash.max_ctx)),
+        ("DFLASH_PREFIX_CACHE_SLOTS", str(cfg.dflash.prefix_cache_slots)),
+        ("DFLASH_PREFILL_CACHE_SLOTS", str(cfg.dflash.prefill_cache_slots)),
+    ]
+    if cfg.dflash.lazy:
+        env.append(("DFLASH_LAZY", "1"))
+    if cfg.dflash.cache_type_k:
+        env.append(("DFLASH_CACHE_TYPE_K", cfg.dflash.cache_type_k))
+    if cfg.dflash.cache_type_v:
+        env.append(("DFLASH_CACHE_TYPE_V", cfg.dflash.cache_type_v))
+    if cfg.dflash.prefill_mode != "off":
+        env += [
+            ("DFLASH_PREFILL_MODE", cfg.dflash.prefill_mode),
+            ("DFLASH_PREFILL_KEEP", str(cfg.dflash.prefill_keep_ratio)),
+            ("DFLASH_PREFILL_THRESHOLD", str(cfg.dflash.prefill_threshold)),
+        ]
+        if cfg.dflash.prefill_drafter:
+            env.append(("DFLASH_PREFILL_DRAFTER", cfg.dflash.prefill_drafter))
+
+    return DockerRunSpec(
+        image=f"{cfg.image}:{cfg.variant}",
+        name=f"{cfg.container_name}-bench",
+        gpus=True,
+        remove=True,
+        detach=False,
+        volumes=_runtime_volumes(cfg),
+        env=tuple(env),
+        entrypoint_args=("benchmark", *args),
     )
 
 

@@ -467,6 +467,62 @@ def test_chat_completions_non_streaming_with_tool_call(mock_os_read, mock_pipe,
 
 @patch("server.os.pipe")
 @patch("server.os.read")
+def test_chat_completions_tool_request_enables_thinking_by_default(
+        mock_os_read, mock_pipe, mock_tokenizer, app):
+    mock_pipe.return_value = (1, 2)
+    mock_os_read.side_effect = [struct.pack("<i", 10), struct.pack("<i", -1)]
+
+    client = TestClient(app)
+    response = client.post("/v1/chat/completions", json={
+        "model": MODEL_NAME,
+        "messages": [{"role": "user", "content": "read test.py"}],
+        "tools": [{
+            "type": "function",
+            "function": {
+                "name": "read_file",
+                "description": "Read a file",
+                "parameters": {"type": "object", "properties": {}},
+            },
+        }],
+        "stream": False,
+    })
+
+    assert response.status_code == 200
+    kwargs = mock_tokenizer.apply_chat_template.call_args_list[-1].kwargs
+    assert kwargs["enable_thinking"] is True
+    assert kwargs["tools"][0]["name"] == "read_file"
+
+
+@patch("server.os.pipe")
+@patch("server.os.read")
+def test_chat_completions_tool_request_can_disable_thinking(
+        mock_os_read, mock_pipe, mock_tokenizer, app):
+    mock_pipe.return_value = (1, 2)
+    mock_os_read.side_effect = [struct.pack("<i", 10), struct.pack("<i", -1)]
+
+    client = TestClient(app)
+    response = client.post("/v1/chat/completions", json={
+        "model": MODEL_NAME,
+        "messages": [{"role": "user", "content": "read test.py"}],
+        "tools": [{
+            "type": "function",
+            "function": {
+                "name": "read_file",
+                "description": "Read a file",
+                "parameters": {"type": "object", "properties": {}},
+            },
+        }],
+        "stream": False,
+        "chat_template_kwargs": {"enable_thinking": False},
+    })
+
+    assert response.status_code == 200
+    kwargs = mock_tokenizer.apply_chat_template.call_args_list[-1].kwargs
+    assert kwargs["enable_thinking"] is False
+
+
+@patch("server.os.pipe")
+@patch("server.os.read")
 def test_chat_completions_replays_raw_tool_call_text(mock_os_read, mock_pipe,
                                                      mock_tokenizer, app):
     mock_pipe.return_value = (1, 2)
@@ -873,6 +929,9 @@ def test_responses_with_tools(mock_os_read, mock_pipe, mock_tokenizer, app):
     data = response.json()
     assert data["object"] == "response"
     assert data["status"] == "completed"
+    kwargs = mock_tokenizer.apply_chat_template.call_args_list[-1].kwargs
+    assert kwargs["enable_thinking"] is True
+    assert kwargs["tools"][0]["name"] == "read_file"
 
 
 @patch("server.os.pipe")

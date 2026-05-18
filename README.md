@@ -95,10 +95,37 @@ kernels assume sm_75+ with no fallback below.
 
 `lucebox.sh configure` writes `~/.lucebox/config.toml` with VRAM-tiered
 heuristics; edit it, then `lucebox.sh start` (or `serve`). For a tuned
-config, run `lucebox.sh benchmark` after `pull` — it sweeps `DFLASH_BUDGET`
-against an HE-style decode suite inside the container (5-15 min on a 24 GB
-card) and merges the winning budget back into `config.toml`. Or override
-per-run via `-e VAR=value` on `docker run`:
+config, run `lucebox.sh benchmark` after `pull`. The optimizer has four
+profiles:
+
+- `--profile quick`: sweep selected tunables at the configured context.
+- `--profile context`: sweep `DFLASH_MAX_CTX × DFLASH_BUDGET` plus any
+  requested cache/pFlash/lazy tunables, then choose the highest reliable
+  context that stays within the configured speed floor.
+- `--profile full`: run the context profile plus HTTP long-context frontiers,
+  graded capability prompts, and the agentic tool-call reliability suite.
+- `--profile stress`: use the context policy with warmed validation gates:
+  repeated agentic tool calls plus longer HTTP frontier coverage. Use this
+  before accepting aggressive context settings on 24 GB cards.
+
+Winning `DFLASH_BUDGET`, `DFLASH_MAX_CTX`, lazy-draft, prefix-cache, KV-cache,
+and pFlash values are merged back into `config.toml`; reports are written
+under `models/.lucebox/`. Use `--lazy-values`, `--prefix-cache-slots-values`,
+`--kv-values`, `--prefill-modes`, `--prefill-keep-ratios`, and
+`--prefill-thresholds` to widen the sweep. Use
+`--extra-suites http-frontiers,capability,agentic-tools` to attach validation
+suites to any profile; failed suites reject the current candidate and the
+optimizer tries the next ranked candidate before leaving the config unchanged.
+`http-frontiers` is a DS4-bench-inspired HTTP probe, not antirez/ds4's
+`ds4-eval`; the `capability` suite borrows `ds4-eval`'s fixed prompt,
+strict final-answer, grading, and trace pattern for lucebox's HTTP API. Or
+override per-run via `-e VAR=value` on `docker run`:
+
+On WSL2, 24 GB-class NVIDIA GPUs default to a safer `DFLASH_MAX_CTX=65536`
+and `DFLASH_BUDGET=16`. Stress testing on a 3090 Ti showed that `114688/22`
+can leave only a few hundred MiB of VRAM headroom under repeated tool traffic,
+which is not enough for CUDA/VMM scratch allocations. Use `benchmark --profile
+stress` to prove higher settings before keeping them.
 
 | Env var                       | Default         | What it does
 |-------------------------------|-----------------|--------------
@@ -106,7 +133,9 @@ per-run via `-e VAR=value` on `docker run`:
 | `DFLASH_MAX_CTX`              | autotuned       | Force a specific context length
 | `DFLASH_BUDGET`               | `22`            | DDTree tree budget (8 on AMD RDNA3)
 | `DFLASH_PREFIX_CACHE_SLOTS`   | `1`             | System-prompt prefix cache snapshots
+| `DFLASH_CACHE_TYPE_K/V`       | auto            | Explicit KV cache type override
 | `DFLASH_PREFILL_MODE`         | `off`           | `auto` / `always` for pFlash long-prompt speedups
+| `DFLASH_PREFILL_DRAFTER`      | unset           | Qwen3-0.6B BF16 GGUF for pFlash
 | `DFLASH_TARGET`               | auto-detected   | Override the target `.gguf` path
 | `DFLASH_DRAFT`                | `models/draft/` | Override the DFlash draft dir/file
 

@@ -142,6 +142,8 @@ def render(console: Console, host: HostFacts, results: list[CheckResult]) -> Sev
             f" · {host.gpu_name} · {host.vram_gb} GB VRAM"
             + (f" (sm_{host.gpu_sm})" if host.gpu_sm else "")
         )
+    if host.is_wsl:
+        summary += " · WSL2"
     console.print(summary)
     console.print()
 

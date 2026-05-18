@@ -75,6 +75,10 @@ GPU_COUNT=$(nvidia-smi -L 2>/dev/null | wc -l || echo 0)
 # decide whether it can load.
 
 if [ "$GPU_VRAM_GB" -gt 0 ]; then
+    IS_WSL=0
+    if grep -qi microsoft /proc/version 2>/dev/null || [ -e /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+        IS_WSL=1
+    fi
     if [ "$GPU_VRAM_GB" -lt 12 ]; then
         : "${DFLASH_LAZY:=1}"
         : "${DFLASH_MAX_CTX:=4096}"
@@ -84,7 +88,12 @@ if [ "$GPU_VRAM_GB" -gt 0 ]; then
         : "${DFLASH_MAX_CTX:=32768}"
     elif [ "$GPU_VRAM_GB" -lt 32 ]; then
         : "${DFLASH_LAZY:=1}"
-        : "${DFLASH_MAX_CTX:=114688}"
+        if [ "$IS_WSL" = "1" ]; then
+            : "${DFLASH_BUDGET:=16}"
+            : "${DFLASH_MAX_CTX:=65536}"
+        else
+            : "${DFLASH_MAX_CTX:=114688}"
+        fi
     elif [ "$GPU_VRAM_GB" -lt 48 ]; then
         : "${DFLASH_MAX_CTX:=131072}"
     else
@@ -101,6 +110,8 @@ fi
 : "${DFLASH_LAZY:=0}"
 : "${DFLASH_PREFIX_CACHE_SLOTS:=1}"
 : "${DFLASH_PREFILL_CACHE_SLOTS:=0}"
+: "${DFLASH_CACHE_TYPE_K:=}"
+: "${DFLASH_CACHE_TYPE_V:=}"
 : "${DFLASH_VERBOSE:=0}"
 : "${DFLASH_TARGET:=}"
 : "${DFLASH_DRAFT:=$DFLASH_DIR/models/draft}"
@@ -110,11 +121,19 @@ fi
 : "${DFLASH_PREFILL_DRAFTER:=}"
 
 # ── auto-detect target ─────────────────────────────────────────────────────
-# Largest .gguf wins (target ~16 GB vs ~1 GB drafter).
+# Largest .gguf wins (target ~16 GB vs ~1 GB drafter). Follow symlinks so a
+# symlinked 27B target is ranked by target size instead of being skipped.
 if [ -z "$DFLASH_TARGET" ] && [ -d "$DFLASH_DIR/models" ]; then
-    DFLASH_TARGET=$(find "$DFLASH_DIR/models" -maxdepth 4 -type f -name '*.gguf' \
-                      -printf '%s %p\n' 2>/dev/null \
-                      | sort -nr | head -1 | awk '{ $1=""; sub(/^ /,""); print }')
+    # Prefer the canonical Qwen3.6 Q4_K_M target when several same-sized
+    # variants are present; otherwise fall back to largest GGUF.
+    DFLASH_TARGET=$(find -L "$DFLASH_DIR/models" -maxdepth 4 -type f \
+                      \( -name '*Qwen3.6-27B-Q4_K_M.gguf' -o -name '*Qwen3.6*Q4_K_M*.gguf' \) \
+                      -print 2>/dev/null | sort | head -1)
+    if [ -z "$DFLASH_TARGET" ]; then
+        DFLASH_TARGET=$(find -L "$DFLASH_DIR/models" -maxdepth 4 -type f -name '*.gguf' \
+                          -printf '%s %p\n' 2>/dev/null \
+                          | sort -nr | head -1 | awk '{ $1=""; sub(/^ /,""); print }')
+    fi
 fi
 
 if [ -z "$DFLASH_TARGET" ] || [ ! -f "$DFLASH_TARGET" ]; then
@@ -122,11 +141,42 @@ if [ -z "$DFLASH_TARGET" ] || [ ! -f "$DFLASH_TARGET" ]; then
 fi
 [ -f "$DFLASH_BIN" ] || die "test_dflash binary missing at $DFLASH_BIN (image build failed?)"
 
-# Draft: directory holding model.safetensors, or a direct .safetensors file.
+# Qwen3.6 DFlash drafters use sliding-window attention in the draft. Some GGUFs
+# carry this metadata directly; keep the documented env override as the startup
+# default so older drafts behave like the benchmark path.
+case "$(basename "$DFLASH_TARGET")" in
+    *Qwen3.6*|*qwen3.6*)
+        if [ -z "${DFLASH27B_DRAFT_SWA:-}" ]; then
+            export DFLASH27B_DRAFT_SWA=2048
+            info "Autotune: DFLASH27B_DRAFT_SWA=2048 (Qwen3.6 draft SWA)"
+        fi
+        ;;
+esac
+
+# Common host layouts use ~/models/qwen3.6-27b-dflash as an absolute symlink
+# rather than a literal models/draft directory. If the default is absent, find
+# that draft before deciding to run without DFlash.
+if [ "$DFLASH_DRAFT" = "$DFLASH_DIR/models/draft" ] && [ ! -e "$DFLASH_DRAFT" ]; then
+    for cand in "$DFLASH_DIR/models/qwen3.6-27b-dflash" \
+                "$DFLASH_DIR/models/Qwen3.6-27B-DFlash" \
+                "$DFLASH_DIR/models/dflash"; do
+        if [ -e "$cand" ]; then
+            DFLASH_DRAFT="$cand"
+            break
+        fi
+    done
+fi
+
+# Draft: directory holding GGUF/safetensors, or a direct draft file.
 DRAFT_ARG="$DFLASH_DRAFT"
 if [ -d "$DFLASH_DRAFT" ]; then
-    if ! ls "$DFLASH_DRAFT"/*.safetensors &>/dev/null; then
-        warn "No .safetensors in draft dir $DFLASH_DRAFT — running without draft"
+    if ! find -L "$DFLASH_DRAFT" -maxdepth 4 -type f \( \
+            -name 'dflash-draft-*.gguf' -o \
+            -name '*.gguf' -o \
+            -name 'model.safetensors' -o \
+            -name '*.safetensors' \
+        \) -print -quit | grep -q .; then
+        warn "No DFlash draft GGUF/safetensors in draft dir $DFLASH_DRAFT — running without draft"
         DRAFT_ARG=""
     fi
 elif [ -n "$DFLASH_DRAFT" ] && [ ! -f "$DFLASH_DRAFT" ]; then
@@ -150,6 +200,8 @@ CMD=(uv run --directory "$DFLASH_DIR" python scripts/server.py
 [ -n "$DRAFT_ARG" ]                && CMD+=(--draft "$DRAFT_ARG")
 [ "$DFLASH_LAZY" = "1" ]           && CMD+=(--lazy-draft)
 [ "$DFLASH_VERBOSE" = "1" ]        && CMD+=(--verbose-daemon)
+[ -n "$DFLASH_CACHE_TYPE_K" ]      && CMD+=(--cache-type-k "$DFLASH_CACHE_TYPE_K")
+[ -n "$DFLASH_CACHE_TYPE_V" ]      && CMD+=(--cache-type-v "$DFLASH_CACHE_TYPE_V")
 
 if [ "$DFLASH_PREFILL_MODE" != "off" ]; then
     [ -n "$DFLASH_PREFILL_DRAFTER" ] || die "DFLASH_PREFILL_MODE=$DFLASH_PREFILL_MODE requires DFLASH_PREFILL_DRAFTER"
