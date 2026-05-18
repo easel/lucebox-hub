@@ -125,14 +125,20 @@ def run_case_once(
         prompt += f" Retry marker: agentic-tool-attempt-{attempt}."
     body = json.dumps({
         "model": "luce-dflash",
-        "messages": [{
-            "role": "user",
-            "content": prompt,
-        }],
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a coding agent. Use the requested tool and do not answer in prose.",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
         "tools": [_tool_for(case["expected"])],
         "tool_choice": {"type": "function", "function": {"name": case["expected"]}},
         "temperature": 0,
-        "max_tokens": 160,
+        "max_tokens": 192,
         "stream": False,
         "chat_template_kwargs": {"enable_thinking": True},
     }).encode()

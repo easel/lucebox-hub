@@ -97,7 +97,7 @@ if [ "$GPU_VRAM_GB" -gt 0 ]; then
     elif [ "$GPU_VRAM_GB" -lt 48 ]; then
         : "${DFLASH_MAX_CTX:=131072}"
     else
-        : "${DFLASH_PREFIX_CACHE_SLOTS:=4}"
+        : "${DFLASH_PREFIX_CACHE_SLOTS:=0}"
         : "${DFLASH_MAX_CTX:=131072}"
     fi
 fi
@@ -108,7 +108,7 @@ fi
 : "${DFLASH_BUDGET:=22}"
 : "${DFLASH_MAX_CTX:=16384}"
 : "${DFLASH_LAZY:=0}"
-: "${DFLASH_PREFIX_CACHE_SLOTS:=1}"
+: "${DFLASH_PREFIX_CACHE_SLOTS:=0}"
 : "${DFLASH_PREFILL_CACHE_SLOTS:=0}"
 : "${DFLASH_CACHE_TYPE_K:=}"
 : "${DFLASH_CACHE_TYPE_V:=}"

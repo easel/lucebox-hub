@@ -550,10 +550,12 @@ def sweep_configs(args) -> list[SweepConfig]:
     budgets = parse_int_list(args.budgets)
     ctx_values = context_values_for_profile(args.profile, args.ctx_values)
     lazy_values = parse_bool_list(args.lazy_values, current_lazy)
-    prefix_values = (
-        parse_int_list(args.prefix_cache_slots_values)
-        if args.prefix_cache_slots_values else [current_prefix]
-    )
+    if args.prefix_cache_slots_values:
+        prefix_values = parse_int_list(args.prefix_cache_slots_values)
+    elif args.profile in {"context", "full", "stress"}:
+        prefix_values = sorted({0, current_prefix})
+    else:
+        prefix_values = [current_prefix]
     prefill_slot_values = (
         parse_int_list(args.prefill_cache_slots_values)
         if args.prefill_cache_slots_values else [current_prefill_slots]

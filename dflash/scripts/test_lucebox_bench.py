@@ -154,6 +154,29 @@ def test_sweep_configs_defaults_to_current_kv(monkeypatch):
     assert [c.kv for c in configs] == ["q4_0"]
 
 
+def test_sweep_configs_validation_profiles_try_prefix_cache_off(monkeypatch):
+    monkeypatch.setenv("DFLASH_MAX_CTX", "32768")
+    monkeypatch.setenv("DFLASH_PREFIX_CACHE_SLOTS", "1")
+    args = type("Args", (), {
+        "profile": "full",
+        "ctx_values": "32768",
+        "budgets": "22",
+        "lazy_values": "",
+        "prefix_cache_slots_values": "",
+        "prefill_cache_slots_values": "",
+        "tool_memory_max_entries_values": "",
+        "kv_values": "",
+        "prefill_modes": "off",
+        "prefill_keep_ratios": "",
+        "prefill_thresholds": "",
+        "prefill_drafter": "",
+    })()
+
+    configs = lucebox_bench.sweep_configs(args)
+
+    assert [c.prefix_cache_slots for c in configs] == [0, 1]
+
+
 def test_build_server_argv_includes_tuned_flags(tmp_path):
     target = tmp_path / "target.gguf"
     target.write_text("")

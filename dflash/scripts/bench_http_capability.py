@@ -34,10 +34,10 @@ CASES = [
     },
     {
         "source": "smoke-integer",
-        "id": "modular-arithmetic",
+        "id": "simple-addition",
         "kind": "integer",
-        "question": "Find the least non-negative residue of 12345 modulo 97.",
-        "answer": "26",
+        "question": "What is 7 + 5?",
+        "answer": "12",
     },
     {
         "source": "smoke-code",
