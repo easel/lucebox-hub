@@ -640,17 +640,13 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
                                     const DaemonIO & io) {
     const int hidden = w_.n_embd;
 
-    // Sample first token from prefill's last-position argmax.
-    // The last chunk used last_token_logits_only=false, so sg_.argmax_tokens
-    // holds argmax for ALL positions in that chunk. We need the LAST position.
-    int32_t last_tok;
-    {
-        const int PREFILL_UBATCH = 512;
-        int n_last_chunk = committed % PREFILL_UBATCH;
-        if (n_last_chunk == 0) n_last_chunk = PREFILL_UBATCH;
-        ggml_backend_tensor_get(sg_.argmax_tokens, &last_tok,
-                                sizeof(int32_t) * (n_last_chunk - 1),
-                                sizeof(int32_t));
+    // Seed decode from the exact last prefill token.  Inline prefix snapshots
+    // can split the final prefill chunk before PREFILL_UBATCH, so deriving the
+    // argmax offset from committed % PREFILL_UBATCH can read past the tensor.
+    int32_t last_tok = cache_.last_tok;
+    if (last_tok < 0) {
+        std::fprintf(stderr, "spec-decode: missing prefill last token\n");
+        return false;
     }
 
     // Check if we can use speculative decode:
