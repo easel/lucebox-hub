@@ -8,6 +8,7 @@ license = { text = "Apache-2.0" }
 authors = [{ name = "Lucebox" }]
 
 dependencies = [
+    "lucebox",
     "lucebox-dflash",
     "pflash",
 ]
@@ -31,9 +32,10 @@ package = false
 no-build-isolation-package = ["qwen35-megakernel-bf16"]
 
 [tool.uv.workspace]
-members = ["dflash", "megakernel", "pflash"]
+members = ["dflash", "lucebox", "megakernel", "pflash"]
 
 [tool.uv.sources]
+lucebox = { workspace = true }
 lucebox-dflash = { workspace = true }
 pflash = { workspace = true }
 qwen35-megakernel-bf16 = { workspace = true }
