@@ -32,6 +32,7 @@ class HostFacts:
     driver_version: str = ""      # e.g. "595.71.05"
     driver_major: int = 0
     has_systemd: bool = False
+    is_wsl: bool = False
     has_docker: bool = False
     docker_version: str = ""
     ctk: CtkStatus = "none"
@@ -47,9 +48,13 @@ class DflashRuntime:
     lazy: bool = False
     prefix_cache_slots: int = 1
     prefill_cache_slots: int = 0
+    cache_type_k: str = ""
+    cache_type_v: str = ""
     prefill_mode: Literal["off", "auto", "always"] = "off"
     prefill_keep_ratio: float = 0.05
     prefill_threshold: int = 32000
+    prefill_drafter: str = ""
+    tool_memory_max_entries: int = 50000
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +70,14 @@ class BenchmarkMeta:
     ran_at: str = ""
     profile: str = ""             # e.g. "he-decode"
     winner_budget: int | None = None
+    winner_max_ctx: int | None = None
+    winner_lazy: bool | None = None
+    winner_prefix_cache_slots: int | None = None
+    winner_prefill_cache_slots: int | None = None
+    winner_tool_memory_max_entries: int | None = None
+    winner_cache_type_k: str = ""
+    winner_cache_type_v: str = ""
+    winner_prefill_mode: str = ""
     mean_tps: float | None = None
     report_path: str = ""         # relative to config dir
 

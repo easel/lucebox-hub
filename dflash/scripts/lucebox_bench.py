@@ -6,35 +6,28 @@ config to /opt/lucebox-hub/dflash/models/.lucebox/config.env (which lives in
 the host bind-mount, so the host-side `lucebox` CLI reads it back after the
 container exits).
 
-v1 scope — keep it minimal, ship something users can run end-to-end:
+Profiles:
 
-  Suite:    HE-style code-completion prompts (bench_he.PROMPTS), 5 prompts
-            × 256 generated tokens. Captures decode throughput on the
-            workload most sensitive to DFLASH_BUDGET. Deterministic prompts
-            + greedy decoding ≈ comparable cells.
+  quick:    Sweep DFLASH_BUDGET at the configured DFLASH_MAX_CTX. This is the
+            fast smoke profile and preserves the v1 behavior.
 
-  Sweep:    DFLASH_BUDGET ∈ {8, 16, 22, 32}. The biggest tok/s lever and the
-            one with documented sweet-spot differences across GPU
-            generations (Ampere likes 22, RDNA3 likes 8).
+  context:  Sweep DFLASH_MAX_CTX × DFLASH_BUDGET. Winner selection is
+            context-first: choose the highest reliable context, then the
+            fastest budget within that context. This is the profile to use
+            when the goal is "serve the longest context that remains fast
+            enough."
 
-  Pick:     mean decode tok/s across the prompts, tie-break by p10 (low
-            tail) for reliability. Cells that error or produce <50 tokens
-            are disqualified.
+  full:     Same sweep as context, plus the consolidated lucebox eval gate
+            unless the caller overrides --extra-suites.
 
-  Output:   .lucebox/config.env (overwrites DFLASH_BUDGET only — other
-            DFLASH_* keys from host autotune are preserved by merge) and
+Output:     .lucebox/config.env (overwrites DFLASH_BUDGET and
+            DFLASH_MAX_CTX — other DFLASH_* keys from host autotune are
+            preserved by merge) and
             .lucebox/bench-report.json (raw per-cell numbers).
-
-Extending the suite (future work):
-
-  - Long-context workload: 32K-token prompt, sweep DFLASH_PREFILL_MODE.
-  - Multi-turn workload: 3-turn convo with shared system prompt, sweep
-    DFLASH_PREFIX_CACHE_SLOTS.
-  - Reliability gate: each cell repeats N=3 with a hard wall-clock budget
-    so OOMs / hangs are caught instead of stalling the whole sweep.
 """
 
 import argparse
+import fnmatch
 import json
 import os
 import signal
@@ -44,6 +37,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 # bench_daemon's run() handles the streaming SSE protocol; we reuse it
@@ -71,7 +65,12 @@ DEFAULT_PROMPTS = 5     # subset of bench_he.PROMPTS for speed
 DEFAULT_N_GEN = 256
 DEFAULT_READY_TIMEOUT_S = 180
 DEFAULT_CELL_TIMEOUT_S = 240
-
+DEFAULT_FRONTIERS = "2048,4096,8192,16384"
+STRESS_FRONTIERS = "512,2048,4096,8192"
+DEFAULT_AGENTIC_REPEAT = 1
+STRESS_AGENTIC_REPEAT = 5
+DEFAULT_CTX_VALUES = [32768, 65536, 98304, 114688, 131072]
+DEFAULT_MIN_CONTEXT_SPEED_RATIO = 0.85
 DFLASH_KEYS_PASSTHROUGH = (
     "DFLASH_TARGET", "DFLASH_DRAFT", "DFLASH_BIN", "DFLASH_MAX_CTX",
     "DFLASH_LAZY", "DFLASH_PREFIX_CACHE_SLOTS", "DFLASH_PREFILL_CACHE_SLOTS",
@@ -83,13 +82,45 @@ def log(msg: str) -> None:
     print(f"[lucebox-bench] {msg}", flush=True)
 
 
+@dataclass(frozen=True)
+class SweepConfig:
+    max_ctx: int
+    budget: int
+    lazy: bool
+    prefix_cache_slots: int
+    prefill_cache_slots: int
+    tool_memory_max_entries: int
+    kv: str
+    prefill_mode: str
+    prefill_keep_ratio: float
+    prefill_threshold: int
+    prefill_drafter: str = ""
+
+    @property
+    def cache_type_k(self) -> str:
+        return "" if self.kv == "auto" else self.kv
+
+    @property
+    def cache_type_v(self) -> str:
+        return "" if self.kv == "auto" else self.kv
+
+    def report_fields(self) -> dict:
+        out = asdict(self)
+        out["cache_type_k"] = self.cache_type_k
+        out["cache_type_v"] = self.cache_type_v
+        return out
+
+
 def find_target_gguf() -> Path:
     """Same selection rule as entrypoint.sh: largest .gguf under models/."""
     target = os.environ.get("DFLASH_TARGET")
     if target and Path(target).is_file():
         return Path(target)
+    preferred = sorted(_find_model_files("*Qwen3.6*Q4_K_M*.gguf"))
+    if preferred:
+        return preferred[0]
     candidates = sorted(
-        MODELS_DIR.rglob("*.gguf"),
+        _find_model_files("*.gguf"),
         key=lambda p: p.stat().st_size,
         reverse=True,
     )
@@ -98,6 +129,39 @@ def find_target_gguf() -> Path:
             f"No .gguf found under {MODELS_DIR}. Mount a model dir and re-run."
         )
     return candidates[0]
+
+
+def _find_model_files(pattern: str) -> list[Path]:
+    out: list[Path] = []
+    for root, _dirs, files in os.walk(MODELS_DIR, followlinks=True):
+        for name in files:
+            if fnmatch.fnmatch(name, pattern):
+                out.append(Path(root) / name)
+    return out
+
+
+def find_draft_default() -> Path:
+    env = os.environ.get("DFLASH_DRAFT")
+    if env:
+        return Path(env)
+    for name in ("draft", "qwen3.6-27b-dflash", "Qwen3.6-27B-DFlash", "dflash"):
+        cand = MODELS_DIR / name
+        if cand.exists():
+            return cand
+    return MODELS_DIR / "draft"
+
+
+def find_prefill_drafter_default() -> Path | None:
+    env = os.environ.get("DFLASH_PREFILL_DRAFTER")
+    if env:
+        p = Path(env)
+        return p if p.is_file() else None
+    patterns = ("*Qwen3-0.6B*BF16*.gguf", "*Qwen3-0.6B*.gguf", "*0.6B*.gguf")
+    for pattern in patterns:
+        found = sorted(_find_model_files(pattern))
+        if found:
+            return found[0]
+    return None
 
 
 def wait_ready(timeout_s: int) -> bool:
@@ -114,40 +178,65 @@ def wait_ready(timeout_s: int) -> bool:
     return False
 
 
-def build_server_argv(budget: int, target: Path) -> list[str]:
+def build_server_argv(cfg: SweepConfig, target: Path) -> list[str]:
     argv = [
         "uv", "run", "--directory", str(DFLASH_DIR),
         "python", "scripts/server.py",
         "--host", "127.0.0.1",
         "--port", str(BENCH_PORT),
         "--target", str(target),
-        "--budget", str(budget),
-        "--max-ctx", os.environ.get("DFLASH_MAX_CTX", "16384"),
+        "--budget", str(cfg.budget),
+        "--max-ctx", str(cfg.max_ctx),
         "--bin", os.environ.get("DFLASH_BIN", str(DFLASH_DIR / "build/test_dflash")),
-        "--prefix-cache-slots", os.environ.get("DFLASH_PREFIX_CACHE_SLOTS", "1"),
+        "--prefix-cache-slots", str(cfg.prefix_cache_slots),
+        "--prefill-cache-slots", str(cfg.prefill_cache_slots),
     ]
-    draft = os.environ.get("DFLASH_DRAFT", str(MODELS_DIR / "draft"))
+    draft = str(find_draft_default())
     if draft and (Path(draft).is_dir() or Path(draft).is_file()):
         # Mirror entrypoint.sh: skip --draft if dir is empty.
-        if Path(draft).is_dir() and not any(Path(draft).glob("*.safetensors")):
+        if Path(draft).is_dir() and not any(
+            next(Path(draft).rglob(pattern), None) is not None
+            for pattern in ("dflash-draft-*.gguf", "*.gguf", "model.safetensors", "*.safetensors")
+        ):
             pass
         else:
             argv += ["--draft", draft]
-    if os.environ.get("DFLASH_LAZY", "0") == "1":
+    if cfg.lazy:
         argv.append("--lazy-draft")
+    if cfg.kv != "auto":
+        argv += ["--cache-type-k", cfg.kv, "--cache-type-v", cfg.kv]
+    if cfg.prefill_mode != "off":
+        argv += [
+            "--prefill-compression", cfg.prefill_mode,
+            "--prefill-keep-ratio", str(cfg.prefill_keep_ratio),
+            "--prefill-threshold", str(cfg.prefill_threshold),
+            "--prefill-drafter", cfg.prefill_drafter,
+        ]
     return argv
 
 
-def run_cell(budget: int, target: Path, prompts: list[tuple[str, str]],
-             n_gen: int, ready_timeout_s: int, cell_timeout_s: int
+def build_server_env(cfg: SweepConfig) -> dict[str, str]:
+    return {
+        **os.environ,
+        "DFLASH_TOOL_MEMORY_MAX_ENTRIES": str(cfg.tool_memory_max_entries),
+    }
+
+
+def run_cell(cfg: SweepConfig, target: Path, prompts: list[tuple[str, str]],
+             n_gen: int, ready_timeout_s: int, cell_timeout_s: int,
+             min_valid_tokens: int = 50,
              ) -> dict:
     """Spawn server.py for a single config, run the prompt suite, tear down.
 
     Returns a dict describing the cell — never raises (errors are reported
     in the cell record so the sweep keeps going).
     """
-    log(f"cell budget={budget}: starting server on :{BENCH_PORT}")
-    argv = build_server_argv(budget, target)
+    log(
+        f"cell ctx={cfg.max_ctx} budget={cfg.budget} lazy={int(cfg.lazy)} "
+        f"prefix={cfg.prefix_cache_slots} kv={cfg.kv} pflash={cfg.prefill_mode}: "
+        f"starting server on :{BENCH_PORT}"
+    )
+    argv = build_server_argv(cfg, target)
     # New process group so we can SIGTERM the whole subtree (server.py spawns
     # test_dflash as a child).
     proc = subprocess.Popen(
@@ -155,15 +244,20 @@ def run_cell(budget: int, target: Path, prompts: list[tuple[str, str]],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         start_new_session=True,
+        env=build_server_env(cfg),
     )
-    cell: dict = {"budget": budget, "trials": [], "status": "pending"}
+    cell: dict = {**cfg.report_fields(), "trials": [], "status": "pending"}
     deadline = time.monotonic() + cell_timeout_s
     try:
         if not wait_ready(ready_timeout_s):
             cell["status"] = "server_not_ready"
             return cell
 
-        log(f"cell budget={budget}: server ready, running {len(prompts)} prompts")
+        log(
+            f"cell ctx={cfg.max_ctx} budget={cfg.budget} lazy={int(cfg.lazy)} "
+            f"prefix={cfg.prefix_cache_slots} kv={cfg.kv} pflash={cfg.prefill_mode}: "
+            f"server ready, running {len(prompts)} prompts"
+        )
         for name, text in prompts:
             if time.monotonic() > deadline:
                 cell["status"] = "cell_timeout"
@@ -182,9 +276,12 @@ def run_cell(budget: int, target: Path, prompts: list[tuple[str, str]],
             })
             log(f"  {name:26s}  n_tok={n_tok:4d}  decode={dec_tps:7.2f} tok/s")
 
-        # Reliability gate: <50 tokens or zero successful trials = disqualify.
+        # Reliability gate: a configurable minimum lets correctness-first
+        # sweeps still run eval gates when the preliminary speed prompt emits a
+        # very short completion. Speed ranking remains meaningful only after
+        # correctness passes.
         ok_trials = [t for t in cell["trials"]
-                     if "decode_tps" in t and t["n_tok"] >= 50]
+                     if "decode_tps" in t and t["n_tok"] >= min_valid_tokens]
         if not ok_trials:
             cell["status"] = "no_valid_trials"
             return cell
@@ -210,15 +307,165 @@ def run_cell(budget: int, target: Path, prompts: list[tuple[str, str]],
     return cell
 
 
-def pick_winner(cells: list[dict]) -> dict | None:
+def rank_candidates(
+    cells: list[dict],
+    *,
+    profile: str = "quick",
+    min_context_speed_ratio: float = DEFAULT_MIN_CONTEXT_SPEED_RATIO,
+) -> list[dict]:
     ok = [c for c in cells if c["status"] == "ok"]
     if not ok:
-        return None
-    # Primary: mean decode tok/s. Tie-break: min decode tok/s (tail
-    # reliability) — same budget that runs fastest *and* most stably wins.
-    ok.sort(key=lambda c: (c["mean_decode_tps"], c["min_decode_tps"]),
-            reverse=True)
-    return ok[0]
+        return []
+    if profile in {"context", "full", "stress"}:
+        fastest = max(float(c["mean_decode_tps"]) for c in ok)
+        speed_floor = fastest * min_context_speed_ratio
+        viable = [c for c in ok if float(c["mean_decode_tps"]) >= speed_floor] or ok
+        # Context-first: highest reliable max_ctx that stays near the fastest
+        # candidate, then best mean and tail decode inside that context.
+        viable.sort(
+            key=lambda c: (int(c["max_ctx"]), c["mean_decode_tps"], c["min_decode_tps"]),
+            reverse=True,
+        )
+        return viable
+    # Quick profile: primary speed, tie-break by max_ctx then tail reliability.
+    ok.sort(
+        key=lambda c: (c["mean_decode_tps"], int(c["max_ctx"]), c["min_decode_tps"]),
+        reverse=True,
+    )
+    return ok
+
+
+def pick_winner(
+    cells: list[dict],
+    *,
+    profile: str = "quick",
+    min_context_speed_ratio: float = DEFAULT_MIN_CONTEXT_SPEED_RATIO,
+) -> dict | None:
+    ranked = rank_candidates(
+        cells,
+        profile=profile,
+        min_context_speed_ratio=min_context_speed_ratio,
+    )
+    return ranked[0] if ranked else None
+
+
+def candidate_summary(candidate: dict) -> dict:
+    keys = (
+        "max_ctx", "budget", "lazy", "prefix_cache_slots", "prefill_cache_slots",
+        "tool_memory_max_entries", "kv", "prefill_mode", "prefill_keep_ratio", "prefill_threshold",
+        "prefill_drafter", "cache_type_k", "cache_type_v", "mean_decode_tps",
+        "min_decode_tps",
+    )
+    return {key: candidate.get(key) for key in keys if key in candidate}
+
+
+def run_extra_suites(
+    cfg: SweepConfig,
+    target: Path,
+    suites: list[str],
+    ready_timeout_s: int,
+    frontiers: str,
+    agentic_repeat: int,
+    eval_depth: str,
+    eval_areas: str,
+    eval_soak: bool,
+    eval_required_areas: str,
+) -> list[dict]:
+    """Run optional post-optimizer suites against the winning config."""
+    if not suites:
+        return []
+    argv = build_server_argv(cfg, target)
+    results: list[dict] = []
+    for suite in suites:
+        suite = suite.strip()
+        if not suite:
+            continue
+        if suite in {"http-frontiers", "ds4-frontiers"}:
+            suite_name = "http-frontiers"
+            out_json = REPORT_DIR / "bench-http-frontiers.json"
+            out_csv = REPORT_DIR / "bench-http-frontiers.csv"
+            cmd = [
+                sys.executable, str(SCRIPT_DIR / "bench_http_frontiers.py"),
+                "--url", BENCH_URL,
+                "--frontiers", frontiers,
+                "--gen-tokens", "64",
+                "--json-out", str(out_json),
+                "--csv-out", str(out_csv),
+            ]
+        elif suite == "capability":
+            suite_name = suite
+            out_json = REPORT_DIR / "bench-capability.json"
+            trace = REPORT_DIR / "bench-capability-trace.txt"
+            cmd = [
+                sys.executable, str(SCRIPT_DIR / "bench_http_capability.py"),
+                "--url", BENCH_URL,
+                "--json-out", str(out_json),
+                "--trace", str(trace),
+            ]
+        elif suite == "agentic-tools":
+            suite_name = suite
+            out_json = REPORT_DIR / "bench-agentic-tools.json"
+            cmd = [
+                sys.executable, str(SCRIPT_DIR / "bench_agentic_tools.py"),
+                "--url", BENCH_URL,
+                "--repeat", str(agentic_repeat),
+                "--json-out", str(out_json),
+            ]
+        elif suite in {"lucebox-eval", "eval"}:
+            suite_name = "lucebox-eval"
+            out_json = REPORT_DIR / "lucebox-eval.json"
+            notes = REPORT_DIR / "lucebox-eval-notes.md"
+            trace_dir = REPORT_DIR / "lucebox-eval-traces"
+            cmd = [
+                sys.executable, str(SCRIPT_DIR / "lucebox_eval.py"),
+                "--url", BENCH_URL,
+                "--depth", eval_depth,
+                "--areas", eval_areas,
+                "--json-out", str(out_json),
+                "--trace-dir", str(trace_dir),
+                "--notes-out", str(notes),
+            ]
+            if eval_required_areas:
+                cmd += ["--required-areas", eval_required_areas]
+            if eval_soak:
+                cmd.append("--soak")
+        else:
+            results.append({"suite": suite, "status": "unknown_suite"})
+            continue
+
+        log(f"extra suite {suite_name}: starting winner server on :{BENCH_PORT}")
+        proc = subprocess.Popen(
+            argv,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            env=build_server_env(cfg),
+        )
+        try:
+            if not wait_ready(ready_timeout_s):
+                results.append({"suite": suite_name, "status": "server_not_ready"})
+                continue
+            log(f"extra suite {suite_name}: running")
+            t0 = time.monotonic()
+            rc = subprocess.call(cmd)
+            results.append({
+                "suite": suite_name,
+                "status": "ok" if rc == 0 else "failed",
+                "returncode": rc,
+                "wall_s": round(time.monotonic() - t0, 3),
+                "report": str(out_json),
+            })
+        finally:
+            try:
+                os.killpg(proc.pid, signal.SIGTERM)
+                try:
+                    proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                    proc.wait(timeout=5)
+            except ProcessLookupError:
+                pass
+    return results
 
 
 def merge_env_file(updates: dict[str, str]) -> None:
@@ -243,59 +490,347 @@ def merge_env_file(updates: dict[str, str]) -> None:
     ENV_FILE.write_text("\n".join(lines) + "\n")
 
 
+def parse_int_list(value: str) -> list[int]:
+    return [int(x) for x in value.split(",") if x.strip()]
+
+
+def parse_float_list(value: str) -> list[float]:
+    return [float(x) for x in value.split(",") if x.strip()]
+
+
+def parse_str_list(value: str) -> list[str]:
+    return [x.strip() for x in value.split(",") if x.strip()]
+
+
+def parse_bool_list(value: str, current: bool) -> list[bool]:
+    if not value:
+        return [current]
+    out: list[bool] = []
+    for raw in parse_str_list(value):
+        lowered = raw.lower()
+        if lowered in {"1", "true", "yes", "on", "lazy"}:
+            out.append(True)
+        elif lowered in {"0", "false", "no", "off", "eager"}:
+            out.append(False)
+        else:
+            raise SystemExit(f"Invalid boolean sweep value: {raw!r}")
+    return out
+
+
+def current_kv_value() -> str:
+    cache_type_k = os.environ.get("DFLASH_CACHE_TYPE_K", "")
+    cache_type_v = os.environ.get("DFLASH_CACHE_TYPE_V", "")
+    if cache_type_k and cache_type_k == cache_type_v:
+        return cache_type_k
+    return "auto"
+
+
+def context_values_for_profile(profile: str, explicit_values: str) -> list[int]:
+    configured = int(os.environ.get("DFLASH_MAX_CTX", "16384"))
+    if explicit_values:
+        return parse_int_list(explicit_values)
+    if profile == "quick":
+        return [configured]
+    values = [v for v in DEFAULT_CTX_VALUES if v <= configured]
+    if configured not in values:
+        values.append(configured)
+    return sorted(set(values))
+
+
+def sweep_configs(args) -> list[SweepConfig]:
+    current_lazy = os.environ.get("DFLASH_LAZY", "0") == "1"
+    current_prefix = int(os.environ.get("DFLASH_PREFIX_CACHE_SLOTS", "1"))
+    current_prefill_slots = int(os.environ.get("DFLASH_PREFILL_CACHE_SLOTS", "0"))
+    current_tool_memory_entries = int(os.environ.get("DFLASH_TOOL_MEMORY_MAX_ENTRIES", "50000"))
+    current_prefill_mode = os.environ.get("DFLASH_PREFILL_MODE", "off")
+    current_prefill_keep = float(os.environ.get("DFLASH_PREFILL_KEEP", "0.05"))
+    current_prefill_threshold = int(os.environ.get("DFLASH_PREFILL_THRESHOLD", "32000"))
+    current_kv = current_kv_value()
+
+    budgets = parse_int_list(args.budgets)
+    ctx_values = context_values_for_profile(args.profile, args.ctx_values)
+    lazy_values = parse_bool_list(args.lazy_values, current_lazy)
+    prefix_values = (
+        parse_int_list(args.prefix_cache_slots_values)
+        if args.prefix_cache_slots_values else [current_prefix]
+    )
+    prefill_slot_values = (
+        parse_int_list(args.prefill_cache_slots_values)
+        if args.prefill_cache_slots_values else [current_prefill_slots]
+    )
+    tool_memory_values = (
+        parse_int_list(args.tool_memory_max_entries_values)
+        if args.tool_memory_max_entries_values else [current_tool_memory_entries]
+    )
+    kv_values = parse_str_list(args.kv_values) if args.kv_values else [current_kv]
+    prefill_modes = (
+        parse_str_list(args.prefill_modes)
+        if args.prefill_modes else [current_prefill_mode]
+    )
+    prefill_keep_ratios = (
+        parse_float_list(args.prefill_keep_ratios)
+        if args.prefill_keep_ratios else [current_prefill_keep]
+    )
+    prefill_thresholds = (
+        parse_int_list(args.prefill_thresholds)
+        if args.prefill_thresholds else [current_prefill_threshold]
+    )
+    prefill_drafter = args.prefill_drafter or os.environ.get("DFLASH_PREFILL_DRAFTER", "")
+    if any(mode != "off" for mode in prefill_modes):
+        if not prefill_drafter:
+            found = find_prefill_drafter_default()
+            if found is not None:
+                prefill_drafter = str(found)
+        if not prefill_drafter or not Path(prefill_drafter).is_file():
+            raise SystemExit(
+                "PFlash sweep requested but no prefill drafter GGUF was found. "
+                "Pass --prefill-drafter or set DFLASH_PREFILL_DRAFTER."
+            )
+
+    configs: list[SweepConfig] = []
+    for max_ctx in ctx_values:
+        for budget in budgets:
+            for lazy in lazy_values:
+                for prefix_slots in prefix_values:
+                    for prefill_slots in prefill_slot_values:
+                        for tool_memory_entries in tool_memory_values:
+                            for kv in kv_values:
+                                for prefill_mode in prefill_modes:
+                                    if prefill_mode == "off":
+                                        configs.append(SweepConfig(
+                                            max_ctx=max_ctx,
+                                            budget=budget,
+                                            lazy=lazy,
+                                            prefix_cache_slots=prefix_slots,
+                                            prefill_cache_slots=prefill_slots,
+                                            tool_memory_max_entries=tool_memory_entries,
+                                            kv=kv,
+                                            prefill_mode="off",
+                                            prefill_keep_ratio=current_prefill_keep,
+                                            prefill_threshold=current_prefill_threshold,
+                                        ))
+                                        continue
+                                    for keep_ratio in prefill_keep_ratios:
+                                        for threshold in prefill_thresholds:
+                                            configs.append(SweepConfig(
+                                                max_ctx=max_ctx,
+                                                budget=budget,
+                                                lazy=lazy,
+                                                prefix_cache_slots=prefix_slots,
+                                                prefill_cache_slots=prefill_slots,
+                                                tool_memory_max_entries=tool_memory_entries,
+                                                kv=kv,
+                                                prefill_mode=prefill_mode,
+                                                prefill_keep_ratio=keep_ratio,
+                                                prefill_threshold=threshold,
+                                                prefill_drafter=prefill_drafter,
+                                            ))
+    return configs
+
+
+def config_from_winner(winner: dict) -> SweepConfig:
+    kv = str(winner.get("kv", ""))
+    if not kv:
+        cache_type_k = str(winner.get("cache_type_k", ""))
+        cache_type_v = str(winner.get("cache_type_v", ""))
+        kv = cache_type_k if cache_type_k and cache_type_k == cache_type_v else "auto"
+    return SweepConfig(
+        max_ctx=int(winner["max_ctx"]),
+        budget=int(winner["budget"]),
+        lazy=bool(winner.get("lazy", False)),
+        prefix_cache_slots=int(winner.get("prefix_cache_slots", 1)),
+        prefill_cache_slots=int(winner.get("prefill_cache_slots", 0)),
+        tool_memory_max_entries=int(winner.get("tool_memory_max_entries", 50000)),
+        kv=kv,
+        prefill_mode=str(winner.get("prefill_mode", "off")),
+        prefill_keep_ratio=float(winner.get("prefill_keep_ratio", 0.05)),
+        prefill_threshold=int(winner.get("prefill_threshold", 32000)),
+        prefill_drafter=str(winner.get("prefill_drafter", "")),
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Sweep DFLASH_* knobs for this host.")
+    ap.add_argument("--profile", choices=("quick", "context", "full", "stress"), default="quick",
+                    help="quick=speed at configured ctx; context=maximize ctx then speed; "
+                         "full=context plus validation suites; "
+                         "stress=full with warmed capability, agentic, and frontier gates.")
     ap.add_argument("--budgets", type=str, default=",".join(map(str, DEFAULT_BUDGETS)),
                     help="Comma-separated DFLASH_BUDGET values to sweep.")
+    ap.add_argument("--ctx-values", type=str, default="",
+                    help="Comma-separated DFLASH_MAX_CTX values to sweep. "
+                         "Default: configured ctx for quick; tiered values up to configured ctx "
+                         "for context/full.")
+    ap.add_argument("--min-context-speed-ratio", type=float,
+                    default=DEFAULT_MIN_CONTEXT_SPEED_RATIO,
+                    help="For context/full, keep only candidates at least this fraction "
+                         "of the fastest reliable cell before maximizing context.")
+    ap.add_argument("--lazy-values", type=str, default="",
+                    help="Comma-separated lazy-draft values to sweep: 0,1. "
+                         "Default: configured DFLASH_LAZY only.")
+    ap.add_argument("--prefix-cache-slots-values", type=str, default="",
+                    help="Comma-separated --prefix-cache-slots values. "
+                         "Default: configured DFLASH_PREFIX_CACHE_SLOTS only.")
+    ap.add_argument("--prefill-cache-slots-values", type=str, default="",
+                    help="Comma-separated --prefill-cache-slots values. "
+                         "Default: configured DFLASH_PREFILL_CACHE_SLOTS only.")
+    ap.add_argument("--tool-memory-max-entries-values", type=str, default="",
+                    help="Comma-separated DFLASH_TOOL_MEMORY_MAX_ENTRIES values. "
+                         "Use 0 to disable exact tool-call replay memory.")
+    ap.add_argument("--kv-values", type=str, default="",
+                    help="Comma-separated KV modes: auto,f16,q4_0,q4_1,q5_0,q5_1,q8_0,tq3_0.")
+    ap.add_argument("--prefill-modes", type=str, default="",
+                    help="Comma-separated PFlash modes: off,auto,always. "
+                         "Default: configured DFLASH_PREFILL_MODE only.")
+    ap.add_argument("--prefill-keep-ratios", type=str, default="",
+                    help="Comma-separated PFlash keep ratios. Default: configured value.")
+    ap.add_argument("--prefill-thresholds", type=str, default="",
+                    help="Comma-separated PFlash auto thresholds. Default: configured value.")
+    ap.add_argument("--prefill-drafter", type=str, default="",
+                    help="PFlash drafter GGUF path for non-off prefill modes.")
+    ap.add_argument("--allow-extra-suite-failures", action="store_true",
+                    help="Write the winning config even if post-winner validation suites fail.")
     ap.add_argument("--n-prompts", type=int, default=DEFAULT_PROMPTS,
                     help="How many bench_he prompts per cell (1..10).")
     ap.add_argument("--n-gen", type=int, default=DEFAULT_N_GEN,
                     help="Generated tokens per prompt.")
+    ap.add_argument("--min-valid-tokens", type=int, default=50,
+                    help="Minimum generated tokens for the preliminary speed probe.")
     ap.add_argument("--ready-timeout", type=int, default=DEFAULT_READY_TIMEOUT_S,
                     help="Seconds to wait for server.py readiness per cell.")
     ap.add_argument("--cell-timeout", type=int, default=DEFAULT_CELL_TIMEOUT_S,
                     help="Hard wall-clock budget per cell.")
+    ap.add_argument("--extra-suites", type=str, default="",
+                    help="Comma-separated post-optimizer suites: lucebox-eval,http-frontiers,capability,agentic-tools.")
+    ap.add_argument("--eval-depth", choices=("smoke", "standard", "deep"), default="smoke",
+                    help="Depth for the lucebox-eval extra suite.")
+    ap.add_argument("--eval-areas", type=str, default="all",
+                    help="Areas for lucebox-eval: api,short,long,tools,agentic,cache or all.")
+    ap.add_argument("--eval-required-areas", type=str, default="",
+                    help="Areas that must pass under lucebox-eval. Default: selected eval areas.")
+    ap.add_argument("--eval-soak", action="store_true",
+                    help="Run lucebox-eval in soak mode for post-winner validation.")
+    ap.add_argument("--frontiers", type=str, default=DEFAULT_FRONTIERS,
+                    help="Frontiers for the http-frontiers extra suite.")
+    ap.add_argument("--agentic-repeat", type=int, default=DEFAULT_AGENTIC_REPEAT,
+                    help="Repeats per prompt for the agentic-tools extra suite.")
     args = ap.parse_args()
 
-    budgets = [int(x) for x in args.budgets.split(",") if x.strip()]
+    configs = sweep_configs(args)
     n_prompts = max(1, min(args.n_prompts, len(PROMPTS)))
     prompts = PROMPTS[:n_prompts]
+    extra_suites = [s.strip() for s in args.extra_suites.split(",") if s.strip()]
+    if args.profile in {"full", "stress"} and not extra_suites:
+        extra_suites = ["lucebox-eval"]
+    if args.profile == "stress":
+        if args.agentic_repeat == DEFAULT_AGENTIC_REPEAT:
+            args.agentic_repeat = STRESS_AGENTIC_REPEAT
+        if args.frontiers == DEFAULT_FRONTIERS:
+            args.frontiers = STRESS_FRONTIERS
+        if args.eval_depth == "smoke":
+            args.eval_depth = "standard"
+        args.eval_soak = True
 
     target = find_target_gguf()
     log(f"target: {target.name} ({target.stat().st_size // (1024**3)} GB)")
-    log(f"sweeping DFLASH_BUDGET ∈ {budgets} × {n_prompts} prompts × {args.n_gen} gen")
-    log(f"each cell takes ~30-60s on a 24 GB consumer GPU; total ~{len(budgets) * 60}s")
+    log(f"profile={args.profile} speed_floor={args.min_context_speed_ratio:.0%}")
+    log(f"sweeping {len(configs)} configs × {n_prompts} prompts × {args.n_gen} gen")
+    log(f"each cell takes ~30-60s on a 24 GB consumer GPU; total ~{len(configs) * 60}s")
 
     cells: list[dict] = []
-    for budget in budgets:
-        cell = run_cell(budget, target, prompts, args.n_gen,
-                        args.ready_timeout, args.cell_timeout)
+    for cfg in configs:
+        cell = run_cell(
+            cfg, target, prompts, args.n_gen,
+            args.ready_timeout, args.cell_timeout,
+            args.min_valid_tokens,
+        )
         cells.append(cell)
         if cell["status"] == "ok":
-            log(f"  budget={budget}: mean {cell['mean_decode_tps']:.2f} "
+            log(f"  ctx={cfg.max_ctx} budget={cfg.budget} lazy={int(cfg.lazy)} "
+                f"prefix={cfg.prefix_cache_slots} kv={cfg.kv} pflash={cfg.prefill_mode}: "
+                f"mean {cell['mean_decode_tps']:.2f} "
                 f"(range {cell['min_decode_tps']:.2f}-{cell['max_decode_tps']:.2f}) "
                 f"tok/s [{cell['n_ok_trials']}/{n_prompts} ok]")
         else:
-            log(f"  budget={budget}: {cell['status']}")
+            log(f"  ctx={cfg.max_ctx} budget={cfg.budget} lazy={int(cfg.lazy)} "
+                f"prefix={cfg.prefix_cache_slots} kv={cfg.kv} pflash={cfg.prefill_mode}: "
+                f"{cell['status']}")
 
-    winner = pick_winner(cells)
+    ranked_candidates = rank_candidates(
+        cells,
+        profile=args.profile,
+        min_context_speed_ratio=args.min_context_speed_ratio,
+    )
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    winner = ranked_candidates[0] if ranked_candidates else None
+    extra_results: list[dict] = []
+    candidate_validations: list[dict] = []
+    if winner and extra_suites:
+        winner = None
+        for candidate in ranked_candidates:
+            candidate_cfg = config_from_winner(candidate)
+            extra_results = run_extra_suites(
+                candidate_cfg, target, extra_suites,
+                args.ready_timeout, args.frontiers, args.agentic_repeat,
+                args.eval_depth, args.eval_areas, args.eval_soak,
+                args.eval_required_areas)
+            failed_extras = [r for r in extra_results if r.get("status") != "ok"]
+            candidate_validations.append({
+                "candidate": candidate_summary(candidate),
+                "extra_suites": extra_results,
+                "accepted": not failed_extras or args.allow_extra_suite_failures,
+            })
+            if not failed_extras or args.allow_extra_suite_failures:
+                winner = candidate
+                break
+            log(
+                "candidate rejected by extra suites: "
+                f"ctx={candidate.get('max_ctx')} budget={candidate.get('budget')} "
+                f"prefix={candidate.get('prefix_cache_slots')} kv={candidate.get('kv')} "
+                f"pflash={candidate.get('prefill_mode')} failures={failed_extras}"
+            )
+
     REPORT_FILE.write_text(json.dumps({
         "winner": winner,
         "cells": cells,
+        "extra_suites": extra_results,
+        "candidate_validations": candidate_validations,
+        "ranked_candidates": [candidate_summary(c) for c in ranked_candidates],
+        "profile": args.profile,
+        "configs": [cfg.report_fields() for cfg in configs],
+        "min_context_speed_ratio": args.min_context_speed_ratio,
         "target": target.name,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }, indent=2))
     log(f"wrote {REPORT_FILE}")
 
     if not winner:
-        log("ERROR: no reliable cells found — config NOT updated")
+        if ranked_candidates and extra_suites:
+            log("ERROR: no ranked candidates passed extra suites — config NOT updated")
+        else:
+            log("ERROR: no reliable cells found — config NOT updated")
         return 1
 
     log(f"winner: DFLASH_BUDGET={winner['budget']} "
+        f"DFLASH_MAX_CTX={winner['max_ctx']} "
+        f"DFLASH_LAZY={int(bool(winner.get('lazy')))} "
+        f"PREFIX_CACHE_SLOTS={winner.get('prefix_cache_slots')} "
+        f"KV={winner.get('kv')} "
+        f"PFLASH={winner.get('prefill_mode')} "
         f"@ {winner['mean_decode_tps']:.2f} tok/s mean")
     merge_env_file({
         "DFLASH_BUDGET": str(winner["budget"]),
+        "DFLASH_MAX_CTX": str(winner["max_ctx"]),
+        "DFLASH_LAZY": "1" if winner.get("lazy") else "0",
+        "DFLASH_PREFIX_CACHE_SLOTS": str(winner.get("prefix_cache_slots", 1)),
+        "DFLASH_PREFILL_CACHE_SLOTS": str(winner.get("prefill_cache_slots", 0)),
+        "DFLASH_TOOL_MEMORY_MAX_ENTRIES": str(winner.get("tool_memory_max_entries", 50000)),
+        "DFLASH_CACHE_TYPE_K": str(winner.get("cache_type_k", "")),
+        "DFLASH_CACHE_TYPE_V": str(winner.get("cache_type_v", "")),
+        "DFLASH_PREFILL_MODE": str(winner.get("prefill_mode", "off")),
+        "DFLASH_PREFILL_KEEP": str(winner.get("prefill_keep_ratio", 0.05)),
+        "DFLASH_PREFILL_THRESHOLD": str(winner.get("prefill_threshold", 32000)),
+        "DFLASH_PREFILL_DRAFTER": str(winner.get("prefill_drafter", "")),
         "LUCEBOX_BENCH_MEAN_TPS": str(winner["mean_decode_tps"]),
     })
     log(f"wrote {ENV_FILE}")

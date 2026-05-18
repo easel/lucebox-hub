@@ -138,9 +138,13 @@ def _from_dict(raw: dict[str, Any]) -> Config:
         lazy=bool(df.get("lazy", False)),
         prefix_cache_slots=int(df.get("prefix_cache_slots", 1)),
         prefill_cache_slots=int(df.get("prefill_cache_slots", 0)),
+        cache_type_k=str(df.get("cache_type_k", "")),
+        cache_type_v=str(df.get("cache_type_v", "")),
         prefill_mode=df.get("prefill_mode", "off"),
         prefill_keep_ratio=float(df.get("prefill_keep_ratio", 0.05)),
         prefill_threshold=int(df.get("prefill_threshold", 32000)),
+        prefill_drafter=str(df.get("prefill_drafter", "")),
+        tool_memory_max_entries=int(df.get("tool_memory_max_entries", 50000)),
     )
 
     host_raw = raw.get("host", {})
@@ -155,6 +159,7 @@ def _from_dict(raw: dict[str, Any]) -> Config:
         driver_version=str(host_raw.get("driver_version", "")),
         driver_major=int(host_raw.get("driver_major", 0)),
         has_systemd=bool(host_raw.get("has_systemd", False)),
+        is_wsl=bool(host_raw.get("is_wsl", False)),
         has_docker=bool(host_raw.get("has_docker", False)),
         docker_version=str(host_raw.get("docker_version", "")),
         ctk=host_raw.get("ctk", "none"),
@@ -170,6 +175,14 @@ def _from_dict(raw: dict[str, Any]) -> Config:
             ran_at=str(bm.get("ran_at", "")),
             profile=str(bm.get("profile", "")),
             winner_budget=bm.get("winner_budget"),
+            winner_max_ctx=bm.get("winner_max_ctx"),
+            winner_lazy=bm.get("winner_lazy"),
+            winner_prefix_cache_slots=bm.get("winner_prefix_cache_slots"),
+            winner_prefill_cache_slots=bm.get("winner_prefill_cache_slots"),
+            winner_tool_memory_max_entries=bm.get("winner_tool_memory_max_entries"),
+            winner_cache_type_k=str(bm.get("winner_cache_type_k", "")),
+            winner_cache_type_v=str(bm.get("winner_cache_type_v", "")),
+            winner_prefill_mode=str(bm.get("winner_prefill_mode", "")),
             mean_tps=bm.get("mean_tps"),
             report_path=str(bm.get("report_path", "")),
         )

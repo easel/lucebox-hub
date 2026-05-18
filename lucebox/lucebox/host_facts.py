@@ -50,6 +50,7 @@ def from_env() -> HostFacts:
         driver_version=os.environ.get("LUCEBOX_HOST_DRIVER_VERSION", ""),
         driver_major=_env_int("LUCEBOX_HOST_DRIVER_MAJOR"),
         has_systemd=_env_bool("LUCEBOX_HOST_HAS_SYSTEMD"),
+        is_wsl=_env_bool("LUCEBOX_HOST_IS_WSL"),
         has_docker=_env_bool("LUCEBOX_HOST_HAS_DOCKER"),
         docker_version=os.environ.get("LUCEBOX_HOST_DOCKER_VERSION", ""),
         ctk=ctk,
