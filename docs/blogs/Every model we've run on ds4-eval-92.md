@@ -30,11 +30,12 @@ apples comparisons live in the other posts.
 
 ## What stands out
 
-The efficiency story is the headline. Gemma 4 26B is a 26B MoE with ~4B active
-parameters per token, and it tops the board, level with or ahead of its own 31B
-sibling, both DeepSeek V4 models (Flash at 284B, the larger Pro), and the
-frontier proprietary models. On this set, more parameters didn't buy more
-accuracy. We dug into the DeepSeek matchup, including the same-Mac control, in
+The efficiency story is the headline. Gemma 4 26B is a 25.2B-total MoE with only
+3.8B active parameters per token (128 experts, 8 active plus 1 shared), and it
+tops the board, level with or ahead of its own dense 31B sibling (30.7B params,
+all of them active), both DeepSeek V4 models (Flash at 284B, the larger Pro), and
+the frontier proprietary models. On this set, more parameters didn't buy more
+accuracy, and the sparse model matched the dense one it shares a generation with. We dug into the DeepSeek matchup, including the same-Mac control, in
 [the DeepSeek comparison](<Gemma 4 26B edges out DeepSeek V4 Flash (284B) on ds4-eval-92, at 5x the speed.md>).
 
 The frontier generalists land mid-table, and the caveat there needs saying
