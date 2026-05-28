@@ -62,7 +62,7 @@ Upstream fixture licenses (all MIT) are reproduced in the package's `NOTICE`.
 - *Same `max_tokens`, server-side thinking split.* The 16000 cap goes on the wire
   identically; each server splits reasoning vs reply internally
   (`--think-max-tokens` on dflash, none on stock `ds4_server`). The wire protocol
-  stays identical so cross-machine numbers stay honest.
+  stays identical so cross-machine numbers stay comparable.
 - *Model auto-resolution.* With `--model default`, luce-bench queries
   `<base-url>/v1/models` and auto-picks when there's a single model; with several
   it lists them and makes you choose, so you never silently benchmark the wrong

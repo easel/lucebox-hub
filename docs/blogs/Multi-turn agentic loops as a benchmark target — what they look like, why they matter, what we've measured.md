@@ -1,6 +1,6 @@
 # Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured
 
-I came into this expecting the hard part of benchmarking an agent to be the grading. It isn't. The hard part is the context. A coding session that starts as a 60-token prompt is a 30,000-token prompt twelve turns later, and the thing you actually want to know about a local engine is whether it stays responsive while that happens. So this post is partly a design note and partly an honest accounting of what we have and haven't measured yet.
+I came into this expecting the hard part of benchmarking an agent to be the grading. It isn't. The hard part is the context. A coding session that starts as a 60-token prompt is a 30,000-token prompt twelve turns later, and the thing you actually want to know about a local engine is whether it stays responsive while that happens. So this post is partly a design note and partly an accounting of what we have and haven't measured yet.
 
 Quick version: we have decent single-turn agent-shape data and a clear (if unflattering) tool-protocol result on the lucebox-served path, but the multi-turn `agentic-session` suite is built and not yet run. I'll lay out what the loop is, why it deserves its own suite, what the captured runs say, and a concrete matrix for the runs we should do once the omlx box frees up.
 
@@ -30,7 +30,7 @@ Prefix caching is the obvious one. Turn N's prompt is turn N-1's prompt with a n
 
 ## What we've measured so far, and the gaps
 
-Here is the honest state of the captured data. All Gemma 4 26B unless noted, single seed, `max_tokens` 4096.
+Here is the state of the captured data. All Gemma 4 26B unless noted, single seed, `max_tokens` 4096.
 
 Agent-shape (the `agent` area, four Codex-style cases):
 
@@ -67,9 +67,9 @@ Compare that to the same scenarios run through OpenRouter, where the models are 
 | Qwen3.6 27B | 28/30 (93%) |
 | Laguna XS.2 | 5/30 (17%) |
 
-So Gemma 4 26B can do these scenarios. The 0/30 on the lucebox path comes from a protocol and budget mismatch rather than the model failing the task: the served runs hit the 4,096-token cap (`finish_reason: length`) and emit a raw `call:get_country_info{country: "France"}` text syntax instead of the structured tool call the grader parses. The grader sees `ValidationError` or no tool call and fails the row. The MLX run is a different flavor of the same problem, finishing on `tool_calls` but still grading 0. This is a real and actionable finding, and it is the strongest argument for running the multi-turn suite deliberately rather than inferring multi-turn behavior from these numbers.
+So Gemma 4 26B can do these scenarios. The 0/30 on the lucebox path comes from a protocol and budget mismatch rather than the model failing the task: the served runs hit the 4,096-token cap (`finish_reason: length`) and emit a raw `call:get_country_info{country: "France"}` text syntax instead of the structured tool call the grader parses. The grader sees `ValidationError` or no tool call and fails the row. The MLX run is a different flavor of the same problem, finishing on `tool_calls` but still grading 0. This is a concrete finding we can act on, and it is the strongest argument for running the multi-turn suite deliberately rather than inferring multi-turn behavior from these numbers.
 
-The honest gap: we have zero captured `agentic-session` runs. No `bench-agentic-session.json` exists in the baselines repo. The suite is specified, the snapshot exporter normalizes its output into `[benchmark.agentic_session]` and per-turn sections, and the autotuner's level3 profile invokes it, but nothing has been recorded to disk yet. Everything I said above about context growth is measured at turn one from the agent probes and reasoned forward from the design. The turn-over-turn curve, the actual first-content and wall growth as history accumulates, is the thing we have not yet put a number on.
+The gap we can't paper over: we have zero captured `agentic-session` runs. No `bench-agentic-session.json` exists in the baselines repo. The suite is specified, the snapshot exporter normalizes its output into `[benchmark.agentic_session]` and per-turn sections, and the autotuner's level3 profile invokes it, but nothing has been recorded to disk yet. Everything I said above about context growth is measured at turn one from the agent probes and reasoned forward from the design. The turn-over-turn curve, the actual first-content and wall growth as history accumulates, is the thing we have not yet put a number on.
 
 ## What we should run
 

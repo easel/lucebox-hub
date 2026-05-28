@@ -5,7 +5,7 @@
 Every benchmark we run starts with the same nagging question: what was the server
 actually configured to do when this number came out? Which sampler defaults were
 live, which quant, what context length, was speculative decode on, was a thinking
-budget in force. For a long time the honest answer was "read the startup banner,
+budget in force. For a long time the answer was "read the startup banner,
 or grep the launch command, or trust the run notes." That is exactly the kind of
 guessing that makes a benchmark hard to reproduce six weeks later. So lucebox
 servers answer it directly, over HTTP, with `GET /props`.
@@ -135,18 +135,22 @@ itself, so it should be the one to tell you, in a form a client can read.
 
 ## Where the convention comes from
 
+Any inference server should be able to hand a client its own configuration. The
+running process already knows its sampler defaults, its quant, its context limit,
+and its engine settings, so making a client reconstruct that from a launch command
+is needless guesswork. A small read-only config endpoint fixes it for everyone,
+and every engine should expose one.
+
 We did not invent the endpoint name. The llama.cpp server has carried a `/props`
 endpoint for a long time as a server-state snapshot (it documents
 [`GET /props`](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md)
 as "server global properties"), and aligning with that convention is why our wire
 field names match llama-server's. lucebox extends the idea to carry the full
-sampling-plus-model-plus-engine picture our tooling needs.
-
-We think ds4 should have the same thing for the same reason, so we opened
-[antirez/ds4 #81](https://github.com/antirez/ds4/pull/81) to propose a `/props`
-endpoint upstream. That PR is still open and unmerged. The motivation matches our
-own experience: when you are benchmarking a bunch of different providers and model
-settings, querying the server directly beats keeping external notes.
+sampling-plus-model-plus-engine picture our tooling needs, and we opened
+[antirez/ds4 #81](https://github.com/antirez/ds4/pull/81) to propose the same
+endpoint for ds4 (still open and unmerged). The motivation is the same everywhere:
+when you are benchmarking a bunch of different providers and model settings,
+querying the server directly beats keeping external notes.
 
 ---
 

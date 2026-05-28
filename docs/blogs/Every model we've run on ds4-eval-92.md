@@ -37,7 +37,7 @@ frontier proprietary models. On this set, more parameters didn't buy more
 accuracy. We dug into the DeepSeek matchup, including the same-Mac control, in
 [the DeepSeek comparison](<Gemma 4 26B edges out DeepSeek V4 Flash (284B) on ds4-eval-92, at 5x the speed.md>).
 
-The frontier generalists land mid-table, and that's the caveat worth stating
+The frontier generalists land mid-table, and the caveat there needs saying
 loudly: ds4-eval-92 is a narrow, hard reasoning set (GPQA Diamond, SuperGPQA,
 AIME2025, COMPSEC). Claude Sonnet 4.6 at 75% and GPT-5.4-mini at 60% are not
 "worse models" than a Gemma here in any general sense; they're a generalist and
@@ -85,7 +85,7 @@ the same measurement, even though it's emitting an order of magnitude more token
 per question. That lines up with the idea that the inference stack (speculative
 decode, prefill, caching) drives throughput as much as the weights and the GPU
 do. It is not a claim that local beats the frontier APIs in general; on what we
-measure here it keeps pace, and that's the interesting part.
+measure here it keeps pace, and that is the result that surprised us.
 
 ---
 

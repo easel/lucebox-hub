@@ -8,7 +8,7 @@ DFlash speculative prefill and decode, tuned per model family and GPU. This post
 is about getting it running, which on lucebox means a prebuilt Docker image and a
 thin wrapper, with no CUDA toolchain, `cmake`, or Python environment on your host.
 
-The names rhyme, so to be clear: lucebox is the project and Docker image,
+The names rhyme, so here is the map: lucebox is the project and Docker image,
 luce-dflash is the server daemon inside it, DFlash is the speculative-decode
 technique it uses, and luce-bench is the separate benchmark harness.
 
@@ -187,10 +187,22 @@ terminator hint (covered in
 The same picture is available over HTTP from
 [`/props`](<What props tells you about a lucebox server.md>).
 
-Then point any OpenAI client at it:
+Then point any OpenAI client at it. Listing models confirms it's up:
 
-```bash
-curl http://localhost:8080/v1/models
+```text
+❯ curl -s http://localhost:8080/v1/models | jq
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "dflash",
+      "object": "model",
+      "owned_by": "dflash",
+      "context_length": 65536,
+      "max_context_length": 65536
+    }
+  ]
+}
 ```
 
 To run it as a background service instead of foreground, install the user

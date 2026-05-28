@@ -53,7 +53,7 @@ clamp it without reserving reply room and you get the 32%.
 
 ## Takeaway
 
-For Qwen3.6, thinking is worth turning on, but the budget is load-bearing. Pick
+For Qwen3.6, turn thinking on, but the budget is load-bearing. Pick
 an effort tier with headroom, make sure the reply reserve is set, and thinking
 buys you several points. Set it too tight and you'd have been better off with it
 off. (We'll fold the Mac/MLX numbers into the table above once that run lands.)

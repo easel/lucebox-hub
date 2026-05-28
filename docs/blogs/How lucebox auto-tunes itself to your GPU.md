@@ -118,8 +118,8 @@ engine's class defaults; the heuristic and the sweep override them per machine.
 | prefill_drafter | `DFLASH_PREFILL_DRAFTER` | unset | pFlash drafter GGUF (Qwen3-0.6B BF16) |
 | think_max | (config) | `15488` | Thinking-token budget |
 
-`prefix_cache_slots` is interesting because the heuristic keeps it at 0 even
-though it is a real tunable: the daemon's snapshot path for tool prompts is not
+`prefix_cache_slots` is a real tunable that the heuristic still keeps at 0:
+the daemon's snapshot path for tool prompts is not
 yet reliable with prefix slots on, so the auto-tuner only enables it if you
 sweep it in explicitly. The `think_max` default of 15488 is `16000 - 512`, which
 matches antirez/ds4's `ds4_eval.c` generation budget rather than the server's own
@@ -154,7 +154,7 @@ this post only covers how the auto-tuner wires those suites in as gates.
 
 ## Why bother
 
-The honest version is that we built this because we were bad at doing it by hand,
+We built this because we were bad at doing it by hand,
 repeatedly, across a pile of cards. The general-purpose answer is the one in the
 lede. A provider hand-tunes prefill, caching, speculative decode, and context per
 chip, and that tuning is a real part of why hosted inference feels fast and never

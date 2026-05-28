@@ -85,12 +85,12 @@ reasoning, not a finalized answer.
 
 We run this two ways:
 
-- **Level 2 (in-process force-close).** Override the next sampled tokens with the
+- Level 2, the in-process force-close, overrides the next sampled tokens with the
   trained wrap-up sequence right in the generation loop. No reprompt, KV cache
   preserved, and the reply is higher quality because the reasoning is still in
   frame when the model answers. This is the path for Qwen3.5/3.6, Gemma 4, and
   Laguna.
-- **Level 1 (reprompt fallback).** For backends without the in-loop hook: when
+- Level 1, the reprompt fallback, is for backends without the in-loop hook: when
   phase 1 ends with no `</think>`, build a fresh prompt with the reasoning plus an
   injected `</think>` and decode the reply. It works anywhere but costs a second
   prefill of the whole reasoning trace.

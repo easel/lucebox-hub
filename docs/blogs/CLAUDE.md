@@ -31,12 +31,14 @@ Voice and conventions for the lucebox/luce-bench blog posts. Read this before dr
   inline-header bullets or bold TL;DR labels (plain bullets).
 - No CTA/marketing blocks. No `delve / leverage / seamless / robust / tapestry /
   realm`-type filler. Vary sentence length.
+- Stop leaning on "honest"/"honestly"/"the honest version"/"the honest read"/"to
+  be honest." It's become a tic. Just state the point or caveat directly.
 - After rewriting, do the skill's **second-pass audit**: re-read for survivors.
 
 ## Structure
 
 A results post runs: short lede (finding stated once) → plain TL;DR → setup →
-data table → "what the table says" analysis → honest takeaway → footer
+data table → "what the table says" analysis → a plain takeaway → footer
 (concise attribution) → **Related** list. Don't repeat methodology — point to
 the hub posts. Vary paragraph length.
 

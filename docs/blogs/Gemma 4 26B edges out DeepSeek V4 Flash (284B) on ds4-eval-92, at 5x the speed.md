@@ -58,7 +58,7 @@ Each model at the size, quant, and mode you'd run locally:
 
 It's close. On the laptop in nothink it's a dead heat, 78.3% each (72/92). On the
 same Mac via MLX, Gemma noses ahead (79.3%); in think, by three (81.5%, one seed).
-So a 26B model edges a 284B one on this set. Worth stating plainly: to run on the
+So a 26B model edges a 284B one on this set. State the qualifier plainly: to run on the
 Mac at all the big model is squeezed to ~2-bit, while Gemma runs at 4-bit, so part
 of the story is that 284B at 2-bit doesn't pull away from 26B at 4-bit here.
 DeepSeek V4 Flash is a strong model and this is one benchmark; the point isn't
@@ -105,8 +105,8 @@ The laptop makes the speed gap dramatic, but it isn't what wins on quality. We
 also ran Gemma 4 26B on the *same* 192 GB Mac Studio through Apple MLX (8-bit,
 nothink): 79.3% on ds4-eval-92, a point above DeepSeek V4 Flash's 78.3% on that
 box, and at ~40 tok/s against 20.7. On identical hardware, each model on its own
-local stack, the small MoE held its own and then some. The point isn't that Gemma
-is the better model, it's that a 4B-active MoE can match a much larger one on this
+local stack, the small MoE held its own and then some. This doesn't crown Gemma
+the better model; it shows that a 4B-active MoE can match a much larger one on this
 eval while costing far less to run. (Caveat: different engines and quants, MLX
 8-bit vs `ds4_server`,
 and Gemma's nothink runs about level with its think, per
@@ -123,11 +123,10 @@ Gemma 4 26B is sensitive to how it's served: the same model on OpenRouter scored
 
 DeepSeek V4 Flash is a quality model, and this isn't a knock on it. But on
 ds4-eval-92 a 24 GB laptop running Gemma 4 26B matched-to-beat it on accuracy and
-ran ~5x faster, and even on the same Mac the smaller model held its own. The
-lesson isn't "Gemma beats DeepSeek." It's that a small MoE that happens to be
-strong on your workload can deliver that quality at a fraction of the memory and
-latency. Find the model that does well on your tasks, then size the hardware to
-it.
+ran ~5x faster, and even on the same Mac the smaller model held its own. Read it
+this way: a small MoE that happens to be strong on your workload can deliver that
+quality at a fraction of the memory and latency. Find the model that does well on
+your tasks, then size the hardware to it.
 
 ---
 
