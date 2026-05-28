@@ -140,3 +140,4 @@ luce-dflash on RTX 5090 Laptop and RTX 3090 Ti, single seed. Mechanism notes:
 - Every model we've run on ds4-eval-92
 - Putting Qwen's thinking on a budget: counting tokens and forcing the close
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
+- What /props tells you about a lucebox server

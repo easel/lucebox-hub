@@ -78,3 +78,4 @@ Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-h
 - Think vs nothink on Gemma 4: same accuracy, 10x the latency
 - Putting Qwen's thinking on a budget: counting tokens and forcing the close
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
+- What /props tells you about a lucebox server

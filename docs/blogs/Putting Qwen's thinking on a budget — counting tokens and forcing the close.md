@@ -52,7 +52,7 @@ doesn't reliably land. The model was mid-derivation, and a lone close tag tends 
 leave it confused or restating its scratch work in the reply phase instead of
 answering. What it actually responds to is a short natural-language wrap-up
 sentence that ends with the close tag. For Qwen3.x that string is the one from the
-Qwen3 technical report (arXiv 2505.09388), the same lead-in the model saw during
+[Qwen3 technical report (arXiv 2505.09388)](https://arxiv.org/abs/2505.09388), the same lead-in the model saw during
 training when reasoning was cut short:
 
 > Considering the limited time by the user, I have to give the solution based on the thinking directly now.
@@ -120,3 +120,4 @@ ds4_eval.c history are in the spec. Project:
 - Think vs nothink on Gemma 4: same accuracy, 10x the latency
 - Every model we've run on ds4-eval-92
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
+- What /props tells you about a lucebox server
