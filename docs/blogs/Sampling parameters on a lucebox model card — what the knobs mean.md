@@ -87,3 +87,4 @@ These six knobs are stages in one pipeline: truncate the tail, reshape the distr
 - <Running the benchmarks — an intro to luce-bench.md>. The harness that pins the seed so a run is comparable.
 - Model cards in lucebox: a typed sidecar for what the server actually needs
 - Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured
+- The agentic stack is the product, not the model

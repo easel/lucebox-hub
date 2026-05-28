@@ -101,3 +101,4 @@ Runs and provenance live in `Luce-Org/luce-bench-baselines`, produced by `script
 - [Every model we've run on ds4-eval-92](<Every model we've run on ds4-eval-92.md>)
 - Model cards in lucebox: a typed sidecar for what the server actually needs
 - Sampling parameters on a lucebox model card: what the knobs mean
+- The agentic stack is the product, not the model

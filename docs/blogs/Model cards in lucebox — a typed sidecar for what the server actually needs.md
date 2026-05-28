@@ -113,3 +113,4 @@ It is a boring file. That is the point. The interesting parts of a model card ar
 - <Running the benchmarks — an intro to luce-bench.md>. The harness that snapshots `/props` per run.
 - Sampling parameters on a lucebox model card: what the knobs mean
 - Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured
+- The agentic stack is the product, not the model

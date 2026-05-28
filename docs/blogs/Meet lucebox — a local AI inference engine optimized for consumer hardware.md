@@ -272,3 +272,4 @@ the config table in the [repo README](https://github.com/Luce-Org/lucebox-hub).
 - Model cards in lucebox: a typed sidecar for what the server actually needs
 - Sampling parameters on a lucebox model card: what the knobs mean
 - Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured
+- The agentic stack is the product, not the model
