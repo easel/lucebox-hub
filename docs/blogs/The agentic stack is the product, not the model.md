@@ -63,3 +63,4 @@ This is opinion grounded in what we've built and measured; the supporting number
 - [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
 - [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
 - [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>)
+- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)

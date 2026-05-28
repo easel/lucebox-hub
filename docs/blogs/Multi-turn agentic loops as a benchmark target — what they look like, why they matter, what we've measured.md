@@ -101,3 +101,4 @@ Runs and provenance live in `Luce-Org/luce-bench-baselines`, produced by `script
 - [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
 - [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
 - [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)
+- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)

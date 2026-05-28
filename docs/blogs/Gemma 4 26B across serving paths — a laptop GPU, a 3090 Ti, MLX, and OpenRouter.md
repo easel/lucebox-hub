@@ -76,3 +76,4 @@ Serving: lucebox+DFlash Q4_K_M (RTX 3090 Ti, RTX 5090 Laptop), Apple MLX 8-bit
 - [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
 - [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
 - [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)
+- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)
