@@ -224,6 +224,57 @@ The linger warning matters for a headless box: without `enable-linger`, a
 user service is torn down when you log out, so a server you meant to leave
 running stops with your session. `lucebox enable` plus linger is the
 set-and-forget combination.
+
+`lucebox start` brings the unit up and points you at the logs and a one-line
+health check:
+
+```text
+❯ lucebox start
+[INFO]  start lucebox.service
+[OK]    lucebox.service is active
+        logs:    lucebox logs
+        smoke:   curl -s http://localhost:8080/v1/models
+```
+
+`lucebox status` wraps `systemctl --user status`, so you get the unit state and
+the tail of the server's own startup banner in one place, down to the resolved
+cache type and the force-close it armed from the model card:
+
+```text
+❯ lucebox status
+● lucebox.service - Lucebox hub LLM inference server
+     Loaded: loaded (/home/erik/.config/systemd/user/lucebox.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-05-28 17:16:51 EDT; 3min 26s ago
+       Docs: https://github.com/Luce-Org/lucebox-hub
+   Main PID: 883780 (docker)
+      Tasks: 13 (limit: 38157)
+     Memory: 9.9M (peak: 19.4M)
+        CPU: 141ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/lucebox.service
+             └─883780 docker run --rm --name lucebox --gpus all -p 8080:8080 -v /home/erik/.local/share/lucebox/models:/opt/lucebox-hub/server/models -v /home/erik:/home/erik -e DFLASH_BUDGET=16 -e DFLASH_MAX_CTX=65536 -e DFLASH_PREFIX_CACHE_SLOTS=0 -e DFLASH_PREFILL_CACHE_SLOTS=0 -e DFLASH_THINK_MAX=15488 -e DFLASH_…
+
+May 28 17:17:18 bragi lucebox[883780]: [server] │  prefix_cache    = 0 slots
+May 28 17:17:18 bragi lucebox[883780]: [server] │  cors            = ON
+May 28 17:17:18 bragi lucebox[883780]: [server] │  cache_type_k    = tq3_0 (auto)
+May 28 17:17:18 bragi lucebox[883780]: [server] │  cache_type_v    = tq3_0 (auto)
+May 28 17:17:18 bragi lucebox[883780]: [server] │  pflash          = off
+May 28 17:17:18 bragi lucebox[883780]: [server] │  lazy_draft      = off
+May 28 17:17:18 bragi lucebox[883780]: [server] ╰─────────────────────────────────────────────────────╯
+May 28 17:17:18 bragi lucebox[883780]: [server] level-2 force-close (sidecar-hint, 116 chars → 24 tokens, hard_limit_reply_budget = 4096)
+May 28 17:17:18 bragi lucebox[883780]: [server] level-2 force-close token ids: 79939,279,6973,854,539,279,1156,11,353,599,310,2873,279,6093,3018,383,...
+May 28 17:17:18 bragi lucebox[883780]: [server] listening on http://0.0.0.0:8080
+```
+
+And `lucebox smoke` is the fastest way to confirm a live server is actually
+answering: it checks `/props`, tool support, an HTTP round-trip, and a one-token
+generation in under two seconds.
+
+```text
+❯ lucebox smoke
+props=True  tools=True  http=200  tokens=1  wall=1.57s
+PASS
+```
+
 ## Hardware coverage
 
 | GPU                        | sm  | `:cuda12` |
