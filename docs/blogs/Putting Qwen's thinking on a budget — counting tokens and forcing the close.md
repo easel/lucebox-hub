@@ -97,3 +97,4 @@ ds4_eval.c history are in the spec. Project:
 - Meet lucebox: a local AI inference engine optimized for consumer hardware
 - Think vs nothink on Gemma 4: same accuracy, 10x the latency
 - Every model we've run on ds4-eval-92
+- Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it

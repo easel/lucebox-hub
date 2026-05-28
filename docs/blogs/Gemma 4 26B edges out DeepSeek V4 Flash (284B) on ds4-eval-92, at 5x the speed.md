@@ -143,3 +143,4 @@ Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-h
 - DFlash on ggml: up to 207 tok/s Qwen3.5-27B on an RTX 3090
 - Every model we've run on ds4-eval-92
 - Putting Qwen's thinking on a budget: counting tokens and forcing the close
+- Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it

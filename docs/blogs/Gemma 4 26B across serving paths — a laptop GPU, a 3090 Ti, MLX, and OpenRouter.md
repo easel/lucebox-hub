@@ -69,3 +69,4 @@ Serving: lucebox+DFlash Q4_K_M (RTX 3090 Ti, RTX 5090 Laptop), Apple MLX 8-bit
 - Think vs nothink on Gemma 4: same accuracy, 10x the latency
 - Every model we've run on ds4-eval-92
 - Putting Qwen's thinking on a budget: counting tokens and forcing the close
+- Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
