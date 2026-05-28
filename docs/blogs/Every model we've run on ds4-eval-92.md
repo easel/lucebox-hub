@@ -23,12 +23,12 @@ apples comparisons live in the other posts.
 | DeepSeek V4 Flash | 284B (13B) | 80.4% | OpenRouter, think (78.3% local Mac) | 19.4s | 225 | 1646 | 97.8 |
 | Gemma 4 31B | 31B | 80.4% | OpenRouter, think | 31.6s | 249 | 682 | 23.6 |
 | DeepSeek V4 Pro | larger MoE | 79.3% | OpenRouter, think | 47.3s | 225 | 2099 | 48.6 |
-| Claude Sonnet 4.6 | — | 75.0% | OpenRouter, nothink | 9.3s | 256 | 608 | 56.5 |
+| Claude Sonnet 4.6 | n/a | 75.0% | OpenRouter, nothink | 9.3s | 256 | 608 | 56.5 |
 | Qwen3.6-27B | 27B | 63.0% | OpenRouter, think (~56% nothink) | 166.5s | 255 | 13025 | 63.9 |
-| GPT-5.4-mini | — | 59.8% | OpenRouter, nothink | 1.2s | 235 | 14 | 25.1 |
-| Laguna XS.2 | — | 57.6% | OpenRouter | 25.8s | 256 | 2942 | 100.1 |
+| GPT-5.4-mini | n/a | 59.8% | OpenRouter, nothink | 1.2s | 235 | 14 | 25.1 |
+| Laguna XS.2 | n/a | 57.6% | OpenRouter | 25.8s | 256 | 2942 | 100.1 |
 
-## What stands out
+## Efficiency is the headline
 
 The efficiency story is the headline. Gemma 4 26B is a 25.2B-total MoE with only
 3.8B active parameters per token (128 experts, 8 active plus 1 shared), and it
@@ -103,12 +103,3 @@ Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-h
 - [Gemma 4 26B edges out DeepSeek V4 Flash (284B) on ds4-eval-92, at 5x the speed](<Gemma 4 26B edges out DeepSeek V4 Flash (284B) on ds4-eval-92, at 5x the speed.md>)
 - [Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter](<Gemma 4 26B across serving paths — a laptop GPU, a 3090 Ti, MLX, and OpenRouter.md>)
 - [Think vs nothink on Gemma 4: same accuracy, 10x the latency](<Think vs nothink on Gemma 4 — same accuracy, 10x the latency.md>)
-- [Putting Qwen's thinking on a budget: counting tokens and forcing the close](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>)
-- [Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it](<Qwen3.6 think vs nothink across providers — thinking helps if you budget for it.md>)
-- [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
-- [How lucebox auto-tunes itself to your GPU](<How lucebox auto-tunes itself to your GPU.md>)
-- [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
-- [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
-- [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
-- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)
-- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)

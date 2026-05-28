@@ -86,4 +86,3 @@ These six knobs are stages in one pipeline: truncate the tail, reshape the distr
 - [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>). The harness that pins the seed so a run is comparable.
 - [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
 - [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)
-- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)

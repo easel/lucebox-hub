@@ -103,7 +103,7 @@ Probing the mechanism directly (see
   reason" instructions are ignored, stop sequences hide output without saving
   compute, and an answer-prefill makes it worse. Reasoning is emergent from Gemma
   4's training, not instruction-gated.
-- *The template is the only real toggle.* Whether Gemma 4 thinks is gated by a
+- *The template is the only compute toggle.* Whether Gemma 4 thinks is gated by a
   `<|think|>` token at the top of the system turn, which the chat template emits.
   The Anthropic-shape `thinking: {type}` field in the request body is just a hint
   into that template render; flip the body field while the template stays put and
@@ -163,12 +163,3 @@ findings hold regardless of sampling.*
 - [Gemma 4 26B edges out DeepSeek V4 Flash (284B) on ds4-eval-92, at 5x the speed](<Gemma 4 26B edges out DeepSeek V4 Flash (284B) on ds4-eval-92, at 5x the speed.md>)
 - [Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter](<Gemma 4 26B across serving paths — a laptop GPU, a 3090 Ti, MLX, and OpenRouter.md>)
 - [Every model we've run on ds4-eval-92](<Every model we've run on ds4-eval-92.md>)
-- [Putting Qwen's thinking on a budget: counting tokens and forcing the close](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>)
-- [Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it](<Qwen3.6 think vs nothink across providers — thinking helps if you budget for it.md>)
-- [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
-- [How lucebox auto-tunes itself to your GPU](<How lucebox auto-tunes itself to your GPU.md>)
-- [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
-- [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
-- [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
-- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)
-- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)

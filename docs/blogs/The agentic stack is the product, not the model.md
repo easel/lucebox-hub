@@ -18,7 +18,7 @@ It helps to name the layers, because the usual conversation collapses all of the
 6. The inference engine. Prompt caching, KV cache, prefix cache, prefill optimizations.
 7. The model. Reasoning, streaming, prefill and decode performance, the pretraining corpus, and the reinforcement learning applied on top of it.
 
-Listed out, it reads like seven separate concerns owned by seven separate teams. The interesting claim is that they aren't separable, and the agents that feel good to use are the ones where the seams between these layers were designed away.
+Listed out, it reads like seven separate concerns owned by seven separate teams. The useful claim is that they aren't separable, and the agents that feel good to use are the ones where the seams between these layers were designed away.
 
 Walk it from the top. Context is the part everyone now agrees matters, and it's mostly above the model: what the harness chooses to put in the prompt, in what order, with what framing, decides whether the model is even working on the right problem. Guardrails are how the work gets checked. A model that writes a plausible patch and a harness that runs the test suite are two very different products even with the same weights, because one of them can tell when it's wrong. Implementation is the patch. Self-discovery is the loop where the agent runs the tests, reads the failure, and tries again; this only works if the layers below can actually execute the tool calls and stream the results back fast enough that iterating is cheap. The harness is the glue: the prompts, the tools, the sandbox, the routing between models. The inference engine is what turns those prompts into tokens, and it's where caching lives. The model is the reasoning core at the bottom.
 
@@ -42,7 +42,7 @@ With open weights, we do not own the model's reinforcement learning. We download
 
 What we can own is most of the lower stack, and we can co-design those layers as tightly as anyone.
 
-The inference engine is ours. [lucebox](<Meet lucebox — a local AI inference engine optimized for consumer hardware.md>) is built around the caching and prefill machinery that the closed stacks lean on: prefix cache, KV cache with configurable dtypes, prefill via pFlash, and DFlash speculative decode. The whole reason multi-turn loops are interesting on a 24 GB card is that turn N's prompt is turn N-1's prompt plus a suffix, which is precisely the case prefix caching is built to win. We don't get to train the model to produce cache-friendly prompts, but we own the engine that reuses the prefix, and we can tune it for the prompt shapes the loop actually sends.
+The inference engine is ours. [lucebox](<Meet lucebox — a local AI inference engine optimized for consumer hardware.md>) is built around the caching and prefill machinery that the closed stacks lean on: prefix cache, KV cache with configurable dtypes, prefill via pFlash, and DFlash speculative decode. The whole reason multi-turn loops are useful on a 24 GB card is that turn N's prompt is turn N-1's prompt plus a suffix, which is precisely the case prefix caching is built to win. We don't get to train the model to produce cache-friendly prompts, but we own the engine that reuses the prefix, and we can tune it for the prompt shapes the loop actually sends.
 
 The eval and harness tooling is ours. [luce-bench](<Running the benchmarks — an intro to luce-bench.md>) is how we see the layers we control. The agent and forge areas check whether tool calls come out in the right shape; agentic-session replays a fixed tool-result history to isolate how the engine behaves as context grows. We can't reward the model for good tool calls, but we can measure exactly where the protocol mismatch bites and shape the harness around it.
 
@@ -62,5 +62,3 @@ This is opinion grounded in what we've built and measured; the supporting number
 - [How lucebox auto-tunes itself to your GPU](<How lucebox auto-tunes itself to your GPU.md>)
 - [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
 - [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
-- [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>)
-- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)

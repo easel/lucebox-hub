@@ -73,7 +73,7 @@ At startup, luce-dflash resolves one model card for the loaded GGUF. The resolut
 3. A per-family fallback table built into the C++ server, keyed on the detected architecture.
 4. A hard fallback, the old `ds4_eval.c` reference values.
 
-The normalization step has one rule that matters in practice. `normalize_model_card_stem` lowercases, turns spaces, tabs, and underscores into `-`, keeps `[a-z0-9.-]`, and silently drops everything else. So a GGUF whose `general.name` reads "Qwen3.6 27B" resolves to `qwen3.6-27b.json`. The match is on that normalized stem alone; the `name` field inside the file is decorative.
+The normalization step has one rule that matters in practice. `normalize_model_card_stem` lowercases, turns spaces, tabs, and shows into `-`, keeps `[a-z0-9.-]`, and silently drops everything else. So a GGUF whose `general.name` reads "Qwen3.6 27B" resolves to `qwen3.6-27b.json`. The match is on that normalized stem alone; the `name` field inside the file is decorative.
 
 If no sidecar matches, the family table catches known architectures. `qwen3` / `qwen35` / `qwen36` get `max_tokens` 32768 and a 4096 reply reserve; `gemma4` gets 16384; `laguna` gets 32768. These are deliberately conservative and not aspirational. The expectation is that a production model ships a real sidecar, and the family table is a safety net for the day someone loads a GGUF we have not transcribed yet.
 
@@ -101,7 +101,7 @@ The values change independently of the weights. We bumped a default and re-read 
 
 As for inventing a format rather than reusing one: we looked, and there is no upstream contract that carries what the server needs. The README is prose. `generation_config.json` is partial and decode-only. The reasoning budget, the reply reserve, the effort-tier curve, and the terminator hint are not in any of them. So the sidecar is a small, typed, validated transcription layer. It reads the human card and the loose config and the technical report, and it writes down the subset luce-dflash can act on, with a URL and a date so the next person can check our work.
 
-It is a boring file. That is the point. The interesting parts of a model card are for people to read; the sidecar is the part a server can run.
+It is a boring file. That is the point. The mechanisms of a model card are for people to read; the sidecar is the part a server can run.
 
 *Schema: `share/model_cards/_schema.json`. Resolution and field reference: `docs/specs/thinking-budget.md` §3. Loader: `server/src/server/model_card.cpp`.*
 
@@ -111,6 +111,3 @@ It is a boring file. That is the point. The interesting parts of a model card ar
 - [Putting Qwen's thinking on a budget: counting tokens and forcing the close](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>). The force-close the terminator hint feeds.
 - [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>). The harness that snapshots `/props` per run.
 - [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
-- [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
-- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)
-- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)

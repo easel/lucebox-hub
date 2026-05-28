@@ -63,7 +63,7 @@ tok/s.
 | Same, DFlash off | 20.47 | ~18.8 GB |
 
 That 20.47 is the autoregressive floor for this model on this card. DFlash is
-worth about 2.5x on top of it. Worth saying clearly: this speedup is lossless.
+worth about 2.5x on top of it. this speedup is lossless.
 The draft model proposes tokens, the target model verifies them, and the tokens
 that get accepted are exactly the ones the target would have produced on its own.
 DFlash changes how fast the answer comes out, not what the answer is.
@@ -109,7 +109,7 @@ come back to it under quality below.
 The data also carries a `lazy` flag (lazy 0 at 51.07 versus lazy 1 at 47.33 on
 the same cell), but the build appears to ignore it unless a prefill-drafter is
 configured (`props.json` reports `lazy_draft: false` even when the flag is set),
-so we are treating that difference as inconclusive rather than a real knob.
+so we are treating that difference as inconclusive rather than a active knob.
 
 ## Sweep 2: context length and PFlash prefill
 
@@ -134,7 +134,7 @@ time. At 32 K it took the rate from 36.67 to 48.00 and the peak down to about
 18.8 GB. Our probe prompts are short (30 to 40 tokens, well under the auto
 trigger threshold), so part of this gain is variance rather than prefill doing
 real work, and we would not bank the exact delta. But PFlash is the one knob in
-this group worth flagging for quality, because unlike the budget and the draft
+this group quality-relevant, because unlike the budget and the draft
 tree, PFlash prefill can be lossy. It approximates the prefill pass, so a
 prefill-mode change is a quality-relevant change.
 
@@ -157,7 +157,7 @@ target verifies against, so it can change outputs.
 
 ## Quality: measured separately
 
-Everything above is decode throughput and VRAM. It is worth being plain about
+Everything above is decode throughput and VRAM. Be plain about
 what the `ok` column in the data means: it counts probes that completed, not
 answers that were correct. Nothing here grades accuracy per cell.
 
@@ -166,7 +166,7 @@ quant, and a 3-bit cache can cost accuracy in ways a throughput probe will never
 see. So we are not crowning tq3_0/budget-16 a recommended config. It is the
 fastest cell in this throughput sweep, with a quality check still owed.
 
-The split is clean, though, and worth holding onto:
+The split is clean, though, and the useful split:
 
 - Lossless knobs (speed only, no quality sweep needed): DFlash on/off, the
   speculative budget, the draft tree. The target verifies every accepted token,
@@ -221,4 +221,3 @@ External anchor: [club-3090](https://github.com/noonghunna/club-3090). Project:
 - [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>)
 - [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
 - [Putting Qwen's thinking on a budget: counting tokens and forcing the close](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>)
-- [Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter](<Gemma 4 26B across serving paths — a laptop GPU, a 3090 Ti, MLX, and OpenRouter.md>)

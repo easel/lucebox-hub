@@ -1,0 +1,19 @@
+extends: existence
+message: "Avoid '%s'. Replace it with the concrete mechanism, result, or constraint."
+level: error
+ignorecase: true
+tokens:
+  - '\bdelve(?: into)?\b'
+  - '\bleverage\b'
+  - '\bseamless(?:ly)?\b'
+  - '\brobust\b'
+  - '\bpivotal\b'
+  - '\bunderscores\b'
+  - '\blandscape\b'
+  - '\brealm\b'
+  - '\butilize\b'
+  - '\bgame[- ]changer\b'
+  - '\bat its core\b'
+  - '\bin conclusion\b'
+  - '\bin summary\b'
+  - '\bto summarize\b'

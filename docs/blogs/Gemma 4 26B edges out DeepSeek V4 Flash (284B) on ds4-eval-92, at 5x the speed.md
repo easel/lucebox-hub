@@ -29,8 +29,9 @@ Sanfilippo's DeepSeek V4 Flash engine, the same one we're running on the Mac her
 We ported its 92-case `ds4_eval.c` set into luce-bench; the provenance, grading,
 and request rules are in
 [Running the benchmarks](<Running the benchmarks — an intro to luce-bench.md>).
-It's adversarial enough that nothing we ran broke ~82%, so these differences are
-small and earned token-for-token.
+In our current run set, the top results cluster around 80-82% (see
+[the full board](<Every model we've run on ds4-eval-92.md>)), so this is not a benchmark where
+one model runs away with it.
 
 ## What we compared
 
@@ -57,7 +58,7 @@ Each model at the size, quant, and mode you'd run locally:
 > [Chart: ds4-eval-92 accuracy, nothink Gemma vs think DeepSeek. Both = 78.3%.]
 
 It's close. On the laptop in nothink it's a dead heat, 78.3% each (72/92). On the
-same Mac via MLX, Gemma noses ahead (79.3%); in think, by three (81.5%, one seed).
+same Mac via MLX, Gemma noses ahead (79.3%).
 So a 26B model edges a 284B one on this set. State the qualifier plainly: to run on the
 Mac at all the big model is squeezed to ~2-bit, while Gemma runs at 4-bit, so part
 of the story is that 284B at 2-bit doesn't pull away from 26B at 4-bit here.
@@ -71,11 +72,10 @@ we'd run, see [think vs nothink](<Think vs nothink on Gemma 4 — same accuracy,
 > [Chart: Decode throughput, local, tok/s. Gemma 4 26B (nothink) on RTX 5090 Laptop = 101.4 tok/s, DeepSeek V4 Flash (think) on Mac 192 GB = 20.7 tok/s.]
 
 On the same prompts, the laptop Gemma run decodes about 4.9x faster (101.4 vs
-20.7 tok/s), and because nothink Gemma answers in far fewer tokens, a median
-answer lands in 9.8 s against 144.8 s. The Mac isn't slow because it's a Mac. It's
-slow because DeepSeek V4 Flash reads far more weight per decoded token than
-Gemma's a4b MoE does, and Q-style DeepSeek decode on the Mac doesn't get the
-matmul throughput that Q4_K_M weights through DFlash get on dedicated VRAM.
+20.7 tok/s). The median
+completion lands in 9.8 s against 144.8 s. The result points away from raw Mac capacity as the main explanation. The
+tested DeepSeek path reads more active weights per decoded token, while the
+Gemma path combines a smaller active footprint with CUDA DFlash.
 
 ## Why the laptop is so fast
 
@@ -93,11 +93,12 @@ backwards. We think three things explain it, plus a fourth that doesn't.
 - *The model size is right.* 26B in Q4_K_M fits in 24 GB with room for a long
   context. DeepSeek V4 Flash is large enough that local Mac serving has to trade
   throughput against a usable context window.
-- *Not memory bandwidth.* It's tempting to credit dedicated VRAM, but the M2
+- *Raw memory bandwidth alone does not explain it.* It's tempting to credit dedicated VRAM, but the M2
   Ultra's unified memory runs ~800 GB/s, in the same range as the laptop's GDDR7.
-  What does the work is how few bytes Gemma's MoE reads per token, multiplied by
-  DFlash acceptance. Big memory doesn't help when the bottleneck is per-token
-  weight reads, not capacity.
+  The useful distinction is bytes read per committed token: Gemma touches fewer
+  active weights per step, and DFlash can commit multiple accepted tokens per
+  target pass. Capacity matters for fitting the model, but it does not explain
+  this throughput gap by itself.
 
 ## Same Mac, smaller model
 
@@ -105,9 +106,10 @@ The laptop makes the speed gap dramatic, but it isn't what wins on quality. We
 also ran Gemma 4 26B on the *same* 192 GB Mac Studio through Apple MLX (8-bit,
 nothink): 79.3% on ds4-eval-92, a point above DeepSeek V4 Flash's 78.3% on that
 box, and at ~40 tok/s against 20.7. On identical hardware, each model on its own
-local stack, the small MoE held its own and then some. This doesn't crown Gemma
-the better model; it shows that a 4B-active MoE can match a much larger one on this
-eval while costing far less to run. (Caveat: different engines and quants, MLX
+local stack, the small MoE held its own. This does not isolate model architecture from engine, quant, hardware, or
+speculative decoding. It measures the local stacks we would actually run. It
+shows that a 4B-active MoE can match a much larger one on this eval while
+costing far less to run. (Caveat: different engines and quants, MLX
 8-bit vs `ds4_server`,
 and Gemma's nothink runs about level with its think, per
 [think vs nothink](<Think vs nothink on Gemma 4 — same accuracy, 10x the latency.md>).)
@@ -121,9 +123,10 @@ Gemma 4 26B is sensitive to how it's served: the same model on OpenRouter scored
 
 ## Takeaway
 
-DeepSeek V4 Flash is a quality model, and this isn't a knock on it. But on
-ds4-eval-92 a 24 GB laptop running Gemma 4 26B matched-to-beat it on accuracy and
-ran ~5x faster, and even on the same Mac the smaller model held its own. Read it
+DeepSeek V4 Flash is a quality model, and this isn't a knock on it. On
+ds4-eval-92, in the local stacks we tested, a 24 GB laptop running Gemma 4 26B
+matched it on accuracy and ran ~5x faster. On the same Mac, the smaller model
+held its own. Read it
 this way: a small MoE that happens to be strong on your workload can deliver that
 quality at a fraction of the memory and latency. Find the model that does well on
 your tasks, then size the hardware to it.
@@ -140,12 +143,3 @@ Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-h
 - [Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter](<Gemma 4 26B across serving paths — a laptop GPU, a 3090 Ti, MLX, and OpenRouter.md>)
 - [Think vs nothink on Gemma 4: same accuracy, 10x the latency](<Think vs nothink on Gemma 4 — same accuracy, 10x the latency.md>)
 - [Every model we've run on ds4-eval-92](<Every model we've run on ds4-eval-92.md>)
-- [Putting Qwen's thinking on a budget: counting tokens and forcing the close](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>)
-- [Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it](<Qwen3.6 think vs nothink across providers — thinking helps if you budget for it.md>)
-- [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
-- [How lucebox auto-tunes itself to your GPU](<How lucebox auto-tunes itself to your GPU.md>)
-- [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
-- [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
-- [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
-- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)
-- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)

@@ -87,7 +87,7 @@ This is the matrix I'd execute once vidar (the omlx server at vidar:1237) is fre
 | Gemma 4 26B | OpenRouter | reference | have (83–87%) | reference |
 | DeepSeek V4 Flash | OpenRouter | reference | have (100%) | reference |
 
-Notes on the matrix. The forge reruns should lift `max_tokens` well above 4,096 and confirm the served tool-call format before we read anything into the pass rate; the current 0/30 is a cap-and-format artifact rather than a capability ceiling. The `agentic-session` column is the actual gap to close, and the two lucebox hosts (5090 laptop and 3090 Ti) are the interesting pair because they differ in VRAM headroom, which is exactly the variable the loop stresses. The OpenRouter rows are references for what the model can do unconstrained, not comparable wall-time numbers. Single seed to start; if a session shows variance in tool-call reliability turn over turn, repeat it. And the thing to actually plot from the session runs is prompt tokens, first-content, and wall against turn number, so we can see where (and whether) the loop stops being responsive on 24 GB.
+Notes on the matrix. The forge reruns should lift `max_tokens` well above 4,096 and confirm the served tool-call format before we read anything into the pass rate; the current 0/30 is a cap-and-format artifact rather than a capability ceiling. The `agentic-session` column is the actual gap to close, and the two lucebox hosts (5090 laptop and 3090 Ti) are the useful pair because they differ in VRAM headroom, which is exactly the variable the loop stresses. The OpenRouter rows are references for what the model can do unconstrained, not comparable wall-time numbers. Single seed to start; if a session shows variance in tool-call reliability turn over turn, repeat it. And the thing to actually plot from the session runs is prompt tokens, first-content, and wall against turn number, so we can see where (and whether) the loop stops being responsive on 24 GB.
 
 ---
 
@@ -99,6 +99,3 @@ Runs and provenance live in `Luce-Org/luce-bench-baselines`, produced by `script
 - [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
 - [Every model we've run on ds4-eval-92](<Every model we've run on ds4-eval-92.md>)
 - [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
-- [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
-- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)
-- [Tuning Qwen3.6-27B decode on a 3090 Ti: the knobs that moved throughput](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)

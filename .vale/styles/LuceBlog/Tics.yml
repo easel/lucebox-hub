@@ -1,0 +1,12 @@
+extends: existence
+message: "Avoid '%s' unless the sentence names the concrete contrast or consequence."
+level: warning
+ignorecase: true
+tokens:
+  - '\bhonest(?:ly)?\b'
+  - '\bto be honest\b'
+  - '\binteresting(?:ly)?\b'
+  - '\bwhat stands out\b'
+  - '\b(?:it is|it''s|that is|that''s)\s+worth\b'
+  - '\bworth\s+(?:noting|saying|flagging|holding|remembering|reading|checking|exploring)\b'
+  - '\b(?:real|actual|genuine|true)\s+(?:accuracy|answer|benchmark|claim|compute|config|default|dial|engine|gain|knob|mode|number|problem|quality|reason|result|score|speed|story|takeaway|toggle|version)\b'

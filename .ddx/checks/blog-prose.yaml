@@ -1,0 +1,7 @@
+name: blog-prose
+description: Enforce lucebox blog prose policy and Vale style diagnostics.
+applies_to:
+  paths:
+    - docs/blogs/*.md
+command: python3 scripts/check_blog_prose.py --changed --with-vale
+timeout_ms: 120000
