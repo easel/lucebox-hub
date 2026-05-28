@@ -2,11 +2,13 @@
 
 *May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
-We ran the same Qwen3.6-27B on ds4-eval-92 across three serving stacks, think and
-nothink. Two things came out of it. Nothink is boringly consistent: ~55–58%
-wherever we ran it. Thinking is not boring: with a full budget it adds 7–8 points,
-and with a starved budget it does worse than not thinking at all. For Qwen,
-unlike Gemma 4, the thinking budget is a real lever, and it cuts both ways.
+We ran the same Qwen3.6-27B on ds4-eval-92 across four serving stacks, think and
+nothink. Two things came out of it. Across the three 4-bit paths, nothink is
+boringly consistent at ~55–58%, with one outlier: the 8-bit MLX serve scored 77%
+nothink, which we flag below and cannot yet fully explain. Thinking is not boring:
+with a full budget it adds 7–8 points, and with a starved budget it does worse
+than not thinking at all. For Qwen, unlike Gemma 4, the thinking budget is a real
+lever, and it cuts both ways.
 
 > [Hero image: Qwen3.6 ds4-eval bars, nothink flat across providers, think split high/low]
 
@@ -17,20 +19,34 @@ unlike Gemma 4, the thinking budget is a real lever, and it cuts both ways.
 | RTX 3090 Ti (lucebox) | nothink | 57.6% | |
 | RTX 5090 Laptop (lucebox) | nothink | 55.4% | |
 | OpenRouter | nothink | 55.4% | |
-| Mac Studio M2 Ultra (MLX) | nothink | _pending (omlx run in flight)_ | |
+| Mac Studio M2 Ultra (MLX 8-bit) | nothink | 77.2% | 8-bit; outlier, see below |
 | OpenRouter | think | **63.0%** | full 16k budget |
 | RTX 5090 Laptop (lucebox) | think | 32.6% | clamped 4k budget |
-| Mac Studio M2 Ultra (MLX) | think | _pending (omlx run in flight)_ | |
+| Mac Studio M2 Ultra (MLX 8-bit) | think | _pending (run in flight)_ | |
 
-<!-- TODO: fill the two MLX rows from vidar-m2ultra-qwen3.6-27b-mlx8bit-ds4eval-{nothink,think}-2026-05-27 when the run completes. -->
+<!-- TODO: fill the MLX think row from vidar-m2ultra-qwen3.6-27b-mlx8bit-ds4eval-think-2026-05-27 when the run completes (~30/92 as of last check). nothink backfilled: 77.2% (71/92). -->
 
-## Nothink is stable across providers
+## Nothink is stable across the 4-bit serves, with one outlier
 
-Three independent serves, three numbers within noise: 57.6%, 55.4%, 55.4%. A
-desktop 3090 Ti on lucebox, a laptop 5090 on lucebox, and whatever OpenRouter
+Three independent 4-bit serves, three numbers within noise: 57.6%, 55.4%, 55.4%.
+A desktop 3090 Ti on lucebox, a laptop 5090 on lucebox, and whatever OpenRouter
 routes to all land in the same ~56% band. That's the comparison to anchor on,
-and it's a useful contrast with Gemma 4, which swung ~5 points by provider. On
-nothink, Qwen3.6 is what it is regardless of who serves it.
+and it's a useful contrast with Gemma 4, which swung ~5 points by provider. Run
+Qwen3.6 at 4-bit and nothink scores about the same whoever serves it.
+
+The 8-bit MLX serve on the Mac is the exception, and a large one: 77.2% nothink,
+roughly 20 points clear of the 4-bit band and higher even than the best think
+score. We checked the obvious confounder first. It is a genuine nothink run, zero
+thinking tokens on all 92 cases, and its answers are not longer than the others
+(a ~1.6k-token median, in line with the lucebox runs), so this is not the MLX
+serve quietly reasoning its way to a better score. The leading suspect is the
+quant itself, 8-bit MLX against the others' 4-bit, which would make weight
+precision worth more on this set than we'd assumed. We are not asserting that
+yet, because a serving or parsing difference could also be in play. It is exactly
+the kind of question the queued
+[model-quant quality sweep](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)
+should settle. For now, read the 4-bit band as the stable result and the 8-bit
+number as an open lead.
 
 ## Thinking helps, when you give it room
 
@@ -56,13 +72,14 @@ clamp it without reserving reply room and you get the 32%.
 For Qwen3.6, turn thinking on, but the budget is load-bearing. Pick
 an effort tier with headroom, make sure the reply reserve is set, and thinking
 buys you several points. Set it too tight and you'd have been better off with it
-off. (We'll fold the Mac/MLX numbers into the table above once that run lands.)
+off. (The MLX nothink number is in the table now; the MLX think run is still
+in flight and goes in when it finishes.)
 
 ---
 
 *ds4-eval-92 from antirez/ds4 (MIT), run via luce-bench, single seed. Qwen3.6-27B
 Q4_K_M via lucebox (RTX 3090 Ti, RTX 5090 Laptop), MLX 8-bit (Mac Studio M2
-Ultra, pending), and OpenRouter. Methodology:
+Ultra; nothink in, think run in flight), and OpenRouter. Methodology:
 [Running the benchmarks](<Running the benchmarks — an intro to luce-bench.md>).
 Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-hub).*
 
