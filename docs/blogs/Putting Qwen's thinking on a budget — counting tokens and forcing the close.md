@@ -5,9 +5,9 @@
 Qwen3.6 is a strong reasoner when you let it think, and a problem when you try to
 bound how much. We spent a while getting its thinking under control, and the
 answer turned out to be unglamorous: count the output tokens ourselves and, when
-the budget runs low, force the model out of its reasoning block by jamming a
-`</think>` into the stream. Here's why the obvious approaches don't work and what
-does.
+the budget runs low, inject the wrap-up directive Qwen was trained to act on and
+let it close its own reasoning block. A bare `</think>` token is not enough on its
+own. Here's why the obvious approaches don't work and what does.
 
 ## The problem: one cap isn't enough
 
@@ -44,19 +44,41 @@ effort tiers come from the model card sidecar (Qwen3.6 ships
 Then the part that actually tames it: the server **counts tokens as it decodes**
 and forces the close itself. In the autoregressive loop it tracks
 `generated = committed_now − committed_at_entry`, and when
-`remaining = n_gen − generated` drops to the reply reserve, it overrides the next
-sampled token with `</think>`. That injected close tag is the whole trick: the
-model was mid-thought, and the `</think>` yanks it into the reply phase, where its
-strong end-of-answer prior takes over and it writes the actual answer with the
-reserved tokens. The shibboleth that ends thinking is just the close tag, forced
-into the stream on our schedule rather than the model's.
+`remaining = n_gen − generated` drops to the reply reserve, it starts overriding
+the next sampled tokens with a fixed sequence.
+
+The sequence is the important part. We tried injecting a bare `</think>` and it
+doesn't reliably land. The model was mid-derivation, and a lone close tag tends to
+leave it confused or restating its scratch work in the reply phase instead of
+answering. What it actually responds to is a short natural-language wrap-up
+sentence that ends with the close tag. For Qwen3.x that string is the one from the
+Qwen3 technical report (arXiv 2505.09388), the same lead-in the model saw during
+training when reasoning was cut short:
+
+> Considering the limited time by the user, I have to give the solution based on the thinking directly now.
+> `</think>`
+
+(followed by two newlines). We tokenize that whole phrase once at startup (24
+tokens including the `</think>`) and the budget hook overrides the sampled tokens
+with it in order, one per step, until the sequence is exhausted. The sentence is
+what flips Qwen from thinking into answering; the `</think>` at the end just marks
+the boundary for our parser. Inject the directive on our schedule rather than the
+model's, and its trained "wrap up now" behavior takes over with the reserved
+tokens still in hand.
+
+The phrase lives in the model card sidecar, not the code, so each architecture
+ships the cue it was trained on. Qwen3.6 and Laguna carry the "Considering the
+limited time" lead-in; Gemma 4 uses a different transition cue. The server takes
+the sidecar string verbatim and does not auto-append a close tag, so the operator
+controls whether the inject ends the block or just nudges the model to self-close.
 
 We run this two ways:
 
-- **Level 2 (in-process force-close).** Override the next token with `</think>`
-  right in the generation loop. No reprompt, KV cache preserved, and the reply is
-  higher quality because the reasoning is still in frame when the model answers.
-  This is the path for Qwen3.5/3.6, Gemma 4, and Laguna.
+- **Level 2 (in-process force-close).** Override the next sampled tokens with the
+  trained wrap-up sequence right in the generation loop. No reprompt, KV cache
+  preserved, and the reply is higher quality because the reasoning is still in
+  frame when the model answers. This is the path for Qwen3.5/3.6, Gemma 4, and
+  Laguna.
 - **Level 1 (reprompt fallback).** For backends without the in-loop hook: when
   phase 1 ends with no `</think>`, build a fresh prompt with the reasoning plus an
   injected `</think>` and decode the reply. It works anywhere but costs a second
