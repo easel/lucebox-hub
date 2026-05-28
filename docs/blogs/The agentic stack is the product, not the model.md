@@ -55,7 +55,6 @@ The model was never the whole product. It's the bottom layer of a stack, and on 
 This is opinion grounded in what we've built and measured; the supporting numbers live in the linked posts and in `Luce-Org/luce-bench-baselines`. The characterization of how vertically integrated vendors operate is read off their public descriptions of their own systems, not private knowledge. As always, scope it to what it is: one lab's view from the open-weights side of the line.
 
 **Related**
-
 - [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
 - [Meet lucebox: a local AI inference engine optimized for consumer hardware](<Meet lucebox — a local AI inference engine optimized for consumer hardware.md>)
 - [How lucebox auto-tunes itself to your GPU](<How lucebox auto-tunes itself to your GPU.md>)

@@ -158,16 +158,16 @@ budget at `length`. The separation, budget-enforcement, and template-gating
 findings hold regardless of sampling.*
 
 **Related**
-- Meet lucebox: a local AI inference engine optimized for consumer hardware
-- Running the benchmarks: an intro to luce-bench
-- Gemma 4 26B edges out DeepSeek V4 Flash (284B), at 5x the speed
-- Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter
-- Every model we've run on ds4-eval-92
-- Putting Qwen's thinking on a budget: counting tokens and forcing the close
-- Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
-- What /props tells you about a lucebox server
-- How lucebox auto-tunes itself to your GPU
-- Model cards in lucebox: a typed sidecar for what the server actually needs
-- Sampling parameters on a lucebox model card: what the knobs mean
-- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured
-- The agentic stack is the product, not the model
+- [Meet lucebox: a local AI inference engine optimized for consumer hardware](<Meet lucebox — a local AI inference engine optimized for consumer hardware.md>)
+- [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>)
+- [Gemma 4 26B edges out DeepSeek V4 Flash (284B) on ds4-eval-92, at 5x the speed](<Gemma 4 26B edges out DeepSeek V4 Flash (284B) on ds4-eval-92, at 5x the speed.md>)
+- [Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter](<Gemma 4 26B across serving paths — a laptop GPU, a 3090 Ti, MLX, and OpenRouter.md>)
+- [Every model we've run on ds4-eval-92](<Every model we've run on ds4-eval-92.md>)
+- [Putting Qwen's thinking on a budget: counting tokens and forcing the close](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>)
+- [Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it](<Qwen3.6 think vs nothink across providers — thinking helps if you budget for it.md>)
+- [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
+- [How lucebox auto-tunes itself to your GPU](<How lucebox auto-tunes itself to your GPU.md>)
+- [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
+- [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
+- [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
+- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)

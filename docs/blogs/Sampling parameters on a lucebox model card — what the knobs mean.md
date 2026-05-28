@@ -1,6 +1,6 @@
 # Sampling parameters on a lucebox model card: what the knobs mean
 
-Every lucebox model card carries a `sampling` block, and the companion post on the card format (<Model cards in lucebox — a typed sidecar for what the server actually needs.md>) explains where those numbers come from and how the server resolves them. This post is the other half. It does not tell you what value a given model wants. It tells you what each knob actually does, so that when you read `top_k: 64` on the Gemma 4 card you know what you are looking at and why it is 64 and not 20.
+Every lucebox model card carries a `sampling` block, and the companion post on the card format ([Model cards in lucebox](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)) explains where those numbers come from and how the server resolves them. This post is the other half. It does not tell you what value a given model wants. It tells you what each knob actually does, so that when you read `top_k: 64` on the Gemma 4 card you know what you are looking at and why it is 64 and not 20.
 
 The recommended values are model-specific. They live on the card precisely because there is no universal good setting. So the worked plan here is: define the mechanism, say when it matters, point at the authoritative source, and then show one place where getting it wrong bit us.
 
@@ -19,7 +19,7 @@ Here is the `sampling` section from the Qwen3.6 27B sidecar, which exercises eve
 }
 ```
 
-The schema (`share/model_cards/_schema.json`) permits exactly those six keys and nothing else. When a request omits a field, the server fills it from here. When the card itself omits a field, the server falls back to a neutral default. You can see both layers reflected over `GET /props`: `default_generation_settings` reports the concrete value the server will apply, and `sampling.capabilities` advertises which knobs the server honors at all. The full endpoint is covered in <What props tells you about a lucebox server.md>.
+The schema (`share/model_cards/_schema.json`) permits exactly those six keys and nothing else. When a request omits a field, the server fills it from here. When the card itself omits a field, the server falls back to a neutral default. You can see both layers reflected over `GET /props`: `default_generation_settings` reports the concrete value the server will apply, and `sampling.capabilities` advertises which knobs the server honors at all. The full endpoint is covered in [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>).
 
 One naming wrinkle to keep in your head before we start. Our card field is `repetition_penalty`, but the value the server emits in `default_generation_settings` is keyed `repeat_penalty`. That is the llama.cpp wire name, and `build_props_body` in `server/src/server/http_server.cpp` maps our field onto it. Same number, two spellings, depending on which side of the boundary you are reading.
 
@@ -72,7 +72,7 @@ A note on the wire: this is the field that surfaces as `repeat_penalty` in `/pro
 
 `seed` is not a shape knob; it is a reproducibility knob. Sampling draws from the truncated, reshaped distribution using a random number generator, and pinning the seed makes that draw deterministic. Same prompt, same parameters, same seed, same output, token for token. It changes nothing about quality and everything about whether you can repeat a run.
 
-It is not a `sampling` field on the card, because there is no recommended seed; a seed is a per-run choice, not a model property. It shows up instead under `sampling.capabilities` in `/props` as `supports_seed: true`, which is the server's way of saying you may pin it. We rely on it constantly for the benchmarks. A single committed seed is what makes a luce-bench result comparable across runs, which is why the harness records it; see <Running the benchmarks — an intro to luce-bench.md>.
+It is not a `sampling` field on the card, because there is no recommended seed; a seed is a per-run choice, not a model property. It shows up instead under `sampling.capabilities` in `/props` as `supports_seed: true`, which is the server's way of saying you may pin it. We rely on it constantly for the benchmarks. A single committed seed is what makes a luce-bench result comparable across runs, which is why the harness records it; see [Running the benchmarks](<Running the benchmarks — an intro to luce-bench.md>).
 
 ## The takeaway
 
@@ -81,10 +81,8 @@ These six knobs are stages in one pipeline: truncate the tail, reshape the distr
 *Schema: `share/model_cards/_schema.json` (the `sampling` block). Server mapping: `build_props_body` in `server/src/server/http_server.cpp`. Recommended values per model live on the card; see the companion post below.*
 
 **Related**
-
-- <Model cards in lucebox — a typed sidecar for what the server actually needs.md>. Where these values come from and how the server resolves them.
-- <What props tells you about a lucebox server.md>. The endpoint that reports `default_generation_settings` and `sampling.capabilities`.
-- <Running the benchmarks — an intro to luce-bench.md>. The harness that pins the seed so a run is comparable.
-- Model cards in lucebox: a typed sidecar for what the server actually needs
-- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured
-- The agentic stack is the product, not the model
+- [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>). Where these values come from and how the server resolves them.
+- [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>). The endpoint that reports `default_generation_settings` and `sampling.capabilities`.
+- [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>). The harness that pins the seed so a run is comparable.
+- [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
+- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)

@@ -94,11 +94,10 @@ Notes on the matrix. The forge reruns should lift `max_tokens` well above 4,096 
 Runs and provenance live in `Luce-Org/luce-bench-baselines`, produced by `scripts/run-baseline.sh`. The `agentic-session` design is in `server/docs/BENCHMARK_SNAPSHOT_SPEC.md`; the agent and forge areas ship in `luce-bench` inside lucebox-hub. Club-3090's coding-session benchmark is the inspiration for the multi-turn shape. As always, these are single-seed results on small suites, scoped to what they measure.
 
 **Related**
-
 - [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>)
 - [How lucebox auto-tunes itself to your GPU](<How lucebox auto-tunes itself to your GPU.md>)
 - [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
 - [Every model we've run on ds4-eval-92](<Every model we've run on ds4-eval-92.md>)
-- Model cards in lucebox: a typed sidecar for what the server actually needs
-- Sampling parameters on a lucebox model card: what the knobs mean
-- The agentic stack is the product, not the model
+- [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
+- [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
+- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)

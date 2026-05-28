@@ -126,14 +126,14 @@ ds4_eval.c history are in the spec. Project:
 [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-hub).*
 
 **Related**
-- Running the benchmarks: an intro to luce-bench
-- Meet lucebox: a local AI inference engine optimized for consumer hardware
-- Think vs nothink on Gemma 4: same accuracy, 10x the latency
-- Every model we've run on ds4-eval-92
-- Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
-- What /props tells you about a lucebox server
-- How lucebox auto-tunes itself to your GPU
-- Model cards in lucebox: a typed sidecar for what the server actually needs
-- Sampling parameters on a lucebox model card: what the knobs mean
-- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured
-- The agentic stack is the product, not the model
+- [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>)
+- [Meet lucebox: a local AI inference engine optimized for consumer hardware](<Meet lucebox — a local AI inference engine optimized for consumer hardware.md>)
+- [Think vs nothink on Gemma 4: same accuracy, 10x the latency](<Think vs nothink on Gemma 4 — same accuracy, 10x the latency.md>)
+- [Every model we've run on ds4-eval-92](<Every model we've run on ds4-eval-92.md>)
+- [Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it](<Qwen3.6 think vs nothink across providers — thinking helps if you budget for it.md>)
+- [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
+- [How lucebox auto-tunes itself to your GPU](<How lucebox auto-tunes itself to your GPU.md>)
+- [Model cards in lucebox: a typed sidecar for what the server actually needs](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>)
+- [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
+- [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
+- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)

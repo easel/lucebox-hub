@@ -81,7 +81,7 @@ The hard fallback, when even the architecture is unknown, is `max_tokens` 16000 
 
 Once a card is resolved, the server derives the rest. `think_max_tokens` is `max_tokens - hard_limit_reply_budget`. Any effort tier the sidecar did not pin is computed from a ratio formula: `low` is one-eighth of `think_max`, `medium` is half, `high` is the full `think_max`, and `x-high` and `max` interpolate up toward the complex-problem budget when the card has one (and collapse down to `high` when it does not). The tiers are then clamped to be monotonically non-decreasing, with a warning if the card violated that.
 
-All of this surfaces over `GET /props`. The server stashes the parsed sidecar verbatim and re-emits it under `model_card`, so anyone hitting the endpoint sees exactly the file on disk, validated against the same schema. When the server fell through to a family or hard fallback, `model_card` is `null` and the source label shows up separately under `budget_envelope.model_card_source`. That is the link between this format and what a caller actually observes at runtime; see <What props tells you about a lucebox server.md> for the full endpoint.
+All of this surfaces over `GET /props`. The server stashes the parsed sidecar verbatim and re-emits it under `model_card`, so anyone hitting the endpoint sees exactly the file on disk, validated against the same schema. When the server fell through to a family or hard fallback, `model_card` is `null` and the source label shows up separately under `budget_envelope.model_card_source`. That is the link between this format and what a caller actually observes at runtime; see [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>) for the full endpoint.
 
 ## The thinking terminator, and why it ties to the force-close
 
@@ -89,7 +89,7 @@ The `hard_limit_reply_budget` and `thinking_terminator_hint` fields are the half
 
 When a thinking request runs long, the decode loop tracks how many tokens it has generated. The moment `(n_gen - generated) <= hard_limit_reply_budget`, the remaining headroom is reserved for the visible answer, and the engine overrides the next sampled tokens with the `thinking_terminator_hint` sequence verbatim. The server does not auto-append a close marker. If the operator wants the `</think>` in the inject, they put it in the hint. That is deliberate: it lets us test whether a hint alone induces the model to self-close versus whether we have to force the close ourselves.
 
-For Qwen3.x the canonical hint, the one from the technical report, embeds the marker: `"Considering the limited time by the user, I have to give the solution based on the thinking directly now.\n</think>\n\n"`. That single string is the whole reason this field exists. It is a trained directive, it lives in a PDF, and it is the difference between a force-closed Qwen3.6 finishing its answer cleanly and one that keeps deriving in the visible reply. The force-close mechanism is covered in <Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>.
+For Qwen3.x the canonical hint, the one from the technical report, embeds the marker: `"Considering the limited time by the user, I have to give the solution based on the thinking directly now.\n</think>\n\n"`. That single string is the whole reason this field exists. It is a trained directive, it lives in a PDF, and it is the difference between a force-closed Qwen3.6 finishing its answer cleanly and one that keeps deriving in the visible reply. The force-close mechanism is covered in [Putting Qwen's thinking on a budget](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>).
 
 The default `hard_limit_reply_budget` used to be 512, inherited from `ds4_eval.c`, which was sized for DeepSeek-V4-flash's terse style. We raised it to 4096 on 2026-05-25 after watching it silently truncate almost every other model mid-answer; one bench probe got cut off in the middle of a coordinate-geometry proof. Terse models can override back down to 512 in their sidecar. Verbose math and code models keep 4096. That override is exactly the kind of per-model decision the sidecar exists to record.
 
@@ -106,11 +106,10 @@ It is a boring file. That is the point. The interesting parts of a model card ar
 *Schema: `share/model_cards/_schema.json`. Resolution and field reference: `docs/specs/thinking-budget.md` §3. Loader: `server/src/server/model_card.cpp`.*
 
 **Related**
-
-- <Meet lucebox — a local AI inference engine optimized for consumer hardware.md>. The engine and the Docker workflow.
-- <What props tells you about a lucebox server.md>. The endpoint that re-emits the resolved card.
-- <Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>. The force-close the terminator hint feeds.
-- <Running the benchmarks — an intro to luce-bench.md>. The harness that snapshots `/props` per run.
-- Sampling parameters on a lucebox model card: what the knobs mean
-- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured
-- The agentic stack is the product, not the model
+- [Meet lucebox: a local AI inference engine optimized for consumer hardware](<Meet lucebox — a local AI inference engine optimized for consumer hardware.md>). The engine and the Docker workflow.
+- [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>). The endpoint that re-emits the resolved card.
+- [Putting Qwen's thinking on a budget: counting tokens and forcing the close](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>). The force-close the terminator hint feeds.
+- [Running the benchmarks: an intro to luce-bench](<Running the benchmarks — an intro to luce-bench.md>). The harness that snapshots `/props` per run.
+- [Sampling parameters on a lucebox model card: what the knobs mean](<Sampling parameters on a lucebox model card — what the knobs mean.md>)
+- [Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured](<Multi-turn agentic loops as a benchmark target — what they look like, why they matter, what we've measured.md>)
+- [The agentic stack is the product, not the model](<The agentic stack is the product, not the model.md>)
