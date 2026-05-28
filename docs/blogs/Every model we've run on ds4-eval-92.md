@@ -76,3 +76,4 @@ Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-h
 - Gemma 4 26B edges out DeepSeek V4 Flash (284B), at 5x the speed
 - Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter
 - Think vs nothink on Gemma 4: same accuracy, 10x the latency
+- Putting Qwen's thinking on a budget: counting tokens and forcing the close

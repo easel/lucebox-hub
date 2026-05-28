@@ -125,3 +125,4 @@ ds4-eval and the ds4 engine are the work of Salvatore Sanfilippo.*
 - Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter
 - Think vs nothink on Gemma 4: same accuracy, 10x the latency
 - Every model we've run on ds4-eval-92
+- Putting Qwen's thinking on a budget: counting tokens and forcing the close

@@ -68,3 +68,4 @@ Serving: lucebox+DFlash Q4_K_M (RTX 3090 Ti, RTX 5090 Laptop), Apple MLX 8-bit
 - Gemma 4 26B edges out DeepSeek V4 Flash (284B), at 5x the speed
 - Think vs nothink on Gemma 4: same accuracy, 10x the latency
 - Every model we've run on ds4-eval-92
+- Putting Qwen's thinking on a budget: counting tokens and forcing the close

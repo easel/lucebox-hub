@@ -138,3 +138,4 @@ luce-dflash on RTX 5090 Laptop and RTX 3090 Ti, single seed. Mechanism notes:
 - Gemma 4 26B edges out DeepSeek V4 Flash (284B), at 5x the speed
 - Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter
 - Every model we've run on ds4-eval-92
+- Putting Qwen's thinking on a budget: counting tokens and forcing the close
