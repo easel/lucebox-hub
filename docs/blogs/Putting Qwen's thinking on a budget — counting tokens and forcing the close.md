@@ -121,3 +121,4 @@ ds4_eval.c history are in the spec. Project:
 - Every model we've run on ds4-eval-92
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
 - What /props tells you about a lucebox server
+- How lucebox auto-tunes itself to your GPU

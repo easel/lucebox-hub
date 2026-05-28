@@ -72,3 +72,4 @@ Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-h
 - Think vs nothink on Gemma 4: same accuracy, 10x the latency
 - Every model we've run on ds4-eval-92
 - What /props tells you about a lucebox server
+- How lucebox auto-tunes itself to your GPU

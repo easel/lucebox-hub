@@ -162,3 +162,4 @@ snapshotting: `scripts/run-baseline.sh` in `Luce-Org/luce-bench-baselines`. The
 - Meet lucebox: a local AI inference engine optimized for consumer hardware
 - Putting Qwen's thinking on a budget: counting tokens and forcing the close
 - Every model we've run on ds4-eval-92
+- How lucebox auto-tunes itself to your GPU

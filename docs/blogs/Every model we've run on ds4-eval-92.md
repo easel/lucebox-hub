@@ -17,16 +17,16 @@ Best clean ds4-eval-92 result we recorded per model. Configs vary (provider,
 quant, mode), so read this as a field map, not a controlled run; the apples-to-
 apples comparisons live in the other posts.
 
-| Model | Params (active) | ds4-eval-92 | Where / mode |
-|---|---|---|---|
-| Gemma 4 26B (a4b) | 26B (~4B) | **81.5%** | RTX 5090 Laptop, think (78–79% nothink) |
-| DeepSeek V4 Flash | 284B (13B) | 80.4% | OpenRouter, think (78.3% local Mac) |
-| Gemma 4 31B | 31B | 80.4% | OpenRouter, think |
-| DeepSeek V4 Pro | larger MoE | 79.3% | OpenRouter, think |
-| Claude Sonnet 4.6 | — | 75.0% | OpenRouter, nothink |
-| Qwen3.6-27B | 27B | 63.0% | OpenRouter, think (~56% nothink) |
-| GPT-5.4-mini | — | 59.8% | OpenRouter, nothink |
-| Laguna XS.2 | — | 59.8% | OpenRouter |
+| Model | Params (active) | ds4-eval-92 | Where / mode | Wall (med) | In tok | Out tok | tok/s (e2e) |
+|---|---|---|---|---|---|---|---|
+| Gemma 4 26B (a4b) | 26B (~4B) | **81.5%** | RTX 5090 Laptop, think (78–79% nothink) | 104.9s | 244 | 10710 | 101.6 |
+| DeepSeek V4 Flash | 284B (13B) | 80.4% | OpenRouter, think (78.3% local Mac) | 19.4s | 225 | 1646 | 97.8 |
+| Gemma 4 31B | 31B | 80.4% | OpenRouter, think | 31.6s | 249 | 682 | 23.6 |
+| DeepSeek V4 Pro | larger MoE | 79.3% | OpenRouter, think | 47.3s | 225 | 2099 | 48.6 |
+| Claude Sonnet 4.6 | — | 75.0% | OpenRouter, nothink | 9.3s | 256 | 608 | 56.5 |
+| Qwen3.6-27B | 27B | 63.0% | OpenRouter, think (~56% nothink) | 166.5s | 255 | 13025 | 63.9 |
+| GPT-5.4-mini | — | 59.8% | OpenRouter, nothink | 1.2s | 235 | 14 | 25.1 |
+| Laguna XS.2 | — | 57.6% | OpenRouter | 25.8s | 256 | 2942 | 100.1 |
 
 ## What stands out
 
@@ -61,6 +61,32 @@ the same weights can swing several points (or fall over entirely) depending on
 who serves them and how. So treat any single number here as "this model, this
 stack," and pin the stack before comparing.
 
+## On performance
+
+The four perf columns are end-to-end and need a caveat before anyone reads them
+as a decode-rate chart. tok/s here is just median completion tokens over median
+wall, with the run non-streaming, so the wall on the OpenRouter rows bundles
+network round-trip, queueing, and time-to-first-token in with the actual
+generation. The local lucebox row is almost pure decode by comparison; prefill
+on these prompts is around 120 ms. That asymmetry flatters the local number, and
+the right way to read the table is "what you'd feel start to finish," not "how
+fast each stack generates."
+
+We don't measure TTFT yet. The luce-bench runner posts a request and waits for
+the full response, so there's no first-chunk timestamp to subtract. Adding it is
+straightforward: stream the response and record when the first token arrives.
+Until we do, treat the wall column as inclusive of everything that happens
+between the request and the last token.
+
+With that framing, the defensible read is that on this end-to-end metric the
+local lucebox box holds its own. Gemma 4 26B running DFlash speculative decode on
+a 24 GB laptop lands at 101.6 tok/s, level with or ahead of the hosted serves on
+the same measurement, even though it's emitting an order of magnitude more tokens
+per question. That lines up with the idea that the inference stack (speculative
+decode, prefill, caching) drives throughput as much as the weights and the GPU
+do. It is not a claim that local beats the frontier APIs in general; on what we
+measure here it keeps pace, and that's the interesting part.
+
 ---
 
 *ds4-eval-92 from antirez/ds4 (MIT), run via luce-bench, single seed, best clean
@@ -79,3 +105,4 @@ Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-h
 - Putting Qwen's thinking on a budget: counting tokens and forcing the close
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
 - What /props tells you about a lucebox server
+- How lucebox auto-tunes itself to your GPU

@@ -128,3 +128,4 @@ ds4-eval and the ds4 engine are the work of Salvatore Sanfilippo.*
 - Putting Qwen's thinking on a budget: counting tokens and forcing the close
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
 - What /props tells you about a lucebox server
+- How lucebox auto-tunes itself to your GPU
