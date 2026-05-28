@@ -1,6 +1,6 @@
 # Gemma 4 26B across serving paths: a laptop GPU, a 3090 Ti, MLX, and OpenRouter
 
-*May 2026 · by Davide Ciffa and Erik LaBianca*
+*May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
 We ran the same Gemma 4 26B four ways. The weights are identical and the mode is
 fixed (nothink); only the serving path changes. On ds4-eval-92, accuracy moved

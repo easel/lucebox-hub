@@ -1,6 +1,6 @@
 # Meet lucebox: a local AI inference engine optimized for consumer hardware
 
-*May 2026 · by Davide Ciffa and Erik LaBianca*
+*May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
 lucebox is a local AI inference engine optimized for consumer hardware. It's what
 produced the Gemma and DeepSeek numbers in our other posts: custom kernels and

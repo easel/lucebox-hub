@@ -1,6 +1,6 @@
 # Running the benchmarks: an intro to luce-bench
 
-*May 2026 · by Davide Ciffa and Erik LaBianca*
+*May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
 Every number in our model posts comes out of one tool: **luce-bench**, a small
 harness that scores any OpenAI-compatible chat endpoint on the same cases, with

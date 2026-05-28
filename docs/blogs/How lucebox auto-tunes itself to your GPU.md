@@ -1,6 +1,6 @@
 # How lucebox auto-tunes itself to your GPU
 
-*May 2026 · by Davide Ciffa and Erik LaBianca*
+*May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
 We kept hand-rolling `DFLASH_*` flags for every card we tested on, and we kept
 getting it slightly wrong. Too much context and a 24 GB card OOMs under tool

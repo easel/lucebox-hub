@@ -1,6 +1,6 @@
 # Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
 
-*May 2026 · by Davide Ciffa and Erik LaBianca*
+*May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
 We ran the same Qwen3.6-27B on ds4-eval-92 across three serving stacks, think and
 nothink. Two things came out of it. Nothink is boringly consistent: ~55–58%

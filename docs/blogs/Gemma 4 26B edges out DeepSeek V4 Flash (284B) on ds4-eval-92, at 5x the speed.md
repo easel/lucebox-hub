@@ -1,6 +1,6 @@
 # Gemma 4 26B edges out DeepSeek V4 Flash (284B) on ds4-eval-92, at 5x the speed
 
-*May 2026 · by Davide Ciffa and Erik LaBianca*
+*May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
 We expected the 192 GB Mac to have the edge: far more memory, a far bigger model.
 It didn't pan out. On ds4-eval-92, Gemma 4 26B (26B params, 4-bit, in 24 GB) tied

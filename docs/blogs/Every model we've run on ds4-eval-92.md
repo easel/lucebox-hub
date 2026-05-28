@@ -1,6 +1,6 @@
 # Every model we've run on ds4-eval-92
 
-*May 2026 · by Davide Ciffa and Erik LaBianca*
+*May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
 We've pointed ds4-eval-92 at a lot of models by now, across local rigs and hosted
 providers, open weights and proprietary APIs. Here's the whole field on one

@@ -1,6 +1,6 @@
 # What `/props` tells you about a lucebox server
 
-*May 2026 · by Davide Ciffa and Erik LaBianca*
+*May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
 Every benchmark we run starts with the same nagging question: what was the server
 actually configured to do when this number came out? Which sampler defaults were

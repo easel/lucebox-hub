@@ -1,6 +1,6 @@
 # Think vs nothink on Gemma 4: same accuracy, 10x the latency
 
-*May 2026 · by Davide Ciffa and Erik LaBianca*
+*May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
 On most reasoning models, turning "thinking" on trades latency for accuracy, and
 we assumed Gemma 4 26B would be the same. It mostly isn't. Across two local rigs
