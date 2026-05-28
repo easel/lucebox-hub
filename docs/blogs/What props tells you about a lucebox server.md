@@ -16,18 +16,6 @@ benchmark harness should be able to ask the server what it is rather than hardco
 assumptions about it. A snapshot of `/props` committed next to a result makes that
 result self-describing.
 
-## Where the convention comes from
-
-We did not invent the endpoint name. The llama.cpp server has carried a `/props`
-endpoint for a long time as a server-state snapshot, and antirez recently
-[added one to ds4](https://github.com/antirez/ds4/pull/81) for the same reason we
-care about it. His note on that PR is worth quoting because it matches our
-experience exactly: "I'm working on benchmarking a bunch of different providers
-and model settings," and querying the server directly beat keeping external notes.
-ds4's `/props` exposes server, model, runtime, reasoning, sampling, cache, and api
-sections. lucebox follows that convention and extends it to carry the full
-sampling-plus-model-plus-engine picture our tooling needs.
-
 ## What's in the body
 
 `GET /props` is unauthenticated (same posture as `/health`, so deployment probes
@@ -73,13 +61,11 @@ normalized `general.architecture` from the GGUF (`qwen35`, `gemma4`, and so on),
 is a best-effort family hint. `model_alias` is the string clients pass back as the
 `model` field on a request.
 
-The `model_card` block is the on-disk sidecar emitted 1:1, validated against
-`share/model_cards/_schema.json`: `name`, upstream `source` URL, `verified_at`,
-`max_tokens`, `complex_problem_max_tokens`, the recommended `sampling` block, and
-the authored `reasoning_effort_tiers`. When no sidecar matched the loaded GGUF and
-the server fell through to a family or hard fallback, `model_card` is `null`, and
-the lookup-hit label still shows up under `budget_envelope.model_card_source` as
-`family:<arch>` or `hard-fallback`.
+The `model_card` block is the on-disk sidecar emitted 1:1, or `null` when the
+server fell back to a family or hard default (in which case
+`budget_envelope.model_card_source` still records `family:<arch>` or
+`hard-fallback`). The sidecar's fields and resolution order are their own topic:
+[Model cards in lucebox](<Model cards in lucebox — a typed sidecar for what the server actually needs.md>).
 
 ### Engine: speculative decode, the budget envelope, the caches
 
@@ -147,13 +133,30 @@ No banner archaeology, no guessing.
 That is the whole point of the endpoint. The server already knows everything about
 itself, so it should be the one to tell you, in a form a client can read.
 
+## Where the convention comes from
+
+We did not invent the endpoint name. The llama.cpp server has carried a `/props`
+endpoint for a long time as a server-state snapshot (it documents
+[`GET /props`](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md)
+as "server global properties"), and aligning with that convention is why our wire
+field names match llama-server's. lucebox extends the idea to carry the full
+sampling-plus-model-plus-engine picture our tooling needs.
+
+We think ds4 should have the same thing for the same reason, so we opened
+[antirez/ds4 #81](https://github.com/antirez/ds4/pull/81) to propose a `/props`
+endpoint upstream. That PR is still open and unmerged. The motivation matches our
+own experience: when you are benchmarking a bunch of different providers and model
+settings, querying the server directly beats keeping external notes.
+
 ---
 
 *Spec: `docs/specs/props-endpoint.md` and `docs/specs/openapi-props.yaml` (current
 `props_schema` is 2). Handler: `build_props_body` in
 `server/src/server/http_server.cpp`. Preflight: `luce-bench/src/lucebench/cli.py`;
 snapshotting: `scripts/run-baseline.sh` in `Luce-Org/luce-bench-baselines`. The
-`/props` convention comes from the llama.cpp server and
+`/props` convention follows the
+[llama.cpp server](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md);
+we proposed it for ds4 in the open
 [antirez/ds4 #81](https://github.com/antirez/ds4/pull/81). Project:
 [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-hub).*
 
@@ -163,3 +166,6 @@ snapshotting: `scripts/run-baseline.sh` in `Luce-Org/luce-bench-baselines`. The
 - Putting Qwen's thinking on a budget: counting tokens and forcing the close
 - Every model we've run on ds4-eval-92
 - How lucebox auto-tunes itself to your GPU
+- Model cards in lucebox: a typed sidecar for what the server actually needs
+- Sampling parameters on a lucebox model card: what the knobs mean
+- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured

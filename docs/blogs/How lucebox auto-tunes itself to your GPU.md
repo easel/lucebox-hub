@@ -176,3 +176,6 @@ org.*
 - Running the benchmarks: an intro to luce-bench
 - Putting Qwen's thinking on a budget: counting tokens and forcing the close
 - What /props tells you about a lucebox server
+- Model cards in lucebox: a typed sidecar for what the server actually needs
+- Sampling parameters on a lucebox model card: what the knobs mean
+- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured

@@ -28,6 +28,66 @@ technique it uses, and luce-bench is the separate benchmark harness.
 - Escape hatches. `lucebox print-run` prints the exact `docker run`, or skip the
   wrapper and run the container yourself.
 
+## Requirements
+
+lucebox runs as a Docker container with GPU passthrough, so the host needs four
+things:
+
+- Linux with an NVIDIA GPU, sm_75 or newer (see the coverage table below). 24 GB
+  of VRAM comfortably fits the default Qwen3.6-27B at Q4_K_M.
+- The NVIDIA proprietary driver, 525 or newer (CUDA 12).
+- Docker Engine.
+- The NVIDIA Container Toolkit, so `docker run --gpus all` reaches the card.
+
+The driver is a host kernel component you install once. Docker and the NVIDIA
+Container Toolkit are the two pieces `lucebox check` verifies. On Ubuntu 24.04
+this script installs both (we ran it in a clean 24.04 container to confirm the
+repos, keys, and package names are current):
+
+```bash
+#!/usr/bin/env bash
+# lucebox prerequisites on Ubuntu 24.04: Docker Engine + the NVIDIA Container
+# Toolkit. The NVIDIA driver is a host kernel component and is checked, not
+# installed, at the end.
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
+. /etc/os-release
+[ "${ID:-}" = "ubuntu" ] || echo "warning: tuned for Ubuntu; found '${ID:-unknown}'." >&2
+
+# Docker Engine apt repo
+$SUDO apt-get update -qq
+$SUDO apt-get install -y -qq ca-certificates curl gnupg
+$SUDO install -m 0755 -d /etc/apt/keyrings
+$SUDO curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+$SUDO chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
+  | $SUDO tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+# NVIDIA Container Toolkit apt repo
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+  | $SUDO gpg --batch --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+  | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+  | $SUDO tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
+
+# install both
+$SUDO apt-get update -qq
+$SUDO apt-get install -y -qq \
+  docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
+  nvidia-container-toolkit
+
+# wire the NVIDIA runtime into Docker
+if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+  $SUDO nvidia-ctk runtime configure --runtime=docker
+  $SUDO systemctl restart docker
+fi
+
+# the driver is separate; check for it
+command -v nvidia-smi >/dev/null \
+  || echo "no NVIDIA driver found: run 'sudo ubuntu-drivers install' (>= 525 for CUDA 12), then reboot" >&2
+```
+
 ## Getting started
 
 **Install the wrapper.** One file, no dependencies beyond `docker` and
@@ -94,8 +154,38 @@ autotunes for the model family:
 ❯ lucebox serve
 [INFO]  Starting lucebox server (variant=cuda12, from config.toml)
 [INFO]  Auto-detected target: Qwen3.6-27B-Q4_K_M.gguf
-[INFO]  Autotune: DFLASH27B_DRAFT_SWA=2048 (Qwen3.6 draft SWA)
+[INFO]  Resolved draft → models/draft/dflash-draft-3.6-q4_k_m.gguf
+[backend_factory] detected arch=qwen35
+ggml_cuda_init: found 1 CUDA devices (Total VRAM: 24462 MiB):
+  Device 0: NVIDIA GeForce RTX 5090 Laptop GPU, compute capability 12.0, VRAM: 24462 MiB
+[model_card] probing sidecar: share/model_cards/qwen3.6-27b.json (from general.name='Qwen3.6-27B')
+
+[server] ╭─── Configuration ───────────────────────────────────╮
+[server] │  model           = models/Qwen3.6-27B-Q4_K_M.gguf
+[server] │  draft           = models/draft/dflash-draft-3.6-q4_k_m.gguf
+[server] │  max_ctx         = 65536
+[server] │  model_card      = share/model_cards/qwen3.6-27b.json
+[server] │  max_tokens      = 32768
+[server] │  think_max_tokens= 15488
+[server] │  hard_limit_reply= 4096
+[server] │  effort tiers    = low=4032 medium=16128 high=32256 x-high=56832 max=61440
+[server] │  ddtree_budget   = 16
+[server] │  prefix_cache    = 0 slots
+[server] │  cache_type_k/v  = tq3_0 (auto)
+[server] │  pflash          = off
+[server] │  lazy_draft      = off
+[server] ╰─────────────────────────────────────────────────────╯
+[server] level-2 force-close (sidecar-hint, 116 chars → 24 tokens, hard_limit_reply_budget = 4096)
+[server] listening on http://0.0.0.0:8080
 ```
+
+The banner is the resolved config: the target and DFlash draft it loaded, the
+model card it matched by `general.name`, the budget envelope and effort tiers,
+the KV cache types, and the level-2 force-close it built from the card's
+terminator hint (covered in
+[Putting Qwen's thinking on a budget](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>)).
+The same picture is available over HTTP from
+[`/props`](<What props tells you about a lucebox server.md>).
 
 Then point any OpenAI client at it:
 
@@ -103,9 +193,25 @@ Then point any OpenAI client at it:
 curl http://localhost:8080/v1/models
 ```
 
-To run it as a background service instead of foreground, use systemd:
-`lucebox install` writes `~/.config/systemd/user/lucebox.service`, then
-`lucebox start` / `status` / `logs`.
+To run it as a background service instead of foreground, install the user
+systemd unit:
+
+```text
+❯ lucebox install
+[OK]    Installed /home/erik/.config/systemd/user/lucebox.service
+[WARN]  Linger is off for erik — the service will stop when you log out
+        To enable (requires sudo): sudo loginctl enable-linger "erik"
+
+Next:
+         lucebox start            # start now
+         lucebox enable           # start at every login
+         lucebox logs             # follow the journal
+```
+
+The linger warning matters for a headless box: without `enable-linger`, a
+user service is torn down when you log out, so a server you meant to leave
+running stops with your session. `lucebox enable` plus linger is the
+set-and-forget combination.
 ## Hardware coverage
 
 | GPU                        | sm  | `:cuda12` |
@@ -151,3 +257,6 @@ the config table in the [repo README](https://github.com/Luce-Org/lucebox-hub).
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
 - What /props tells you about a lucebox server
 - How lucebox auto-tunes itself to your GPU
+- Model cards in lucebox: a typed sidecar for what the server actually needs
+- Sampling parameters on a lucebox model card: what the knobs mean
+- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured

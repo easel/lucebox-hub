@@ -106,3 +106,6 @@ Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-h
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
 - What /props tells you about a lucebox server
 - How lucebox auto-tunes itself to your GPU
+- Model cards in lucebox: a typed sidecar for what the server actually needs
+- Sampling parameters on a lucebox model card: what the knobs mean
+- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured

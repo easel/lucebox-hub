@@ -72,6 +72,17 @@ limited time" lead-in; Gemma 4 uses a different transition cue. The server takes
 the sidecar string verbatim and does not auto-append a close tag, so the operator
 controls whether the inject ends the block or just nudges the model to self-close.
 
+Why this lands on Qwen and not on Gemma 4 comes down to what the template trained.
+Qwen's no-think render is a closed, consumed block: literal `<think>\n\n</think>`
+followed by two blank lines, and those trailing blank lines are themselves a
+transition cue Qwen was post-trained on. The model learned "this exact sequence
+means thinking is done, the visible answer comes next." Our forced close leans on
+the same trained boundary. Gemma 4's equivalent is a community-derived prefill with
+no trailing transition cue after the channel close, so a force-close drops the
+cursor mid-context and the model picks up whatever its training distribution says
+follows a closed thought channel, which on a hard derivation is usually more
+reasoning, not a finalized answer.
+
 We run this two ways:
 
 - **Level 2 (in-process force-close).** Override the next sampled tokens with the
@@ -122,3 +133,6 @@ ds4_eval.c history are in the spec. Project:
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
 - What /props tells you about a lucebox server
 - How lucebox auto-tunes itself to your GPU
+- Model cards in lucebox: a typed sidecar for what the server actually needs
+- Sampling parameters on a lucebox model card: what the knobs mean
+- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured

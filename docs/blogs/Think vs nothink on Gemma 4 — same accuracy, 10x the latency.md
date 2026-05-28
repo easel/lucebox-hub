@@ -75,6 +75,11 @@ genuinely need the headroom: `aime2025-02` passes only at 65k of thinking and
 fails nothink. No global mode is optimal. The best policy is suite-aware routing,
 GPQA Diamond to nothink and hard AIME to long think.
 
+The picker is an upper bound, not a deployable policy. 6/8 is what you would hit
+if an oracle told you the best mode per case ahead of time. It bounds how much
+routing can buy you, and the realistic version is the suite-aware heuristic above,
+not per-case clairvoyance.
+
 ## Why the switch is cosmetic
 
 Probing the mechanism directly (see
@@ -98,6 +103,13 @@ Probing the mechanism directly (see
   reason" instructions are ignored, stop sequences hide output without saving
   compute, and an answer-prefill makes it worse. Reasoning is emergent from Gemma
   4's training, not instruction-gated.
+- *The template is the only real toggle.* Whether Gemma 4 thinks is gated by a
+  `<|think|>` token at the top of the system turn, which the chat template emits.
+  The Anthropic-shape `thinking: {type}` field in the request body is just a hint
+  into that template render; flip the body field while the template stays put and
+  the model ignores it. We confirmed this with a contradictory request (body says
+  think, template says don't, empty system prompt): zero reasoning content, the
+  model never self-opened a thought channel.
 
 Qwen3 is the opposite: a thinking budget triggers trained wrap-up behavior and is
 a real effort dial. On Gemma 4 the dial isn't wired to compute.
@@ -111,6 +123,12 @@ ideally through per-case routing rather than a global flag. And we don't treat
 `thinking: {budget}` as an effort knob on Gemma 4: report `wall_s` and
 `completion_tokens` next to any think/nothink number so the latency cost stays
 visible, because the conventional "think helps" reading inverts here.
+
+One multi-turn caveat if you do run Gemma 4 with thinking on in an agent loop.
+Google's docs say to strip prior-turn thoughts between turns, and our KV cache
+currently keeps them, so stale reasoning from earlier turns stays in context. It is
+an open follow-up on our side; nothink sidesteps it entirely since there is no
+channel-tagged thought block to carry forward.
 
 ## Reproduce
 
@@ -130,7 +148,14 @@ uvx --from 'luce-bench' lucebench-probe --case-id aime2025-02 \
 
 *ds4-eval-92 from antirez/ds4 (MIT), run via luce-bench. Gemma 4 26B Q4_K_M via
 luce-dflash on RTX 5090 Laptop and RTX 3090 Ti, single seed. Mechanism notes:
-`docs/experiments/gemma4-26b-thinking-control-2026-05-25.md`.*
+`docs/experiments/gemma4-26b-thinking-control-2026-05-25.md`. One caveat on those
+notes: the single-case mechanism probe was first run at temp=0 (greedy) for
+reproducibility, where every mode degenerated into repetition loops. At the model
+card's recommended sampling (temp=1.0, top_p=0.95) the loops vanish, and the
+termination story sharpens rather than reverses, nothink was the only mode to reach
+the correct answer with a clean `stop`, while both thinking modes still ran out of
+budget at `length`. The separation, budget-enforcement, and template-gating
+findings hold regardless of sampling.*
 
 **Related**
 - Meet lucebox: a local AI inference engine optimized for consumer hardware
@@ -142,3 +167,6 @@ luce-dflash on RTX 5090 Laptop and RTX 3090 Ti, single seed. Mechanism notes:
 - Qwen3.6 think vs nothink across providers: thinking helps, if you budget for it
 - What /props tells you about a lucebox server
 - How lucebox auto-tunes itself to your GPU
+- Model cards in lucebox: a typed sidecar for what the server actually needs
+- Sampling parameters on a lucebox model card: what the knobs mean
+- Multi-turn agentic loops as a benchmark target: what they look like, why they matter, what we've measured
