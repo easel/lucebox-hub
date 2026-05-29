@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-29T01:51:49-04:00
+Last refresh: 2026-05-29T02:06:46-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `5d40d63d`
+Current integration tip before this refresh: `easel/auto-integration` `e2d18617`
 Manifest refresh commit prepared in this run: this commit
 
 This branch is maintained as a reproducible patch stack over `origin/main`.
 At this run's start `easel/auto-integration` was already based on current
-`origin/main` (`0` behind / `391` ahead), so no base reconciliation merge was
+`origin/main` (`0` behind / `392` ahead), so no base reconciliation merge was
 needed. Open non-draft PR refs were refreshed, and all already-carried open
 non-draft PR heads remain ancestors of the stack. The remaining non-draft PRs
 were re-probed in fresh worktrees; they still require selective current-layout
@@ -43,13 +43,13 @@ ports or closure/retarget decisions as recorded below.
 
 This run performed:
 
-- `date -Is` -> `2026-05-29T01:51:49-04:00`.
+- `date -Is` -> `2026-05-29T02:06:46-04:00`.
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version` (`codex-cli 0.130.0`).
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json number,title,author,isDraft,headRefName,headRepositoryOwner,headRepository,baseRefName,mergeable,updatedAt,createdAt,url --jq ...`.
 - Fetched open non-draft PR refs explicitly: #295, #294, #289, #285, #276, #274, #266, #237, #221, #154, #153, #152, #142, #137, #135, #94, and #48.
-- `git rev-list --left-right --count origin/main...easel/auto-integration` reported `0` behind and `391` ahead.
+- `git rev-list --left-right --count origin/main...easel/auto-integration` reported `0` behind and `392` ahead.
 - `git merge-base --is-ancestor` checks pass for carried open non-draft PR refs: #295, #294, #289, #285, #276, #274, #266, #152, and #142.
 - Reconciliation worktree `/tmp/luce-auto-cron-20260529-015226/reconcile` was created from `easel/auto-integration`; `origin/main` is already an ancestor and no base merge was required.
 - Fresh direct merge probes from `easel/auto-integration` were created in `/tmp/luce-auto-cron-20260529-015226/` for #237, #221, #154, #153, #137, #135, #94, and #48. All still conflict in the conflict classes recorded below.
