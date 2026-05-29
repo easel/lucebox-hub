@@ -13,17 +13,19 @@ This branch is maintained as a reproducible patch stack over `origin/main`.
 At this run's start the primary checkout was clean, `easel/auto-integration`
 was already based on current `origin/main` (`0` behind / `413` ahead), and no
 base reconciliation merge was needed. Open non-draft PR refs were refreshed.
-No new non-draft contributor PR appeared since the previous refresh; #307 and
-all currently direct-mergeable non-draft PRs already remain represented in the
-stack. The remaining non-draft PRs were re-probed in fresh worktrees. They still
-require selective current-layout ports or are superseded; no additional source
-patch was safe to add automatically in this refresh.
+No new non-draft contributor PR appeared since the previous refresh, but #307
+advanced during this run after the first push. The updated #307 head was fetched
+and merged cleanly with a small README-only update. All other currently
+direct-mergeable non-draft PRs already remain represented in the stack. The
+remaining non-draft PRs were re-probed in fresh worktrees. They still require
+selective current-layout ports or are superseded; no additional source patch was
+safe to add automatically in this refresh.
 
 ## Included in the current stack
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
-| #307 | `docs/why-this-exists-copy` | `13dcf97b` | included | Sharpened README “Why this exists” copy remains merged; the PR head is an ancestor of the stack. |
+| #307 | `docs/why-this-exists-copy` | `40d53e2d` | included | Sharpened README “Why this exists” copy remains merged; updated README-only head was fetched and merged after the first push. |
 | #303 | `fix/harness-portable-run-dirs` | upstream `05b008a0` | included through upstream and stack | Harness portable run/cache directories and automatic client-install fallback are in `origin/main`; the stack preserved local compatibility docs and helpers. |
 | #302 | `fix/harness-model-paths` | upstream | included through upstream | Harness launcher model-path override behavior and documentation are in `origin/main`. |
 | #301 | `fix/ddtree-test-harness` | upstream | included through upstream | DDTree test harness fixes are in `origin/main`. |
@@ -61,7 +63,8 @@ This run performed:
 - `git rev-list --left-right --count origin/main...easel/auto-integration`
   reported `0` behind and `413` ahead at the start of this refresh.
 - `git merge-base --is-ancestor` checks pass for carried open non-draft PR refs:
-  #307, #295, #294, #289, #285, #276, #274, #266, #152, and #142.
+  #295, #294, #289, #285, #276, #274, #266, #152, and #142 at initial probe time;
+  #307 was re-fetched after it advanced to `40d53e2d` and then merged cleanly.
 - Reconciliation worktree `/tmp/luce-auto-cron-20260529-054636` was created from
   `easel/auto-integration`; merging `origin/main` reported `Already up to date`.
 - Fresh direct merge probes from the current integration tip were created for
@@ -74,7 +77,9 @@ This run performed:
   behavior: remote draft IPC, layer-split adapters, `qwen35moe`, current native
   server CLI/properties, PFlash C2 fallback, thinking-budget hooks, accept-rate
   telemetry, snapshot restore behavior, and Lucebox/container MTP knob exposure.
-- Manifest-only validation: `git diff --check -- docs/auto-integration.md` passed.
+- Manifest/content validation: `git diff --check HEAD~1..HEAD -- README.md` passed
+  for the updated #307 merge, and `git diff --check -- docs/auto-integration.md`
+  passed for the manifest refresh.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
