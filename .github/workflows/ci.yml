@@ -65,6 +65,11 @@ jobs:
           sub-packages: '["nvcc", "cudart-dev", "thrust", "driver-dev"]'
           non-cuda-sub-packages: '["libcublas-dev"]'
 
+      - name: Install native server build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev
+
       - uses: astral-sh/setup-uv@v3
         with:
           version: "0.11.x"
