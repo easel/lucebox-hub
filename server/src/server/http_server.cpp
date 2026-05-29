@@ -901,6 +901,7 @@ HttpServer::HttpServer(ModelBackend & backend,
 
 HttpServer::~HttpServer() {
     shutdown();
+    curl_global_cleanup();
 }
 
 void HttpServer::shutdown() {
@@ -1683,7 +1684,17 @@ void HttpServer::worker_loop() {
                                 for (int mi = (int)req.messages.size() - 1; mi >= 0; --mi) {
                                     if (req.messages[mi].value("role", "") == "user") {
                                         auto & c = req.messages[mi]["content"];
-                                        if (c.is_string()) last_user_text = c.get<std::string>();
+                                        if (c.is_string()) {
+                                            last_user_text = c.get<std::string>();
+                                        } else if (c.is_array()) {
+                                            for (const auto & part : c) {
+                                                std::string ptype = part.value("type", "");
+                                                if (ptype == "text" || ptype == "input_text" ||
+                                                    ptype == "output_text") {
+                                                    last_user_text += part.value("text", "");
+                                                }
+                                            }
+                                        }
                                         break;
                                     }
                                 }
