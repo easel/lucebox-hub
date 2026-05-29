@@ -1480,6 +1480,14 @@ static void test_backend_precision_hip_arch_policy() {
     TEST_ASSERT(select_hip_activation_precision_type_for_arch("") == GGML_TYPE_F32);
 }
 
+static void test_backend_precision_activation_type_combine() {
+    TEST_ASSERT(combine_activation_precision_types(GGML_TYPE_BF16, GGML_TYPE_BF16) == GGML_TYPE_BF16);
+    TEST_ASSERT(combine_activation_precision_types(GGML_TYPE_BF16, GGML_TYPE_F16) == GGML_TYPE_F16);
+    TEST_ASSERT(combine_activation_precision_types(GGML_TYPE_F16, GGML_TYPE_BF16) == GGML_TYPE_F16);
+    TEST_ASSERT(combine_activation_precision_types(GGML_TYPE_F16, GGML_TYPE_F32) == GGML_TYPE_F32);
+    TEST_ASSERT(combine_activation_precision_types(GGML_TYPE_F32, GGML_TYPE_BF16) == GGML_TYPE_F32);
+}
+
 struct MockLayerSplitAdapter : LayerSplitAdapter {
     int max_ctx = 128;
     bool reset_called = false;
@@ -3839,6 +3847,7 @@ int main() {
     RUN_TEST(test_validate_layer_split_weights_shape);
     RUN_TEST(test_backend_precision_cuda_sm_policy);
     RUN_TEST(test_backend_precision_hip_arch_policy);
+    RUN_TEST(test_backend_precision_activation_type_combine);
     RUN_TEST(test_layer_split_backend_inline_snapshot_and_restore_delta);
     RUN_TEST(test_layer_split_backend_sampling_capability_gate);
     RUN_TEST(test_layer_split_compress_nopark_uses_default_drafter_path);

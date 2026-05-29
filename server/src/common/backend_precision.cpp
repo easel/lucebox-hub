@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace dflash::common {
 namespace {
@@ -180,6 +181,13 @@ ggml_type select_hip_activation_precision_type_for_arch(const std::string & arch
     return GGML_TYPE_F32;
 }
 
+ggml_type combine_activation_precision_types(ggml_type a, ggml_type b) {
+    if (a == GGML_TYPE_F32 || b == GGML_TYPE_F32) return GGML_TYPE_F32;
+    if (a == GGML_TYPE_F16 || b == GGML_TYPE_F16) return GGML_TYPE_F16;
+    if (a == GGML_TYPE_BF16 && b == GGML_TYPE_BF16) return GGML_TYPE_BF16;
+    return GGML_TYPE_F32;
+}
+
 BackendPrecisionPolicy select_drafter_precision_policy(ggml_backend_t backend) {
     BackendPrecisionPolicy policy;
     fill_policy_device_info(backend, policy.backend_name, policy.device_name,
@@ -215,6 +223,43 @@ BackendPrecisionPolicy select_drafter_precision_policy(ggml_backend_t backend) {
     policy.reason       = "portable non-GPU fallback";
 #endif
 
+    return policy;
+}
+
+BackendActivationPolicy select_common_activation_precision_policy(
+        const std::vector<ggml_backend_t> & backends,
+        bool force_f32,
+        const char * override_env) {
+    if (backends.empty()) {
+        return select_activation_precision_policy(nullptr, force_f32, override_env);
+    }
+
+    BackendActivationPolicy policy =
+        select_activation_precision_policy(backends.front(), force_f32, override_env);
+    ggml_type common_type = policy.activation_type;
+    bool mixed = false;
+    for (size_t i = 1; i < backends.size(); ++i) {
+        const BackendActivationPolicy shard_policy =
+            select_activation_precision_policy(backends[i], force_f32, override_env);
+        if (shard_policy.activation_type != common_type) {
+            mixed = true;
+        }
+        const ggml_type combined =
+            combine_activation_precision_types(common_type, shard_policy.activation_type);
+        if (combined != common_type) {
+            mixed = true;
+        }
+        common_type = combined;
+    }
+    if (mixed) {
+        policy.activation_type = common_type;
+        policy.backend_name = "mixed";
+        policy.device_name = "mixed";
+        policy.runtime_arch = "mixed";
+        policy.device_id = -1;
+        policy.cuda_sm = 0;
+        policy.reason = "common shard-compatible activation path";
+    }
     return policy;
 }
 

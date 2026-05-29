@@ -48,10 +48,12 @@ bool Gemma4LayerSplitAdapter::init() {
         return false;
     }
 
+    std::vector<ggml_backend_t> shard_backends;
+    shard_backends.reserve(shards_.size());
+    for (const auto & shard : shards_) shard_backends.push_back(shard.backend);
     const BackendActivationPolicy activation_policy =
-        select_activation_precision_policy(
-            shards_.front().backend,
-            /*force_f32=*/false,
+        select_common_activation_precision_policy(
+            shard_backends, /*force_f32=*/false,
             "LUCEBOX_LAYER_SPLIT_ACT_TYPE");
     activation_type_ = activation_policy.activation_type;
     std::fprintf(stderr, "[gemma4-target-split] activation=%s (%s",
