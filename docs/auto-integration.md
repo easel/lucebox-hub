@@ -4,21 +4,23 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-29T17:09:00-04:00
+Last refresh: 2026-05-29T17:17:36-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `09d0d332`
-Manifest refresh and #285 update prepared in this run: this commit
+Current integration tip before this refresh: `easel/auto-integration` `da10a26b`
+Manifest refresh and unresolved-PR probe update prepared in this run: this commit
 
 This branch is maintained as a reproducible patch stack over `origin/main`.
 This unattended run started from a clean primary checkout on `auto-integration`,
 verified GitHub/Claude/Codex auth with the real user credential home, fetched
 `origin` and `easel` separately, and performed all reconciliation/probing in
-`/tmp/luce-auto-cron-20260529-170301` worktrees.
+`/tmp/luce-auto-probe-*-20260529-171824` worktrees.
 
-During the required post-push re-enumeration, non-draft PR #285 had advanced
-from `8b48ad85` to `9a6db60e`. This run fetched the new PR head, merged it cleanly
-on top of the just-pushed stack, verified the targeted `luce-bench` tests, and
-prepared a second update so the integration branch remains current.
+The previous run's post-push re-enumeration found that non-draft PR #285 had
+advanced from `8b48ad85` to `9a6db60e`; the current stack already contains that
+head plus the draft #308 reasoning-channel commits brought in through #285.
+This run found no new non-draft PR heads requiring a stack rewrite, but it did
+repeat direct-merge probes for the unresolved old-layout PRs and record the new
+conflict/delegation evidence below.
 
 ## Included in the current stack
 
@@ -50,9 +52,7 @@ prepared a second update so the integration branch remains current.
 
 This run performed:
 
-- `date -Is` -> `2026-05-29T17:01:57-04:00` for preflight,
-  `2026-05-29T17:03:20-04:00` for the first manifest refresh, and
-  `2026-05-29T17:09:00-04:00` for the #285 follow-up refresh.
+- `date -Is` -> `2026-05-29T17:17:36-04:00` for preflight and manifest refresh.
 - Primary checkout preflight: `git status --short` was clean; branch was
   `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub`
   and `easel=https://github.com/easel/lucebox-hub`.
@@ -67,20 +67,21 @@ This run performed:
   #285, #276, #274, #266, #152, and #142 are ancestors of the updated
   integration stack; #237, #221, #154, #153, #137, #135, #94, and #48 are not
   ancestors and remain classified below.
-- Reconciliation worktree `/tmp/luce-auto-cron-20260529-170301/reconcile` was
-  created from `easel/auto-integration`; merging `origin/main` reported
-  `Already up to date`.
+- `origin/main` remains an ancestor of `easel/auto-integration`.
 - Fresh probe worktrees attempted direct merges for every non-integrated
   non-draft PR. All eight still conflict in old-layout or dependent MTP/scheduler
   areas; conflict files are summarized below and full logs are retained under
-  `/tmp/luce-auto-cron-20260529-170301`.
-- Post-push re-enumeration discovered PR #285's new `9a6db60e` head. Follow-up
-  worktree `/tmp/luce-auto-cron-20260529-170456/reconcile` merged it cleanly on
-  top of `09d0d332`, producing merge commit `0e1d764f` before this manifest edit.
-- Verification for the final stack: `git diff --check` passed; `cd luce-bench &&
-  uv run --extra dev pytest tests/test_client_thinking_budget.py
-  tests/test_model_cards.py tests/test_runner.py tests/test_fixtures.py
-  tests/test_smoke_area.py` passed with `108 passed in 1.64s`.
+  `/tmp/luce-merge-*-20260529-171824.log`.
+- Delegation check: Claude was launched through tmux for #237 but hit
+  `max turns` without a usable report; Codex was launched through tmux for the
+  narrow #137 CMake conflict and reproduced prior evidence that current
+  `server/CMakeLists.txt` already carries the relevant sm_89/BSA/Blackwell
+  build-shape concepts, but the session stalled on Git LFS clean-filter noise
+  and was killed after capture.
+- Verification for the final stack after this manifest update: `git diff --check`
+  passed. No code changed in this run, so the prior targeted `luce-bench` result
+  (`108 passed in 1.64s` on the current #285 head) remains the latest code-test
+  signal.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -119,6 +120,17 @@ conflicted indexes and safe cleanup is left to a supervised pass:
 - `/tmp/luce-auto-cron-20260529-170301/pr-48-probe`
 - `/tmp/luce-auto-cron-20260529-170301/pr-*-merge.log`
 - `/tmp/luce-auto-cron-20260529-170301/pr-*-summary.txt`
+- `/tmp/luce-auto-probe-237-20260529-171824`
+- `/tmp/luce-auto-probe-221-20260529-171824`
+- `/tmp/luce-auto-probe-154-20260529-171824`
+- `/tmp/luce-auto-probe-153-20260529-171824`
+- `/tmp/luce-auto-probe-137-20260529-171824`
+- `/tmp/luce-auto-probe-135-20260529-171824`
+- `/tmp/luce-auto-probe-94-20260529-171824`
+- `/tmp/luce-auto-probe-48-20260529-171824`
+- `/tmp/luce-merge-*-20260529-171824.log`
+- `/tmp/luce-claude-237-171824-report.txt` (failed: max turns, no usable report)
+- `/tmp/luce-codex-137-171824-report.txt` (partial/stalled read-only transcript)
 
 Useful prior probe/delegation artifacts remain for unresolved old-layout PRs:
 
