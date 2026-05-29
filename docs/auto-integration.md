@@ -4,23 +4,22 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-29T17:17:36-04:00
+Last refresh: 2026-05-29T17:36:59-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `da10a26b`
+Current integration tip before this refresh: `easel/auto-integration` `fd331984`
 Manifest refresh and unresolved-PR probe update prepared in this run: this commit
 
 This branch is maintained as a reproducible patch stack over `origin/main`.
 This unattended run started from a clean primary checkout on `auto-integration`,
 verified GitHub/Claude/Codex auth with the real user credential home, fetched
 `origin` and `easel` separately, and performed all reconciliation/probing in
-`/tmp/luce-auto-probe-*-20260529-171824` worktrees.
+`/tmp/luce-auto-cron-20260529-173659/pr-*-probe` worktrees.
 
-The previous run's post-push re-enumeration found that non-draft PR #285 had
-advanced from `8b48ad85` to `9a6db60e`; the current stack already contains that
-head plus the draft #308 reasoning-channel commits brought in through #285.
-This run found no new non-draft PR heads requiring a stack rewrite, but it did
-repeat direct-merge probes for the unresolved old-layout PRs and record the new
-conflict/delegation evidence below.
+This run found no new non-draft PR heads requiring a stack rewrite; the current
+stack already contains the latest heads of #310, #309, #307, #306, #297, #295,
+#294, #289, #285, #276, #274, #266, #152, and #142. It repeated direct-merge
+probes for all unresolved old-layout PRs and refreshed the #237 Codex salvage
+report below.
 
 ## Included in the current stack
 
@@ -52,7 +51,7 @@ conflict/delegation evidence below.
 
 This run performed:
 
-- `date -Is` -> `2026-05-29T17:17:36-04:00` for preflight and manifest refresh.
+- `date -Is` -> `2026-05-29T17:36:59-04:00` for preflight and manifest refresh.
 - Primary checkout preflight: `git status --short` was clean; branch was
   `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub`
   and `easel=https://github.com/easel/lucebox-hub`.
@@ -71,13 +70,12 @@ This run performed:
 - Fresh probe worktrees attempted direct merges for every non-integrated
   non-draft PR. All eight still conflict in old-layout or dependent MTP/scheduler
   areas; conflict files are summarized below and full logs are retained under
-  `/tmp/luce-merge-*-20260529-171824.log`.
-- Delegation check: Claude was launched through tmux for #237 but hit
-  `max turns` without a usable report; Codex was launched through tmux for the
-  narrow #137 CMake conflict and reproduced prior evidence that current
-  `server/CMakeLists.txt` already carries the relevant sm_89/BSA/Blackwell
-  build-shape concepts, but the session stalled on Git LFS clean-filter noise
-  and was killed after capture.
+  `/tmp/luce-auto-cron-20260529-173659/pr-*-merge.log`.
+- Delegation check: Codex was launched through tmux for #237 in
+  `/tmp/luce-auto-cron-20260529-173659/pr-237-probe` and produced a usable
+  read-only salvage report at
+  `/tmp/luce-auto-cron-20260529-173659/codex-pr237-report.txt`; the session was
+  then killed after completion to avoid a lingering shell.
 - Verification for the final stack after this manifest update: `git diff --check`
   passed. No code changed in this run, so the prior targeted `luce-bench` result
   (`108 passed in 1.64s` on the current #285 head) remains the latest code-test
@@ -108,6 +106,17 @@ non-draft #285's current head.
 This run retained all worktrees/logs for audit because probe worktrees contain
 conflicted indexes and safe cleanup is left to a supervised pass:
 
+- `/tmp/luce-auto-cron-20260529-173659/pr-237-probe`
+- `/tmp/luce-auto-cron-20260529-173659/pr-221-probe`
+- `/tmp/luce-auto-cron-20260529-173659/pr-154-probe`
+- `/tmp/luce-auto-cron-20260529-173659/pr-153-probe`
+- `/tmp/luce-auto-cron-20260529-173659/pr-137-probe`
+- `/tmp/luce-auto-cron-20260529-173659/pr-135-probe`
+- `/tmp/luce-auto-cron-20260529-173659/pr-94-probe`
+- `/tmp/luce-auto-cron-20260529-173659/pr-48-probe`
+- `/tmp/luce-auto-cron-20260529-173659/pr-*-merge.log`
+- `/tmp/luce-auto-cron-20260529-173659/pr-*-summary.txt`
+- `/tmp/luce-auto-cron-20260529-173659/codex-pr237-report.txt` (usable read-only salvage report)
 - `/tmp/luce-auto-cron-20260529-170456/reconcile` (final #285 integration worktree)
 - `/tmp/luce-auto-cron-20260529-170301/reconcile`
 - `/tmp/luce-auto-cron-20260529-170301/pr-237-probe`
