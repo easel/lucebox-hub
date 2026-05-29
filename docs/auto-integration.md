@@ -4,9 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-29T04:58:26-04:00
+Last refresh: 2026-05-29T05:00:18-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `a6fbbfc8`
+Current integration tip before this refresh: `easel/auto-integration` `016ab67b`
+Late non-draft update integrated in this run: #289 `27bad6d3`
 Manifest refresh commit prepared in this run: this commit
 
 This branch is maintained as a reproducible patch stack over `origin/main`.
@@ -18,7 +19,9 @@ remaining non-draft PRs were re-probed in fresh worktrees and retain the same
 manual selective-port / superseded classifications. A tmux-driven Claude attempt
 for #237 reached its turn limit without a usable report; a tmux-driven Codex
 attempt for #135 produced a usable read-only feasibility report confirming that
-#135 should be selectively ported rather than directly merged.
+#135 should be selectively ported rather than directly merged. Post-push
+re-enumeration detected #289 advanced to `27bad6d3`; that update merged cleanly
+and was validated.
 
 ## Included in the current stack
 
@@ -34,7 +37,7 @@ attempt for #135 produced a usable read-only feasibility report confirming that
 | #297 | `feat-server-laguna-layer-split-adapter-v2` | `53dd1686` | included / draft at final check | Laguna target-layer-split adapter remains carried as an already-integrated draft dependency. |
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support remains an ancestor of the stack. |
 | #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Server passthrough proxy wiring, piecewise keep-ratio curve, query survival checks, multimodal last-user text extraction, curl cleanup, and unit coverage are carried. |
-| #289 | `pipeline_moe` | `0ffab8a1` | included | Pipelined hybrid Qwen35 MoE decode update remains an ancestor of the stack. |
+| #289 | `pipeline_moe` | `27bad6d3` | included | Pipelined hybrid Qwen35 MoE decode update plus sub-batch hybrid prefill FFN MMQ-bounds fix are carried. |
 | #285 | `feat/lucebox-docker` | `09dc0bed` | included | Docker stack, `lucebox` CLI, bench/profile tooling, harness clients, `luce-bench`, and follow-up `model_info` download handling are carried. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried. |
 | #274 | `feat/pflash-drafter-ee7` | `e64a2b80` | included | Adaptive pFlash composition, EE7/drafter updates, docs, tests, and follow-up fixes are carried. |
@@ -46,8 +49,9 @@ attempt for #135 produced a usable read-only feasibility report confirming that
 
 This run performed:
 
-- `date -Is` -> `2026-05-29T04:53:30-04:00` for preflight and
-  `2026-05-29T04:58:26-04:00` for manifest refresh.
+- `date -Is` -> `2026-05-29T04:53:30-04:00` for preflight,
+  `2026-05-29T04:58:26-04:00` for initial manifest refresh, and
+  `2026-05-29T05:00:18-04:00` after the late #289 integration.
 - Primary checkout preflight: `git status --short` was clean; branch was
   `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub`
   and `easel=https://github.com/easel/lucebox-hub`.
@@ -79,6 +83,11 @@ This run performed:
   scheduler commands (`REQ`, `CONTINUE`, `CANCEL`, `SCHED_BATCH_*`), aligned
   same-`cur_pos` batching, batch-probe copy-in/copy-back validation, and tagged
   stream behavior into current daemon/graph-builder APIs.
+- Post-push re-enumeration detected #289 had advanced from `0ffab8a1` to
+  `27bad6d3`; after fetching the new ref, `git merge --no-ff --no-edit
+  origin/pr/289` merged cleanly into the primary checkout and updated
+  `server/src/qwen35moe/qwen35moe_backend.cpp` for sub-batch hybrid prefill FFN
+  bounds safety.
 - Post-refresh validation: `git diff --check docs/auto-integration.md` passed.
 
 ## Pending / blocked-needs-human / selective-port candidates
