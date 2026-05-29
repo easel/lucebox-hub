@@ -179,24 +179,44 @@ static bool convert_bf16_feature_to_storage(DraftFeatureMirror & mirror,
         return cudaGetLastError() == cudaSuccess;
     }
 
-    std::vector<ggml_bf16_t> bf16_host(elems);
+    const size_t blck = (size_t)ggml_blck_size(mirror.storage_type);
+    if (blck == 0 || elems % blck != 0) return false;
+
+    constexpr size_t max_chunk_bytes = 4u * 1024u * 1024u;
+    const size_t max_chunk_elems =
+        std::max(blck, (max_chunk_bytes / sizeof(float) / blck) * blck);
+    const size_t dst_offset = (size_t)((char *)dst - (char *)mirror.target_feat->data);
+
     cudaError_t err = cudaSetDevice(src_device);
     if (err != cudaSuccess) return false;
-    err = cudaMemcpy(bf16_host.data(), src,
-                     elems * sizeof(ggml_bf16_t),
-                     cudaMemcpyDeviceToHost);
-    if (err != cudaSuccess) return false;
 
-    std::vector<float> host(elems);
-    ggml_bf16_to_fp32_row(bf16_host.data(), host.data(), (int64_t)elems);
-    const size_t row_bytes = ggml_row_size(mirror.storage_type, (int64_t)elems);
-    std::vector<uint8_t> tmp(row_bytes);
-    if (!host_f32_to_feature_row(mirror.storage_type, host.data(), tmp.data(), elems)) {
-        return false;
+    size_t done = 0;
+    size_t dst_bytes_done = 0;
+    while (done < elems) {
+        size_t chunk = std::min(elems - done, max_chunk_elems);
+        chunk = (chunk / blck) * blck;
+        if (chunk == 0) return false;
+
+        std::vector<ggml_bf16_t> bf16_host(chunk);
+        err = cudaMemcpy(bf16_host.data(),
+                         (const char *)src + done * sizeof(ggml_bf16_t),
+                         chunk * sizeof(ggml_bf16_t),
+                         cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) return false;
+
+        std::vector<float> host(chunk);
+        ggml_bf16_to_fp32_row(bf16_host.data(), host.data(), (int64_t)chunk);
+
+        const size_t chunk_bytes = ggml_row_size(mirror.storage_type, (int64_t)chunk);
+        std::vector<uint8_t> tmp(chunk_bytes);
+        if (!host_f32_to_feature_row(mirror.storage_type, host.data(), tmp.data(), chunk)) {
+            return false;
+        }
+        ggml_backend_tensor_set(mirror.target_feat, tmp.data(),
+                                dst_offset + dst_bytes_done, chunk_bytes);
+        done += chunk;
+        dst_bytes_done += chunk_bytes;
     }
-    ggml_backend_tensor_set(mirror.target_feat, tmp.data(),
-                            (size_t)((char *)dst - (char *)mirror.target_feat->data),
-                            row_bytes);
     return true;
 }
 
