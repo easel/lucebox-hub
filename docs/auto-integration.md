@@ -7,6 +7,7 @@ Upstream remote: `origin` / `Luce-Org`
 Last refresh: 2026-05-29T04:21:29-04:00
 Current base: `origin/main` `8782d07a`
 Current integration tip before this refresh: `easel/auto-integration` `4b594750`
+Late non-draft update integrated in this run: #294 `48f6962d`
 Manifest refresh commit prepared in this run: this commit
 
 This branch is maintained as a reproducible patch stack over `origin/main`.
@@ -14,12 +15,15 @@ At this run's start the primary checkout was clean, `easel/auto-integration`
 was already based on current `origin/main` (`0` behind / `401` ahead), and no
 base reconciliation merge was needed. Open non-draft PR refs were refreshed. All
 safe direct-stack open non-draft PR heads remain ancestors of the stack. The
-remaining non-draft PRs were re-probed in fresh worktrees; no safe new direct
-integration became available. A tmux-driven Claude attempt for #237 reached its
-turn limit without a report; a tmux-driven Codex attempt for #135 produced a
-large partial read-only transcript, hit the known Git LFS clean-filter issue in
-conflicted probe worktrees, and was stopped after not reaching a concise final
-report. Manual conflict inspection still supports the prior classifications.
+remaining non-draft PRs were re-probed in fresh worktrees. A late post-push
+re-enumeration found that non-draft #294 had advanced from `0883c2ef` to
+`48f6962d`; that update was merged, conflict-resolved, validated, documented,
+and pushed. No other safe new direct integration became available. A tmux-driven
+Claude attempt for #237 reached its turn limit without a report; a tmux-driven
+Codex attempt for #135 produced a large partial read-only transcript, hit the
+known Git LFS clean-filter issue in conflicted probe worktrees, and was stopped
+after not reaching a concise final report. Manual conflict inspection still
+supports the prior classifications.
 
 ## Included in the current stack
 
@@ -34,7 +38,7 @@ report. Manual conflict inspection still supports the prior classifications.
 | #292 | `feat-backend-ipc-payload-pipe-open` | upstream / `90bc52f` | included through upstream and stack | Backend IPC payload-pipe support is upstream and still represented in the carried stack history. |
 | #297 | `feat-server-laguna-layer-split-adapter-v2` | `53dd1686` | included / draft at final check | Laguna target-layer-split adapter remains carried as an already-integrated draft dependency. |
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support remains an ancestor of the stack. |
-| #294 | `feat/server-passthrough-proxy` | `0883c2ef` | included | Server passthrough proxy wiring, piecewise keep-ratio curve, query survival checks, and unit coverage are carried. |
+| #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Late update integrated this run; server passthrough proxy wiring, piecewise keep-ratio curve, query survival checks, multimodal last-user text extraction, curl cleanup, and unit coverage are carried. |
 | #289 | `pipeline_moe` | `0ffab8a1` | included | Pipelined hybrid Qwen35 MoE decode update remains an ancestor of the stack. |
 | #285 | `feat/lucebox-docker` | `09dc0bed` | included | Docker stack, `lucebox` CLI, bench/profile tooling, harness clients, `luce-bench`, and follow-up `model_info` download handling are carried. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried. |
@@ -86,6 +90,15 @@ This run performed:
   the stack from merge-base `09e46e02`, found the PR-only scheduler/batch-probe
   symbols, hit the known LFS clean-filter failure on `assets/cards/dflash_card.png`,
   and was stopped after not producing a concise final report.
+- Post-push PR re-enumeration detected #294 had advanced to `48f6962d` during
+  the run. `git merge --no-ff --no-edit origin/pr/294` was attempted on the
+  clean primary checkout, produced conflicts in `server/src/qwen3/qwen3_drafter.cpp`,
+  `server/src/server/http_server.cpp`, and `server/src/server/server_main.cpp`,
+  and was resolved by keeping the current drafter overloads / JSON include / SWA
+  env handling while accepting #294's multimodal text extraction, `curl_global_cleanup`,
+  upstream prefill CLI logging, and curve options.
+- Validation for the #294 late merge: `git diff --check` passed before the merge
+  commit.
 - Post-refresh validation: `git diff --check docs/auto-integration.md` passed.
 
 ## Pending / blocked-needs-human / selective-port candidates
