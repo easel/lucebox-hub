@@ -79,8 +79,9 @@ This run performed:
 ## Draft / excluded
 
 Draft PRs remain outside the primary non-draft integration target except for
-ongoing dependency awareness: #304, #297, #291, #290, #286, #275, #249,
-and #193. #286 is the draft PR for the current auto-integration snapshot. #304
+ongoing dependency awareness: #304, #297, #291, #290, #275, #249,
+and #193. The previous auto-integration draft PR #286 is now closed, so branch
+status is reported directly from `easel/auto-integration`. #304
 is a draft LLM auto context compaction PR and excluded because it is draft. #297
 is draft at this run's enumeration and remains carried as an already-integrated
 draft dependency. #285 was draft during initial enumeration but became open
