@@ -4,23 +4,24 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-29T16:28:12-04:00
+Last refresh: 2026-05-29T16:49:43-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `970c9f5a`
+Current integration tip before this refresh: `easel/auto-integration` `6921efa8`
 Manifest refresh commit prepared in this run: this commit
 
 This branch is maintained as a reproducible patch stack over `origin/main`.
 This unattended run started from a clean primary checkout on `auto-integration`,
 verified GitHub/Claude/Codex auth with the real user credential home, fetched
 `origin` and `easel` separately, and performed all reconciliation/probing in
-`/tmp/luce-auto-cron-20260529-162456` worktrees.
+`/tmp/luce-auto-cron-20260529-164134` worktrees.
 
 No open non-draft PR head advanced since the previous pushed integration tip.
 `origin/main` (`8782d07a`) is already an ancestor of `easel/auto-integration`,
 and merging `origin/main` into the reconciliation worktree reported `Already up
 to date`. This run therefore does not add code changes; it refreshes the manifest
 with current PR containment and a fresh conflict/delegation audit of the remaining
-old-layout PRs.
+old-layout PRs, including a new tmux-driven Codex read-only salvage report for
+#237.
 
 ## Included in the current stack
 
@@ -52,8 +53,8 @@ old-layout PRs.
 
 This run performed:
 
-- `date -Is` -> `2026-05-29T16:24:01-04:00` for preflight and
-  `2026-05-29T16:28:12-04:00` for this manifest refresh.
+- `date -Is` -> `2026-05-29T16:41:00-04:00` for preflight and
+  `2026-05-29T16:49:43-04:00` for this manifest refresh.
 - Primary checkout preflight: `git status --short` was clean; branch was
   `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub`
   and `easel=https://github.com/easel/lucebox-hub`.
@@ -68,18 +69,23 @@ This run performed:
   #285, #276, #274, #266, #152, and #142 are ancestors of
   `easel/auto-integration`; #237, #221, #154, #153, #137, #135, #94, and #48 are
   not ancestors and remain classified below.
-- Reconciliation worktree `/tmp/luce-auto-cron-20260529-162456/reconcile` was
+- Reconciliation worktree `/tmp/luce-auto-cron-20260529-164134/reconcile` was
   created from `easel/auto-integration`; merging `origin/main` reported
   `Already up to date`.
 - Fresh probe worktrees attempted direct merges for every non-integrated
   non-draft PR. All eight still conflict in old-layout or dependent MTP/scheduler
   areas; conflict files are summarized below and full logs are retained under
-  `/tmp/luce-auto-cron-20260529-162456`.
+  `/tmp/luce-auto-cron-20260529-164134`.
 - A tmux-driven Claude Code delegation was attempted for #237 in
-  `luce237claude162524` on the conflicted probe worktree. It exited with
-  `Error: Reached max turns (8)` and produced no usable salvage report, so this
-  run falls back to the fresh manual conflict inventory plus previously retained
-  usable Codex/Claude reports rather than claiming a new agent conclusion.
+  `luce237claude164134` on the conflicted probe worktree. It exited with
+  `Error: Reached max turns (10)` and produced no usable salvage report.
+- A tmux-driven Codex read-only delegation was then attempted for #237 in
+  `luce237codex164134` and produced a usable salvage audit at
+  `/tmp/luce-auto-cron-20260529-164134/codex-pr237-salvage-report.txt`. It
+  confirmed direct merge is not feasible because conflicts are semantic across
+  old `dflash/` and current `server/` layouts, while identifying portable MTP
+  foundation behavior, Qwen3.6/NextN support, CLI policy, and test targets for a
+  manual selective port.
 - Verification for this docs-only refresh: `git diff --check` passed.
 
 ## Pending / blocked-needs-human / selective-port candidates
@@ -107,18 +113,19 @@ non-draft #285's current head.
 This run retained all worktrees/logs for audit because probe worktrees contain
 conflicted indexes and safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260529-162456/reconcile`
-- `/tmp/luce-auto-cron-20260529-162456/pr-237-probe`
-- `/tmp/luce-auto-cron-20260529-162456/pr-221-probe`
-- `/tmp/luce-auto-cron-20260529-162456/pr-154-probe`
-- `/tmp/luce-auto-cron-20260529-162456/pr-153-probe`
-- `/tmp/luce-auto-cron-20260529-162456/pr-137-probe`
-- `/tmp/luce-auto-cron-20260529-162456/pr-135-probe`
-- `/tmp/luce-auto-cron-20260529-162456/pr-94-probe`
-- `/tmp/luce-auto-cron-20260529-162456/pr-48-probe`
-- `/tmp/luce-auto-cron-20260529-162456/pr-*-merge.log`
-- `/tmp/luce-auto-cron-20260529-162456/pr-*-conflicts.txt`
-- `/tmp/luce-auto-cron-20260529-162456/claude-pr237-salvage-report.txt` (failed: max turns, no usable report)
+- `/tmp/luce-auto-cron-20260529-164134/reconcile`
+- `/tmp/luce-auto-cron-20260529-164134/pr-237-probe`
+- `/tmp/luce-auto-cron-20260529-164134/pr-221-probe`
+- `/tmp/luce-auto-cron-20260529-164134/pr-154-probe`
+- `/tmp/luce-auto-cron-20260529-164134/pr-153-probe`
+- `/tmp/luce-auto-cron-20260529-164134/pr-137-probe`
+- `/tmp/luce-auto-cron-20260529-164134/pr-135-probe`
+- `/tmp/luce-auto-cron-20260529-164134/pr-94-probe`
+- `/tmp/luce-auto-cron-20260529-164134/pr-48-probe`
+- `/tmp/luce-auto-cron-20260529-164134/pr-*-merge.log`
+- `/tmp/luce-auto-cron-20260529-164134/pr-*-summary.txt`
+- `/tmp/luce-auto-cron-20260529-164134/claude-pr237-salvage-report.txt` (failed: max turns, no usable report)
+- `/tmp/luce-auto-cron-20260529-164134/codex-pr237-salvage-report.txt` (usable read-only salvage audit)
 
 Useful prior probe/delegation artifacts remain for unresolved old-layout PRs:
 
