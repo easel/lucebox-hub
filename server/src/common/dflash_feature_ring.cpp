@@ -161,6 +161,24 @@ static bool convert_bf16_feature_to_storage(DraftFeatureMirror & mirror,
                                elems * sizeof(ggml_bf16_t));
     }
 
+    if (mirror.storage_type == GGML_TYPE_F32) {
+        auto bf16_to_f32 = ggml_get_to_fp32_cuda(GGML_TYPE_BF16);
+        if (!bf16_to_f32) return false;
+        if (src_device != mirror.device) {
+            const size_t src_bytes = elems * sizeof(ggml_bf16_t);
+            if (!ensure_staging(mirror, src_bytes)) return false;
+            if (!copy_peer_async(mirror.staging, mirror.device, src, src_device,
+                                 src_bytes)) {
+                return false;
+            }
+            src = mirror.staging;
+        }
+        cudaError_t err = cudaSetDevice(mirror.device);
+        if (err != cudaSuccess) return false;
+        bf16_to_f32(src, (float *)dst, (int64_t)elems, nullptr);
+        return cudaGetLastError() == cudaSuccess;
+    }
+
     std::vector<ggml_bf16_t> bf16_host(elems);
     cudaError_t err = cudaSetDevice(src_device);
     if (err != cudaSuccess) return false;
