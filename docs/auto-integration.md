@@ -4,15 +4,15 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-29T08:08:52-04:00
+Last refresh: 2026-05-29T08:15:15-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `21cd7a1d`
+Current integration tip before this refresh: `easel/auto-integration` `6b01a9be`
 Manifest refresh commit prepared in this run: this commit, if non-empty
 
 This branch is maintained as a reproducible patch stack over `origin/main`.
 At this run's start the primary checkout was clean, auth/tooling checks passed,
 `origin` and `easel` were fetched separately, and `easel/auto-integration` was
-already based on current `origin/main` (`0` behind / `427` ahead in the
+already based on current `origin/main` (`0` behind / `429` ahead in the
 reconciliation worktree before this manifest-only refresh). Open PR refs were
 refreshed. No non-draft PR head had advanced beyond the current stack since the
 previous refresh. All direct-mergeable non-draft PRs remain represented in the
@@ -48,8 +48,8 @@ current-layout ports or are superseded.
 
 This run performed:
 
-- `date -Is` -> `2026-05-29T08:08:15-04:00` for preflight; manifest timestamp
-  refreshed at `2026-05-29T08:08:52-04:00`.
+- `date -Is` -> `2026-05-29T08:15:15-04:00` for preflight; manifest timestamp
+  refreshed at `2026-05-29T08:15:15-04:00`.
 - Primary checkout preflight: `git status --short` was clean; branch was
   `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub`
   and `easel=https://github.com/easel/lucebox-hub`.
@@ -68,7 +68,7 @@ This run performed:
 - Reconciliation worktree `/tmp/luce-auto-cron-20260529-080852` was created from
   `easel/auto-integration`; merging `origin/main` reported `Already up to date`.
 - `git rev-list --left-right --count origin/main...HEAD` in the reconciliation
-  worktree reported `0` behind and `428` ahead before the manifest-only refresh.
+  worktree reported `0` behind and `429` ahead before the manifest-only refresh.
 - Fresh direct merge probes from the current integration tip were created for
   #237, #221, #154, #153, #137, #135, #94, and #48. All still conflict in the
   classes recorded below; the conflict file sets were unchanged in character
