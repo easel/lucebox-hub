@@ -4,9 +4,9 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-29T15:12:09-04:00
+Last refresh: 2026-05-29T15:26:13-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `39b61f1e`
+Current integration tip before this refresh: `easel/auto-integration` `1ff5ca26`
 Manifest refresh commit prepared in this run: this commit, if non-empty
 
 This branch is maintained as a reproducible patch stack over `origin/main`.
@@ -17,7 +17,7 @@ created from the fetched writable remote tip and treated `easel/auto-integration
 as the source of truth.
 
 This refresh found no newly opened non-draft contributor PRs and no advanced
-included PR heads since `easel/auto-integration` `39b61f1e`. The current heads
+included PR heads since `easel/auto-integration` `1ff5ca26`. The current heads
 of #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266,
 #152, and #142 are already ancestors of the integration branch. The run
 re-probed the remaining non-integrated old PRs from the current tip; all still
@@ -57,8 +57,8 @@ selective-port recommendations below.
 
 This run performed:
 
-- `date -Is` -> `2026-05-29T15:12:09-04:00` for preflight and
-  `2026-05-29T15:12:09-04:00` for this manifest refresh.
+- `date -Is` -> `2026-05-29T15:25:07-04:00` for preflight and
+  `2026-05-29T15:26:13-04:00` for this manifest refresh.
 - Primary checkout preflight: `git status --short` was clean; branch was
   `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub`
   and `easel=https://github.com/easel/lucebox-hub`.
@@ -74,7 +74,7 @@ This run performed:
 - Containment checks confirmed #310, #309, #307, #306, #297, #295, #294, #289,
   #285, #276, #274, #266, #152, and #142 are ancestors of `easel/auto-integration`;
   #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors.
-- Reconciliation worktree `/tmp/luce-auto-cron-20260529-151251/reconcile` was
+- Reconciliation worktree `/tmp/luce-auto-cron-20260529-152613/reconcile` was
   created from `easel/auto-integration`; merging `origin/main` reported
   `Already up to date`.
 - Fresh direct merge probes from the current integration tip were created for
@@ -97,14 +97,14 @@ This run performed:
 
 | PR | Head branch | Head | Current status | Probe result / next useful action |
 |---:|---|---:|---|---|
-| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | blocked-needs-human / salvage-port | Fresh probe worktree `/tmp/luce-auto-cron-20260529-151251/pr-237-probe` conflicts in old-layout `dflash/` server/backend files plus current `server/CMakeLists.txt`, common MTP files, Qwen35 loader/graph/backend/dflash target files, and tests. Prior usable Codex reports confirm valuable missing runtime behavior: generic MTP abstractions, Qwen3.6 NextN/native-head support, `--mtp-source`/`--mtp-gguf`/`--mtp-gamma`/`--mtp-draft-topk`, MTP tensor auto-detect, head-KV warming, hidden/pre-norm capture, accept-prefix-plus-bonus chain verification, and KV rollback via `restore_kv_at_chain`. |
-| #221 | `feat/mtp-prefix-warm-ghost` | `05502974` | blocked-needs-human / dependent salvage-port | Fresh probe worktree `/tmp/luce-auto-cron-20260529-151251/pr-221-probe` conflicts on old `dflash/` scripts/backend files, current common/Qwen35 MTP, metadata, prefix snapshot, graph, and tests, and brings old benchmark/results assets. Mine prefix-cache WARM behavior after a current-layout #237-equivalent MTP foundation lands. |
-| #154 | `xabicasa/dflash-mtp-speculative-loop` | `2f4ede79` | blocked-needs-human / dependency | Fresh probe worktree `/tmp/luce-auto-cron-20260529-151251/pr-154-probe` conflicts on old `dflash/CMakeLists.txt`, moved MTP docs/tests and `f16_convert.cu`, plus core Qwen35/internal target files. Mine linear MTP decode semantics after current-layout Qwen35 MTP exists. |
-| #153 | `xabicasa/dflash-mtp-integrated` | `e9b17cb1` | blocked-needs-human / dependency | Fresh probe worktree `/tmp/luce-auto-cron-20260529-151251/pr-153-probe` conflicts on old CMake, moved MTP docs/tests and `f16_convert.cu`, and the same core Qwen35/internal target files. Mine loader/graph/cache/test ideas after current-layout Qwen35 MTP exists. |
-| #135 | `xabicasa/dflash-multi-request-scheduler-batched-target-step` | `561b0ac1` | blocked-needs-human / selective-port | Fresh probe worktree `/tmp/luce-auto-cron-20260529-151251/pr-135-probe` conflicts in `server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp`. Prior Codex report says direct merge would regress current layer-split/MoE/TQ3/KV/snapshot/HIP behavior; salvage tagged stream frames, request commands, fair aligned-bucket scheduling, multiple qwen35 cache slots, and batched one-token target probes into current `server/src/common/daemon_loop.cpp`, `server/src/common/model_backend.h`, `server/src/qwen35/qwen35_backend.*`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/src/qwen35/graph_builders.*`. |
-| #137 | `xabicasa/dflash-build-cmake-sm89-bsa` | `297fc74e` | suggested-close/superseded | Fresh probe worktree `/tmp/luce-auto-cron-20260529-151251/pr-137-probe` only conflicts on deleted old `dflash/CMakeLists.txt`. Ask author to close or retarget to current `server/CMakeLists.txt` if anything remains. |
-| #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | suggested-close/superseded | Fresh probe worktree `/tmp/luce-auto-cron-20260529-151251/pr-94-probe` conflicts in `server/src/draft/draft_graph.cpp`, `draft_safetensors_loader.cpp`, and `server/src/internal.h`; prior tmux-driven Codex report `/tmp/luce94-codex-20260529-090910-report.txt` concluded the useful behavior is already present in current auto-integration. |
-| #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | suggested-close/superseded | Fresh probe worktree `/tmp/luce-auto-cron-20260529-151251/pr-48-probe` only conflicts on deleted old `dflash/CMakeLists.txt`. Close or retarget to current `server/CMakeLists.txt` if still needed. |
+| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | blocked-needs-human / salvage-port | Fresh probe worktree `/tmp/luce-auto-cron-20260529-152613/pr-237-probe` conflicts in old-layout `dflash/` server/backend files plus current `server/CMakeLists.txt`, common MTP files, Qwen35 loader/graph/backend/dflash target files, and tests. Prior usable Codex reports confirm valuable missing runtime behavior: generic MTP abstractions, Qwen3.6 NextN/native-head support, `--mtp-source`/`--mtp-gguf`/`--mtp-gamma`/`--mtp-draft-topk`, MTP tensor auto-detect, head-KV warming, hidden/pre-norm capture, accept-prefix-plus-bonus chain verification, and KV rollback via `restore_kv_at_chain`. |
+| #221 | `feat/mtp-prefix-warm-ghost` | `05502974` | blocked-needs-human / dependent salvage-port | Fresh probe worktree `/tmp/luce-auto-cron-20260529-152613/pr-221-probe` conflicts on old `dflash/` scripts/backend files, current common/Qwen35 MTP, metadata, prefix snapshot, graph, and tests, and brings old benchmark/results assets. Mine prefix-cache WARM behavior after a current-layout #237-equivalent MTP foundation lands. |
+| #154 | `xabicasa/dflash-mtp-speculative-loop` | `2f4ede79` | blocked-needs-human / dependency | Fresh probe worktree `/tmp/luce-auto-cron-20260529-152613/pr-154-probe` conflicts on old `dflash/CMakeLists.txt`, moved MTP docs/tests and `f16_convert.cu`, plus core Qwen35/internal target files. Mine linear MTP decode semantics after current-layout Qwen35 MTP exists. |
+| #153 | `xabicasa/dflash-mtp-integrated` | `e9b17cb1` | blocked-needs-human / dependency | Fresh probe worktree `/tmp/luce-auto-cron-20260529-152613/pr-153-probe` conflicts on old CMake, moved MTP docs/tests and `f16_convert.cu`, and the same core Qwen35/internal target files. Mine loader/graph/cache/test ideas after current-layout Qwen35 MTP exists. |
+| #135 | `xabicasa/dflash-multi-request-scheduler-batched-target-step` | `561b0ac1` | blocked-needs-human / selective-port | Fresh probe worktree `/tmp/luce-auto-cron-20260529-152613/pr-135-probe` conflicts in `server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp`. Prior Codex report says direct merge would regress current layer-split/MoE/TQ3/KV/snapshot/HIP behavior; salvage tagged stream frames, request commands, fair aligned-bucket scheduling, multiple qwen35 cache slots, and batched one-token target probes into current `server/src/common/daemon_loop.cpp`, `server/src/common/model_backend.h`, `server/src/qwen35/qwen35_backend.*`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/src/qwen35/graph_builders.*`. |
+| #137 | `xabicasa/dflash-build-cmake-sm89-bsa` | `297fc74e` | suggested-close/superseded | Fresh probe worktree `/tmp/luce-auto-cron-20260529-152613/pr-137-probe` only conflicts on deleted old `dflash/CMakeLists.txt`. Ask author to close or retarget to current `server/CMakeLists.txt` if anything remains. |
+| #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | suggested-close/superseded | Fresh probe worktree `/tmp/luce-auto-cron-20260529-152613/pr-94-probe` conflicts in `server/src/draft/draft_graph.cpp`, `draft_safetensors_loader.cpp`, and `server/src/internal.h`; prior tmux-driven Codex report `/tmp/luce94-codex-20260529-090910-report.txt` concluded the useful behavior is already present in current auto-integration. |
+| #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | suggested-close/superseded | Fresh probe worktree `/tmp/luce-auto-cron-20260529-152613/pr-48-probe` only conflicts on deleted old `dflash/CMakeLists.txt`. Close or retarget to current `server/CMakeLists.txt` if still needed. |
 
 ## Draft / excluded
 
@@ -117,18 +117,18 @@ The reconciliation worktree and conflicted probe worktrees were intentionally
 retained for audit/follow-up; safe cleanup would require resolving or discarding
 conflicted indexes in the probe worktrees:
 
-- `/tmp/luce-auto-cron-20260529-151251/reconcile`
-- `/tmp/luce-auto-cron-20260529-151251/pr-237-probe`
-- `/tmp/luce-auto-cron-20260529-151251/pr-221-probe`
-- `/tmp/luce-auto-cron-20260529-151251/pr-154-probe`
-- `/tmp/luce-auto-cron-20260529-151251/pr-153-probe`
-- `/tmp/luce-auto-cron-20260529-151251/pr-137-probe`
-- `/tmp/luce-auto-cron-20260529-151251/pr-135-probe`
-- `/tmp/luce-auto-cron-20260529-151251/pr-94-probe`
-- `/tmp/luce-auto-cron-20260529-151251/pr-48-probe`
-- `/tmp/luce-auto-cron-20260529-151251`
+- `/tmp/luce-auto-cron-20260529-152613/reconcile`
+- `/tmp/luce-auto-cron-20260529-152613/pr-237-probe`
+- `/tmp/luce-auto-cron-20260529-152613/pr-221-probe`
+- `/tmp/luce-auto-cron-20260529-152613/pr-154-probe`
+- `/tmp/luce-auto-cron-20260529-152613/pr-153-probe`
+- `/tmp/luce-auto-cron-20260529-152613/pr-137-probe`
+- `/tmp/luce-auto-cron-20260529-152613/pr-135-probe`
+- `/tmp/luce-auto-cron-20260529-152613/pr-94-probe`
+- `/tmp/luce-auto-cron-20260529-152613/pr-48-probe`
+- `/tmp/luce-auto-cron-20260529-152613`
 
-Fresh direct-merge probe logs were written under `/tmp/luce-auto-cron-20260529-151251/pr-*-merge.log`, with unmerged-file summaries under `/tmp/luce-auto-cron-20260529-151251/pr-*-unmerged.txt`.
+Fresh direct-merge probe logs were written under `/tmp/luce-auto-cron-20260529-152613/pr-*-merge.log`, with unmerged-file summaries under `/tmp/luce-auto-cron-20260529-152613/pr-*-unmerged.txt`.
 Useful prior delegation reports remain; no new delegation artifacts were produced in this run:
 
 - `/tmp/luce-auto-cron-20260529-145519/codex-pr135-report.txt` (usable read-only salvage note)
