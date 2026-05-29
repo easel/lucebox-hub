@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-29T17:03:20-04:00
+Last refresh: 2026-05-29T17:09:00-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `21ec588a`
-Manifest refresh commit prepared in this run: this commit
+Current integration tip before this refresh: `easel/auto-integration` `09d0d332`
+Manifest refresh and #285 update prepared in this run: this commit
 
 This branch is maintained as a reproducible patch stack over `origin/main`.
 This unattended run started from a clean primary checkout on `auto-integration`,
@@ -15,12 +15,10 @@ verified GitHub/Claude/Codex auth with the real user credential home, fetched
 `origin` and `easel` separately, and performed all reconciliation/probing in
 `/tmp/luce-auto-cron-20260529-170301` worktrees.
 
-No open non-draft PR head advanced beyond the current pushed integration tip.
-`origin/main` (`8782d07a`) is already an ancestor of `easel/auto-integration`,
-and merging `origin/main` into the reconciliation worktree reported `Already up
-to date`. This run therefore does not add code changes; it refreshes the
-manifest with current PR containment and fresh direct-merge conflict probes for
-the remaining old-layout PRs.
+During the required post-push re-enumeration, non-draft PR #285 had advanced
+from `8b48ad85` to `9a6db60e`. This run fetched the new PR head, merged it cleanly
+on top of the just-pushed stack, verified the targeted `luce-bench` tests, and
+prepared a second update so the integration branch remains current.
 
 ## Included in the current stack
 
@@ -41,7 +39,7 @@ the remaining old-layout PRs.
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support remains an ancestor of the stack. |
 | #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Server passthrough proxy wiring, piecewise keep-ratio curve, query survival checks, multimodal last-user text extraction, curl cleanup, and unit coverage are carried. |
 | #289 | `pipeline_moe` | `27bad6d3` | included | Pipelined hybrid Qwen35 MoE decode update plus sub-batch hybrid prefill FFN MMQ-bounds fix are carried. |
-| #285 | `feat/lucebox-docker` | `8b48ad85` | included | Latest Docker stack / `lucebox` CLI / bench-profile / harness / `luce-bench` refresh is carried; the current head also brings the Qwen3.6/Laguna reasoning-channel commits from draft #308. |
+| #285 | `feat/lucebox-docker` | `9a6db60e` | included | Latest Docker stack / `lucebox` CLI / bench-profile / harness / `luce-bench` refresh is carried, including the new card-driven thinking-control and client-side thinking-budget update; the branch also brings the Qwen3.6/Laguna reasoning-channel commits from draft #308. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried. |
 | #274 | `feat/pflash-drafter-ee7` | `8c1f37d` | included | Latest adaptive pFlash composition plus effective-size admission/keep-ratio guard update is carried. |
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried. |
@@ -52,8 +50,9 @@ the remaining old-layout PRs.
 
 This run performed:
 
-- `date -Is` -> `2026-05-29T17:01:57-04:00` for preflight and
-  `2026-05-29T17:03:20-04:00` for this manifest refresh.
+- `date -Is` -> `2026-05-29T17:01:57-04:00` for preflight,
+  `2026-05-29T17:03:20-04:00` for the first manifest refresh, and
+  `2026-05-29T17:09:00-04:00` for the #285 follow-up refresh.
 - Primary checkout preflight: `git status --short` was clean; branch was
   `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub`
   and `easel=https://github.com/easel/lucebox-hub`.
@@ -65,9 +64,9 @@ This run performed:
   8 draft/excluded.
 - Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
 - Containment checks confirmed #310, #309, #307, #306, #297, #295, #294, #289,
-  #285, #276, #274, #266, #152, and #142 are ancestors of
-  `easel/auto-integration`; #237, #221, #154, #153, #137, #135, #94, and #48 are
-  not ancestors and remain classified below.
+  #285, #276, #274, #266, #152, and #142 are ancestors of the updated
+  integration stack; #237, #221, #154, #153, #137, #135, #94, and #48 are not
+  ancestors and remain classified below.
 - Reconciliation worktree `/tmp/luce-auto-cron-20260529-170301/reconcile` was
   created from `easel/auto-integration`; merging `origin/main` reported
   `Already up to date`.
@@ -75,7 +74,13 @@ This run performed:
   non-draft PR. All eight still conflict in old-layout or dependent MTP/scheduler
   areas; conflict files are summarized below and full logs are retained under
   `/tmp/luce-auto-cron-20260529-170301`.
-- Verification for this docs-only refresh: `git diff --check` passed.
+- Post-push re-enumeration discovered PR #285's new `9a6db60e` head. Follow-up
+  worktree `/tmp/luce-auto-cron-20260529-170456/reconcile` merged it cleanly on
+  top of `09d0d332`, producing merge commit `0e1d764f` before this manifest edit.
+- Verification for the final stack: `git diff --check` passed; `cd luce-bench &&
+  uv run --extra dev pytest tests/test_client_thinking_budget.py
+  tests/test_model_cards.py tests/test_runner.py tests/test_fixtures.py
+  tests/test_smoke_area.py` passed with `108 passed in 1.64s`.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -102,6 +107,7 @@ non-draft #285's current head.
 This run retained all worktrees/logs for audit because probe worktrees contain
 conflicted indexes and safe cleanup is left to a supervised pass:
 
+- `/tmp/luce-auto-cron-20260529-170456/reconcile` (final #285 integration worktree)
 - `/tmp/luce-auto-cron-20260529-170301/reconcile`
 - `/tmp/luce-auto-cron-20260529-170301/pr-237-probe`
 - `/tmp/luce-auto-cron-20260529-170301/pr-221-probe`
