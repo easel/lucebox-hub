@@ -4,7 +4,7 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-29T13:47:52-04:00
+Last refresh: 2026-05-29T13:58:30-04:00
 Current base: `origin/main` `8782d07a`
 Current integration tip before this refresh: `easel/auto-integration` `434389f4`
 Manifest refresh commit prepared in this run: this commit, if non-empty
@@ -17,21 +17,20 @@ currently ahead/behind `easel/auto-integration`, so this run used a detached
 worktree based on the fetched writable remote tip and treated the remote branch
 as source of truth.
 
-This refresh found no newly opened or advanced non-draft contributor PR heads
-that were missing from the fetched `easel/auto-integration` tip. #309 and #310
-are both already ancestors of the current integration branch. The branch still
-contains the prior #310 manual conflict resolution in
-`server/src/qwen35moe/qwen35moe_backend.cpp`, preserving the existing persistent
-logits graph from the pipelined MoE decode path while adding #310's
-backend-precision graph helpers for RMS norm/input/output-norm tensors. The
-remaining non-integrated old PRs were re-probed from the updated tip and still
-require selective ports or closure rather than direct merges.
+This refresh found that #310 had force-updated from `e73c2e3f` to `bf9f4b57`
+after the fetched integration tip already contained the earlier #310 version.
+The run applied the incremental #310 backend activation precision updates,
+preserved the existing Qwen35 MoE persistent logits graph conflict resolution,
+and then marked the updated #310 head as merged with an ancestry-only merge.
+#309 remains an ancestor of the current integration branch. The remaining
+non-integrated old PRs were re-probed from the updated tip and still require
+selective ports or closure rather than direct merges.
 
 ## Included in the current stack
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
-| #310 | `feat-backend-activation-precision-policy-after-306` | `e73c2e3f` | included | Adds backend activation precision policy / graph tensor precision helpers to reduce layer-split activation memory. Conflict with the existing persistent Qwen35 MoE logits graph was previously resolved by combining both behaviors. |
+| #310 | `feat-backend-activation-precision-policy-after-306` | `bf9f4b57` | included this run | Updated backend activation precision policy / graph tensor precision helpers to reduce layer-split activation memory. The incremental force-push delta was applied on top of the prior integration conflict resolution, preserving both shard-common activation precision policy behavior and the existing persistent Qwen35 MoE logits graph. |
 | #309 | `experiment-dflash-feature-dtype` | `ea6ac481` | included before this run | Feature mirror dtype policy is already an ancestor of `easel/auto-integration`. |
 | #307 | `docs/why-this-exists-copy` | `236fc2fd` | included | README “Why this exists” copy remains preserved; the #285 README conflict was resolved in favor of this focused docs PR. |
 | #306 | `refactor-server-layer-split-runtime` | `988fc933` | included | Shared layer-split runtime helper extraction remains carried; #310 is stacked after it. |
@@ -58,7 +57,7 @@ require selective ports or closure rather than direct merges.
 This run performed:
 
 - `date -Is` -> `2026-05-29T13:46:59-04:00` for preflight and
-  `2026-05-29T13:47:52-04:00` for the manifest refresh.
+  `2026-05-29T13:58:30-04:00` for the manifest refresh.
 - Primary checkout preflight: `git status --short` was clean; branch was
   `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub`
   and `easel=https://github.com/easel/lucebox-hub`.
@@ -71,16 +70,17 @@ This run performed:
 - Fetched open non-draft PR refs explicitly: #310, #309, #307, #306, #297, #295,
   #294, #289, #285, #276, #274, #266, #237, #221, #154, #153, #152, #142, #137,
   #135, #94, and #48.
-- Containment checks before reconciliation confirmed #310, #309, #307, #306,
-  #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors
-  of `easel/auto-integration`; #237, #221, #154, #153, #137, #135, #94, and
-  #48 were not ancestors.
+- Containment checks before reconciliation confirmed #309, #307, #306, #297,
+  #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of
+  `easel/auto-integration`; #310 had advanced by force-push to `bf9f4b57` and
+  #237, #221, #154, #153, #137, #135, #94, and #48 were not ancestors.
 - Reconciliation worktree `/tmp/luce-auto-cron-20260529-134752/reconcile` was
   created from `easel/auto-integration`; merging `origin/main` reported
   `Already up to date`.
-- No open non-draft PR head had advanced beyond the fetched integration tip, so
-  no code merge or conflict resolution was required in the reconciliation
-  worktree.
+- #310 had force-updated after initial reconciliation. The incremental delta from
+  `e73c2e3f` to `bf9f4b57` was applied in commit `ddcf2f74`, then `origin/pr/310`
+  was merged with the `ours` strategy in `953c9350` to record the updated PR head
+  as an ancestor while preserving the verified integration content.
 - Fresh direct merge probes from the updated integration tip were created for
   #237, #221, #154, #153, #137, #135, #94, and #48. All still conflict in the
   file sets recorded below.
