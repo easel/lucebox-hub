@@ -1,4 +1,4 @@
-updated_at: 2026-05-30T00:37:05-04:00
+updated_at: 2026-05-30T01:00:14-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8782d07a
-  easel_auto_integration_before_refresh: d2421544
-  current_integration_head_before_metadata_commit: d2421544
+  easel_auto_integration_before_refresh: 07c47e59
+  current_integration_head_before_metadata_commit: 07c47e59
   base_before_run: easel/auto-integration
 stack:
   included:
@@ -19,7 +19,7 @@ stack:
     - {pr: 295, head: a9aedf7d, status: included, note: target layer-split sampling}
     - {pr: 294, head: 48f6962d, status: included, note: passthrough proxy and keep-ratio/query survival work}
     - {pr: 289, head: 27bad6d3, status: included, note: pipelined hybrid Qwen35 MoE decode}
-    - {pr: 285, head: 8b48ad85, status: included, note: docker stack, lucebox CLI, harness, luce-bench, plus draft PR 308 think-channel merge}
+    - {pr: 285, head: 9a6db60e, status: included, note: docker stack, lucebox CLI, harness, luce-bench, plus draft PR 308 think-channel merge}
     - {pr: 276, head: 5e861b4d, status: included, note: Qwen3.6 Claude-code Anthropic tool-calling fix}
     - {pr: 274, head: 8c1f37db, status: included, note: adaptive pFlash / effective-size admission guard}
     - {pr: 266, head: 17525eae, status: included, note: typed harness adapters and session-inject proxy}
@@ -36,43 +36,43 @@ stack:
   attempted_this_run:
     - pr: 237
       status: conflict-not-integrated-after-prior-manual-and-agent-attempts
-      worktree: /tmp/luce-auto-cron-20260529-160952/pr-237-probe
+      worktree: /tmp/luce-auto-cron-20260530-005958/probes/pr-237-probe
       unmerged_count: 24
       next: selective-port MTP foundation into current server layout
     - pr: 221
       status: conflict-not-integrated-after-prior-manual-and-agent-attempts
-      worktree: /tmp/luce-auto-cron-20260529-160952/pr-221-probe
+      worktree: /tmp/luce-auto-cron-20260530-005958/probes/pr-221-probe
       unmerged_count: 23
       next: mine prefix-cache WARM behavior after current-layout MTP foundation
     - pr: 154
       status: conflict-not-integrated
-      worktree: /tmp/luce-auto-cron-20260529-160952/pr-154-probe
+      worktree: /tmp/luce-auto-cron-20260530-005958/probes/pr-154-probe
       unmerged_count: 12
       next: mine linear MTP decode semantics after current-layout Qwen35 MTP exists
     - pr: 153
       status: conflict-not-integrated
-      worktree: /tmp/luce-auto-cron-20260529-160952/pr-153-probe
+      worktree: /tmp/luce-auto-cron-20260530-005958/probes/pr-153-probe
       unmerged_count: 10
       next: mine loader/graph/cache/test ideas after current-layout Qwen35 MTP exists
     - pr: 137
       status: conflicts-only-on-deleted-old-dflash-cmake
-      worktree: /tmp/luce-auto-cron-20260529-160952/pr-137-probe
+      worktree: /tmp/luce-auto-cron-20260530-005958/probes/pr-137-probe
       unmerged_count: 1
       next: suggest close or retarget to server/CMakeLists.txt
     - pr: 135
       status: conflict-not-integrated-after-manual-probe-and-claude-tmux-attempt
-      worktree: /tmp/luce-auto-cron-20260529-160952/pr-135-probe
+      worktree: /tmp/luce-auto-cron-20260530-005958/probes/pr-135-probe
       unmerged_count: 3
       delegation: tmux session luce-pr135-160952 attempted Claude resolution; conflicts remained with markers in internal.h, qwen35_target_graph.cpp, and test_dflash.cpp
       next: selective-port scheduler/batched target semantics into current daemon/backend architecture
     - pr: 94
       status: conflict-not-integrated-superseded-by-current-stack
-      worktree: /tmp/luce-auto-cron-20260529-160952/pr-94-probe
+      worktree: /tmp/luce-auto-cron-20260530-005958/probes/pr-94-probe
       unmerged_count: 3
       next: suggest close after author review
     - pr: 48
       status: conflicts-only-on-deleted-old-dflash-cmake
-      worktree: /tmp/luce-auto-cron-20260529-160952/pr-48-probe
+      worktree: /tmp/luce-auto-cron-20260530-005958/probes/pr-48-probe
       unmerged_count: 1
       next: suggest close or retarget to server/CMakeLists.txt
   pending: []
@@ -93,19 +93,19 @@ stack:
     - git status --short; git branch --show-current; git remote -v
     - GH_CONFIG_DIR=/home/erik/.config/gh XDG_CONFIG_HOME=/home/erik/.config HOME=/home/erik gh auth status
     - HOME=/home/erik /home/erik/.local/bin/claude auth status --text
-    - HOME=/home/erik /home/linuxbrew/.linuxbrew/bin/codex --version
+    - HOME=/home/erik /home/linuxbrew/.linuxbrew/bin/codex --help
     - git fetch --prune origin
     - git fetch --prune easel
-    - git fetch origin '+refs/pull/*/head:refs/remotes/origin/pr/*' (submodule warning for Block-Sparse-Attention)
-    - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 100 --json number,title,headRefName,baseRefName,isDraft,mergeStateStatus,updatedAt
+    - git fetch origin pull/<n>/head:refs/remotes/origin/pr/<n> for each open non-draft PR
+    - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json number,title,author,isDraft,headRefName,headRefOid,baseRefName,updatedAt,mergeable --jq ...
     - git merge-base --is-ancestor origin/pr/<n> auto-integration for all non-draft PRs
-    - direct merge probes for PRs 237, 221, 154, 153, 137, 135, 94, 48 from easel/auto-integration
-    - Claude tmux attempt for PR 135 in /tmp/luce-auto-cron-20260529-160952/pr-135-probe
+    - direct merge probes for PRs 237, 221, 154, 153, 137, 135, 94, 48 from HEAD/easel auto-integration in /tmp/luce-auto-cron-20260530-005958/probes
+    - prior Claude tmux attempt for PR 135 remains the last delegated conflict-resolution attempt; no new delegation because heads/conflict classes were unchanged
     - git diff --check
     - python3 -m py_compile harness/src/harness/clients/*.py luce-bench/src/lucebench/areas/__init__.py
 notes:
   - Primary checkout /home/erik/Projects/luce2 remained clean until this metadata refresh.
-  - Reconciliation and conflict probe worktrees retained under /tmp/luce-auto-cron-20260529-160952 for audit/follow-up.
+  - Reconciliation and conflict probe worktrees retained under /tmp/luce-auto-cron-20260530-005958 for audit/follow-up.
   - This refresh made no product-code changes; only integration metadata was refreshed.
   - Current run confirmed origin/main remains the merge base of auto-integration; no upstream rebase/refresh was required.
   - Current open PR roster still matches the existing inclusion/blocked/draft classification; no new includable PRs were found.
