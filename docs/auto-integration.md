@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T06:55:00-04:00`
+Last refresh: `2026-05-30T07:11:36-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `0d23470c`
-Latest integration tip before this refresh: `0d23470c`
+Previous integration tip: `easel/auto-integration` `ed9cb457`
+Latest integration tip before this refresh: `ed9cb457`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, checked the current `easel/auto-integration` tip in `/tmp/luce-auto-cron-20260530-064908/stack`, confirmed it is already up to date with `origin/main`, and rechecked all open non-draft PR heads by exact containment. The open non-draft set is unchanged from the prior refresh; no new includable PRs landed during this pass.
+This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, checked the current `easel/auto-integration` tip in `/tmp/luce-auto-cron-20260530-070743/stack`, confirmed it is already up to date with `origin/main`, and rechecked all open non-draft PR heads by exact containment. The open non-draft set is unchanged from the prior refresh; no new includable PRs landed during this pass.
 
-The stack remains unchanged from the prior refresh: PR #308 (`fix/qwen-think-channel`) continues to be carried exactly at `9d4defe1`, adding the CPU-only replay HTTP server, tokenizer-only GGUF fixture, scenario store, and Qwen3.6/Laguna reasoning-channel regression tests. Fresh direct-merge probes for the older non-contained PRs still show the same old-layout MTP/scheduler conflict classes. This run also delegated a read-only Codex inspection of #135 through tmux; Codex confirmed #135 should be a selective current-layout port, not a direct conflict resolution. A read-only Claude inspection of #237 reached its max-turn limit without a usable report, so the existing #237 manual/direct-probe classification remains unchanged.
+The stack remains unchanged from the prior refresh: PR #308 (`fix/qwen-think-channel`) continues to be carried exactly at `9d4defe1`, adding the CPU-only replay HTTP server, tokenizer-only GGUF fixture, scenario store, and Qwen3.6/Laguna reasoning-channel regression tests. Fresh direct-merge probes for the older non-contained PRs still show the same old-layout MTP/scheduler conflict classes. This run delegated a read-only Claude inspection of #221 through tmux; it reached its max-turn limit without a usable report. A read-only Codex inspection of #237 was also launched through tmux, but it emitted a long command transcript without a final feasibility report and was stopped after it appeared stuck; the existing #237 manual/direct-probe classification remains unchanged.
 
 ## Included in the current non-draft stack
 
@@ -45,22 +45,22 @@ The stack remains unchanged from the prior refresh: PR #308 (`fix/qwen-think-cha
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T06:48:26-04:00` during preflight and `2026-05-30T06:55:00-04:00` for manifest refresh metadata.
+- `date -Is` -> `2026-05-30T07:07:06-04:00` during preflight and `2026-05-30T07:11:36-04:00` for manifest refresh metadata.
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
-- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version` (`codex-cli 0.130.0`).
+- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless `codex --help` check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and found 22 open non-draft PRs plus 8 draft/excluded PRs.
 - This current pass rechecked the same inventory and found no new non-draft PRs beyond the existing stack; the branch remained up to date with `origin/main`.
 - Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
 - Containment checks against the refreshed stack confirmed #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are exact ancestors; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below. #311 and #307 remain included through `origin/main`.
-- Reconciliation worktree `/tmp/luce-auto-cron-20260530-064908/stack` was created from `easel/auto-integration`; `git merge --no-edit origin/main` reported `Already up to date`; the worktree was then fast-forwarded to concurrent tip `0d23470c` before this manifest refresh.
-- Fresh probe worktrees attempted direct merges for #237, #221, #154, #153, #137, #135, #94, and #48. All eight still conflict in old-layout or dependent MTP/scheduler areas; worktrees and merge logs are retained under `/tmp/luce-auto-cron-20260530-064908/`.
-- A read-only Claude tmux delegation for #237 ended with `Error: Reached max turns (8)` and did not produce a usable feasibility report.
-- A read-only Codex tmux delegation for #135 completed and recommended a selective current-layout port: port `n_seqs`/cache ABI first, then current `qwen35_target_graph.cpp`, then a graph-builder helper in `server/src/qwen35/graph_builders.{h,cpp}`, then scheduler cache-copy/bucket tests and daemon command wiring.
-- `git diff --check easel/auto-integration...HEAD` passed with no whitespace errors after the #308 merge.
+- Reconciliation worktree `/tmp/luce-auto-cron-20260530-070743/stack` was created from `easel/auto-integration`; `git merge --no-edit origin/main` reported no source changes beyond the existing stack.
+- Fresh probe worktrees attempted direct merges for #237, #221, #154, #153, #137, #135, #94, and #48. All eight still conflict in old-layout or dependent MTP/scheduler areas; worktrees and merge logs are retained under `/tmp/luce-auto-cron-20260530-070743/`.
+- A read-only Claude tmux delegation for #221 ended with `Error: Reached max turns (12)` and did not produce a usable feasibility report.
+- A read-only Codex tmux delegation for #237 generated a large transcript but no final report, remained active with a blank captured pane, and was stopped; no agent-produced conclusion was trusted from that run.
+- `git diff --check` passed on the manifest-only update.
 - `python3 -m py_compile server/test/test_stub_integration.py server/test/scripts/strip_gguf_to_tokenizer.py` passed.
 - `git lfs ls-files` shows `server/test/fixtures/qwen3.6-tokenizer.gguf` tracked as an LFS pointer (`8b420704f2`).
-- `cmake -S server -B server/build -DBUILD_TESTING=ON` and `cmake -S server -B server/build-sm89 -DBUILD_TESTING=ON -DCMAKE_CUDA_ARCHITECTURES=89` both failed before project compilation during CUDA compiler identification because local `/usr/bin/nvcc`/CMake selected unsupported `sm_52` (`ptxas fatal: Value 'sm_52' is not defined`). This is the known local CUDA toolchain blocker, not a source compile failure; the new replay HTTP binary and pytest cannot be built/run in this environment until CUDA configure is fixed or the Docker CUDA toolchain gate is used.
+- CUDA/CMake build status is unchanged from the prior refresh: local `/usr/bin/nvcc`/CMake fails during CUDA compiler identification with unsupported `sm_52` before project compilation, so the replay HTTP binary and pytest remain blocked in this environment until CUDA configure is fixed or the Docker CUDA toolchain gate is used.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -83,25 +83,25 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained worktrees/logs for audit because probe worktrees contain conflicted indexes and safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260530-064908/stack`
-- `/tmp/luce-auto-cron-20260530-064908/pr-237-probe`
-- `/tmp/luce-auto-cron-20260530-064908/pr-221-probe`
-- `/tmp/luce-auto-cron-20260530-064908/pr-154-probe`
-- `/tmp/luce-auto-cron-20260530-064908/pr-153-probe`
-- `/tmp/luce-auto-cron-20260530-064908/pr-137-probe`
-- `/tmp/luce-auto-cron-20260530-064908/pr-135-probe`
-- `/tmp/luce-auto-cron-20260530-064908/pr-94-probe`
-- `/tmp/luce-auto-cron-20260530-064908/pr-48-probe`
-- `/tmp/luce-auto-cron-20260530-064908/pr-237-merge.log`
-- `/tmp/luce-auto-cron-20260530-064908/pr-221-merge.log`
-- `/tmp/luce-auto-cron-20260530-064908/pr-154-merge.log`
-- `/tmp/luce-auto-cron-20260530-064908/pr-153-merge.log`
-- `/tmp/luce-auto-cron-20260530-064908/pr-137-merge.log`
-- `/tmp/luce-auto-cron-20260530-064908/pr-135-merge.log`
-- `/tmp/luce-auto-cron-20260530-064908/pr-94-merge.log`
-- `/tmp/luce-auto-cron-20260530-064908/pr-48-merge.log`
-- `/tmp/luce-auto-cron-20260530-064908/pr-237-claude-report.txt` (Claude max-turn limit, no usable report)
-- `/tmp/luce-auto-cron-20260530-064908/pr-135-codex-report.txt`
+- `/tmp/luce-auto-cron-20260530-070743/stack`
+- `/tmp/luce-auto-cron-20260530-070743/pr-237-probe`
+- `/tmp/luce-auto-cron-20260530-070743/pr-221-probe`
+- `/tmp/luce-auto-cron-20260530-070743/pr-154-probe`
+- `/tmp/luce-auto-cron-20260530-070743/pr-153-probe`
+- `/tmp/luce-auto-cron-20260530-070743/pr-137-probe`
+- `/tmp/luce-auto-cron-20260530-070743/pr-135-probe`
+- `/tmp/luce-auto-cron-20260530-070743/pr-94-probe`
+- `/tmp/luce-auto-cron-20260530-070743/pr-48-probe`
+- `/tmp/luce-auto-cron-20260530-070743/pr-237-merge.log`
+- `/tmp/luce-auto-cron-20260530-070743/pr-221-merge.log`
+- `/tmp/luce-auto-cron-20260530-070743/pr-154-merge.log`
+- `/tmp/luce-auto-cron-20260530-070743/pr-153-merge.log`
+- `/tmp/luce-auto-cron-20260530-070743/pr-137-merge.log`
+- `/tmp/luce-auto-cron-20260530-070743/pr-135-merge.log`
+- `/tmp/luce-auto-cron-20260530-070743/pr-94-merge.log`
+- `/tmp/luce-auto-cron-20260530-070743/pr-48-merge.log`
+- `/tmp/luce-auto-cron-20260530-070743/pr-221-claude-report.txt` (Claude max-turn limit, no usable report)
+- `/tmp/luce-auto-cron-20260530-070743/pr-237-codex-report.txt` (Codex transcript only, no final report; tmux session stopped)
 
 ## Notes
 
