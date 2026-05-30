@@ -11,11 +11,48 @@
 #include "ggml-backend.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
 #include <cstdio>
+#include <inttypes.h>
 #include <string>
 #include <vector>
 
 namespace dflash::common {
+
+namespace {
+
+static constexpr size_t kDraftIpcDefaultSharedBytes = 512ull * 1024ull * 1024ull;
+
+BackendIpcPayloadTransport draft_ipc_transport_from_env() {
+    const char * raw = std::getenv("DFLASH_DRAFT_IPC_TRANSPORT");
+    if (!raw || !*raw) {
+        return BackendIpcPayloadTransport::Stream;
+    }
+    BackendIpcPayloadTransport transport = BackendIpcPayloadTransport::Stream;
+    if (!parse_backend_ipc_payload_transport(raw, transport)) {
+        return BackendIpcPayloadTransport::Stream;
+    }
+    return transport == BackendIpcPayloadTransport::Auto
+        ? BackendIpcPayloadTransport::Stream
+        : transport;
+}
+
+size_t draft_ipc_shared_bytes_from_env() {
+    const char * raw = std::getenv("DFLASH_DRAFT_IPC_SHARED_BYTES");
+    if (!raw || !*raw) {
+        return kDraftIpcDefaultSharedBytes;
+    }
+    char * end = nullptr;
+    const unsigned long long parsed = std::strtoull(raw, &end, 10);
+    if (end == raw || *end != '\0') {
+        return kDraftIpcDefaultSharedBytes;
+    }
+    return static_cast<size_t>(parsed);
+}
+
+}  // namespace
 
 // ── DFlashDraftIpcClient ────────────────────────────────────────────
 
@@ -37,6 +74,8 @@ bool DFlashDraftIpcClient::start(
     launch.mode = BackendIpcMode::DFlashDraft;
     launch.payload_path = draft_path;
     launch.work_dir = work_dir;
+    launch.payload_transport = draft_ipc_transport_from_env();
+    launch.shared_payload_bytes = draft_ipc_shared_bytes_from_env();
     launch.args.push_back("--ring-cap=" + std::to_string(ring_cap));
     launch.args.push_back("--draft-gpu=" + std::to_string(std::max(0, draft_gpu)));
     if (!process_.start(launch)) {
@@ -69,8 +108,24 @@ bool DFlashDraftIpcClient::send_feature_slice(
     }
     const size_t expected = (size_t)n_tokens * hidden_size_;
     if (slice.size() != expected) return false;
+    const size_t bytes = slice.size() * sizeof(float);
+    if (process_.resolved_payload_transport() == BackendIpcPayloadTransport::Shared) {
+        uint64_t seq = 0;
+        if (process_.write_shared_payload(slice.data(), bytes, seq)) {
+            std::fprintf(cmd, "feature_slice_shared %d %d %d %zu %" PRIu64 "\n",
+                         capture_idx, start_pos, n_tokens, bytes, seq);
+            std::fflush(cmd);
+            int32_t status = -1;
+            const bool ok =
+                read_exact_fd(stream_fd, &status, sizeof(status)) && status == 0;
+            if (!ok) {
+                std::fprintf(stderr, "draft-ipc feature_slice_shared failed status=%d\n",
+                             status);
+            }
+            return ok;
+        }
+    }
     if (payload_fd >= 0) {
-        const size_t bytes = slice.size() * sizeof(float);
         std::fprintf(cmd, "feature_slice_pipe %d %d %d %zu\n",
                      capture_idx, start_pos, n_tokens, bytes);
         std::fflush(cmd);
@@ -122,8 +177,27 @@ bool DFlashDraftIpcClient::propose(
     const size_t noise_expected =
         (size_t)hidden_size_ * block_size_;
     if (noise_embed.size() != noise_expected) return false;
+    const size_t bytes = noise_embed.size() * sizeof(float);
+    if (process_.resolved_payload_transport() == BackendIpcPayloadTransport::Shared) {
+        uint64_t seq = 0;
+        if (process_.write_shared_payload(noise_embed.data(), bytes, seq)) {
+            std::fprintf(cmd, "propose_shared %d %d %zu %" PRIu64 "\n",
+                         committed, ctx_len, bytes, seq);
+            std::fflush(cmd);
+            int32_t status = -1;
+            bool ok = read_exact_fd(stream_fd, &status, sizeof(status)) && status == 0;
+            if (ok) {
+                hidden_out.assign(noise_expected, 0.0f);
+                ok = read_exact_fd(stream_fd, hidden_out.data(),
+                                   hidden_out.size() * sizeof(float));
+            }
+            if (!ok) {
+                std::fprintf(stderr, "draft-ipc propose_shared failed status=%d\n", status);
+            }
+            return ok;
+        }
+    }
     if (payload_fd >= 0) {
-        const size_t bytes = noise_embed.size() * sizeof(float);
         std::fprintf(cmd, "propose_pipe %d %d %zu\n", committed, ctx_len, bytes);
         std::fflush(cmd);
         if (!write_exact_fd(payload_fd, noise_embed.data(), bytes)) {
