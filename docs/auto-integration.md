@@ -17,7 +17,7 @@ New in this refresh: non-draft PR #312 was integrated after a single-file manual
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
-| #312 | `feat-backend-ipc-payload-transport` | `d218ffa9` | included this run | Selectable backend IPC payload transport is carried. Conflict resolution kept `feature_slice_shared`/`propose_shared` alongside existing `get_feature_range`/`set_feature_range` chunked snapshot commands. |
+| #312 | `feat-backend-ipc-payload-transport` | `4777e869` | included this run | Selectable backend IPC payload transport is carried. Initial integration used head `d218ffa9`; after the first push the PR was force-updated to `4777e869`, so the refreshed head was fetched and merged with the same daemon conflict policy. Conflict resolution kept `feature_slice_shared`/`propose_shared` alongside existing `get_feature_range`/`set_feature_range` chunked snapshot commands. |
 | #311 | `fix/prefix-cache-recurrent-state` | `c470446a` | included | Prefix-cache/spec-decode fix is carried: full-attention defaults for Qwen3.6 paths, draft feature-mirror resync after snapshot restore, and chunk-aligned prefix snapshots. |
 | #310 | `feat-backend-activation-precision-policy-after-306` | `bf9f4b57` | included | Backend activation precision policy / graph tensor precision helpers are carried. |
 | #309 | `experiment-dflash-feature-dtype` | `ea6ac481` | included | Feature mirror dtype policy is carried. |
@@ -51,10 +51,10 @@ This run performed:
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and found 31 open PRs total: 24 non-draft and 7 draft/excluded.
 - Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
-- Containment checks now confirm #312, #311, #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are ancestors of the current integration stack; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below.
+- Containment checks now confirm #312 (`4777e869`), #311, #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are ancestors of the current integration stack; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below.
 - `origin/main` remains included in `auto-integration`; merging `origin/main` in the reconciliation worktree reported `Already up to date.`
 - Fresh probe worktrees attempted direct merges for the remaining non-integrated non-draft PRs. All eight still conflict in old-layout or dependent MTP/scheduler areas; logs are retained under `/tmp/luce-auto-cron-20260530-024456/probes/pr-*-merge.log`, status snapshots under `/tmp/luce-auto-cron-20260530-024456/probes/pr-*-status.txt`, and conflict-file lists under `/tmp/luce-auto-cron-20260530-024456/probes/pr-*-conflicts.txt`.
-- Fresh direct-merge probe for #312 showed one conflict in `server/src/common/dflash_draft_ipc_daemon.cpp`; the stack merge was resolved manually and committed.
+- Fresh direct-merge probe for #312 showed one conflict in `server/src/common/dflash_draft_ipc_daemon.cpp`; the stack merge was resolved manually and committed. After the first push, #312 was force-updated from `d218ffa9` to `4777e869`; the updated ref was fetched with an explicit forced ref update, merged, and resolved in the same file without duplicating the shared-slice command handler.
 - Fresh direct-merge probe for #285 merged cleanly; the stack merge was committed.
 - Fresh delegation: Claude tmux session `luce-claude-312-024456` reached `Error: Reached max turns (5)` without a useful report. Codex tmux session `luce-codex-312-024456` produced `/tmp/luce-auto-cron-20260530-024456/probes/codex-pr312-review-report.txt`, finding no blocker in the #312 resolution and noting only a combined runtime coverage gap.
 - `git diff --check` passed in the reconciliation worktree.
