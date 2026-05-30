@@ -4,19 +4,20 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T12:04:06-04:00`
+Last refresh: `2026-05-30T12:06:23-04:00`
 Current base: `origin/main` `c95dfcab`
 Previous integration tip: `easel/auto-integration` `9ceee939`
-Latest product-code integration tip before this manifest refresh: `df0df5fe`
+Latest product-code integration tip before this manifest refresh: `8fc6a081`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed the current stack already matches `easel/auto-integration` and contains `origin/main`, fetched all open non-draft PR refs, and rechecked exact PR-head containment against the refreshed stack.
 
-No product-code stack changes were made this run. The open non-draft exact-head set remains fully represented except for the same conflicted selective-port/superseded candidates listed below. All exact-head included PRs remain ancestors of the stack. The non-integrated PRs were freshly probed again in isolated worktrees from the current stack. Direct merge probes reconfirmed #94/#48/#137 as superseded or retarget-only, #221 as dependent on #237, #153/#154/#237 as MTP salvage candidates, and #135 as a separate scheduler salvage candidate. Claude read-only delegation for #305/#237 again hit its turn limit without producing usable reports; tmux-driven Codex read-only reviews completed and reconfirmed #305 as a selective Laguna/common-MoE hybrid salvage candidate and #237 as a selective current-layout MTP foundation port rather than whole-PR merges.
+No product-code stack changes were made from the initially fetched set; after the first push, a new non-draft PR #313 appeared. This run fetched #313, merged it cleanly on top of the just-pushed stack, verified whitespace with `git diff --check`, and prepared a second docs/push update. The open non-draft exact-head set remains fully represented except for the same conflicted selective-port/superseded candidates listed below. All exact-head included PRs remain ancestors of the stack. The non-integrated PRs were freshly probed again in isolated worktrees from the current stack. Direct merge probes reconfirmed #94/#48/#137 as superseded or retarget-only, #221 as dependent on #237, #153/#154/#237 as MTP salvage candidates, and #135 as a separate scheduler salvage candidate. Claude read-only delegation for #305/#237 again hit its turn limit without producing usable reports; tmux-driven Codex read-only reviews completed and reconfirmed #305 as a selective Laguna/common-MoE hybrid salvage candidate and #237 as a selective current-layout MTP foundation port rather than whole-PR merges.
 
 ## Included in the current non-draft stack
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
+| #313 | `fix/server-agentic-thinking-default` | `1d85ee7f` | included | Agentic tool-call turns now default thinking on when `tools` are present, while explicit thinking/reasoning overrides still win. |
 | #311 | `fix/prefix-cache-recurrent-state` | upstream `d0bdef72` merge | included through upstream | Prefix-cache/spec-decode fix is in `origin/main` and therefore carried by the stack base. |
 | #310 | `feat-backend-activation-precision-policy-after-306` | `bf9f4b57` | included | Backend activation precision policy / graph tensor precision helpers are carried exactly. |
 | #309 | `experiment-dflash-feature-dtype` | `ea6ac481` | included | Feature mirror dtype policy is carried exactly. |
@@ -45,20 +46,21 @@ No product-code stack changes were made this run. The open non-draft exact-head 
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T11:56:33-04:00` during preflight and `2026-05-30T12:04:06-04:00` for manifest refresh metadata.
+- `date -Is` -> `2026-05-30T11:56:33-04:00` during preflight and `2026-05-30T12:06:23-04:00` for manifest refresh metadata.
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless `codex --help` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
-- Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and found 23 open non-draft PRs plus 7 draft/excluded PRs.
-- Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
-- Containment checks against the refreshed stack confirmed #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are exact ancestors; #305, #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below. #311 and #307 remain included through `origin/main`.
+- Initial open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and found 23 open non-draft PRs plus 7 draft/excluded PRs. Post-push re-enumeration found one new non-draft PR, #313.
+- Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`; #313 was fetched after the post-push re-enumeration.
+- Containment checks against the refreshed stack confirmed #313, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are exact ancestors; #305, #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below. #311 and #307 remain included through `origin/main`.
 - Worktree reconciliation at `/tmp/luce-auto-cron-20260530-115714` started from `easel/auto-integration` `9ceee939`; `origin/main` `c95dfcab` was already contained, so the base merge was already up to date.
 - Fresh direct-merge probes were run for #305, #237, #221, #154, #153, #137, #135, #94, and #48 from the current stack. Conflict paths are summarized below and detailed in `/tmp/luce-merge-20260530-115714-*.log` and `/tmp/luce-status-20260530-115714-*.txt`.
+- After the first push, #313 merged cleanly into the same stack worktree (`/tmp/luce-merge-20260530-115714-313.log`) with a 15-line update to `server/src/server/http_server.cpp`.
 - Claude tmux read-only review attempts for #305 and #237 reached `--max-turns 10` without useful reports (`/tmp/luce-claude-20260530-115714-pr-305.txt`, `/tmp/luce-claude-20260530-115714-pr-237.txt`), so their conclusions were not used as evidence.
 - Codex tmux read-only review for #305 completed a useful feasibility report at `/tmp/luce-codex-20260530-115714-pr-305.txt`, confirming whole-PR merge is not appropriate; the absent value is mainly the last 10 commits: Laguna hybrid MoE/dynamic placement/prefill and selected Qwen35MoE performance refinements, while the first 21 commits are already patch-equivalent in the current stack.
 - Codex tmux read-only review for #237 completed a useful feasibility report at `/tmp/luce-codex-20260530-115714-pr-237.txt`, confirming native MTP value is absent and should be selectively ported into current `server/` paths while preserving remote-draft, pFlash, budget hooks, layer-split, native server, and Qwen35MoE changes.
-- `git diff --check` passed in the stack worktree before this docs commit.
-- No product-code tests were rerun because no product-code files changed; CUDA/CMake build status is unchanged from prior refreshes: local `/usr/bin/nvcc`/CMake fails during CUDA compiler identification with unsupported `sm_52` before project compilation, so the replay HTTP binary and pytest remain blocked in this environment until CUDA configure is fixed or the Docker CUDA toolchain gate is used.
+- `git diff --check` passed in the stack worktree before the first docs commit and again after the #313 merge.
+- No product-code tests were rerun beyond whitespace validation because #313 is a focused default-policy change and the local CUDA/CMake build status is unchanged from prior refreshes: local `/usr/bin/nvcc`/CMake fails during CUDA compiler identification with unsupported `sm_52` before project compilation, so the replay HTTP binary and pytest remain blocked in this environment until CUDA configure is fixed or the Docker CUDA toolchain gate is used.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -101,6 +103,7 @@ This run retained worktrees/logs for audit because probe worktrees contain confl
 - `/tmp/luce-merge-20260530-115714-135.log`
 - `/tmp/luce-merge-20260530-115714-94.log`
 - `/tmp/luce-merge-20260530-115714-48.log`
+- `/tmp/luce-merge-20260530-115714-313.log`
 - External-agent logs: `/tmp/luce-claude-20260530-115714-pr-305.txt`, `/tmp/luce-claude-20260530-115714-pr-237.txt`, `/tmp/luce-codex-20260530-115714-pr-305.txt`, `/tmp/luce-codex-20260530-115714-pr-237.txt`.
 
 ## Notes
