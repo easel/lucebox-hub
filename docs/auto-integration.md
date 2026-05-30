@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-30T06:34:32-04:00
+Last refresh: `2026-05-30T06:50:06-04:00`
 Current base: `origin/main` `c95dfcab`
 Previous integration tip: `easel/auto-integration` `02ebd2c5`
 Latest integration tip before this refresh: `02ebd2c5`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, checked the current `easel/auto-integration` tip in `/tmp/luce-auto-cron-20260530-063405/stack`, confirmed it is already up to date with `origin/main`, and rechecked all open non-draft PR heads by exact containment.
+This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, checked the current `easel/auto-integration` tip in `/tmp/luce-auto-cron-20260530-063405/stack`, confirmed it is already up to date with `origin/main`, and rechecked all open non-draft PR heads by exact containment. The open non-draft set is unchanged from the prior refresh; no new includable PRs landed during this pass.
 
-New in this refresh: PR #308 (`fix/qwen-think-channel`) changed from draft/excluded to non-draft, was not an ancestor of the prior integration tip, and merged cleanly on top of the existing stack. The integration branch now carries #308 exactly at `9d4defe1`, adding the CPU-only replay HTTP server, tokenizer-only GGUF fixture, scenario store, and Qwen3.6/Laguna reasoning-channel regression tests. Fresh direct-merge probes for the older non-contained PRs still show the same old-layout MTP/scheduler conflict classes; no new external-agent delegation was needed because the remaining conflict set is unchanged and already has prior manual/delegated salvage notes.
+The stack remains unchanged from the prior refresh: PR #308 (`fix/qwen-think-channel`) continues to be carried exactly at `9d4defe1`, adding the CPU-only replay HTTP server, tokenizer-only GGUF fixture, scenario store, and Qwen3.6/Laguna reasoning-channel regression tests. Fresh direct-merge probes for the older non-contained PRs still show the same old-layout MTP/scheduler conflict classes; no new external-agent delegation was needed because the remaining conflict set is unchanged and already has prior manual/delegated salvage notes.
 
 ## Included in the current non-draft stack
 
@@ -45,11 +45,12 @@ New in this refresh: PR #308 (`fix/qwen-think-channel`) changed from draft/exclu
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T06:33:23-04:00` during preflight and `2026-05-30T06:34:32-04:00` for manifest refresh metadata.
+- `date -Is` -> `2026-05-30T06:50:06-04:00` during preflight and `2026-05-30T06:50:06-04:00` for manifest refresh metadata.
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless `codex --help` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and found 22 open non-draft PRs plus 8 draft/excluded PRs.
+- This current pass rechecked the same inventory and found no new non-draft PRs beyond the existing stack; the branch remained up to date with `origin/main`.
 - Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
 - Containment checks against the refreshed stack confirmed #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are exact ancestors; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below. #311 and #307 remain included through `origin/main`.
 - Reconciliation worktree `/tmp/luce-auto-cron-20260530-063405/stack` was created from `easel/auto-integration`; `git merge --no-edit origin/main` reported `Already up to date`; `git merge --no-edit origin/pr/308` completed cleanly with merge commit `bcd66a63` before this manifest commit.
