@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T13:07:15-04:00`
+Last refresh: `2026-05-30T13:21:39-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `421dca5b`
+Previous integration tip: `easel/auto-integration` `375d6606`
 Latest product-code integration tip before this manifest refresh: `8fc6a081`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed the current stack already matches `easel/auto-integration` and contains `origin/main`, fetched current PR heads, and rechecked exact PR-head containment against the refreshed stack.
 
-No product-code stack changes were available in this run. The open non-draft set still contains 23 PRs (#310, #309, #308, #306, #305, #297, #295, #294, #289, #285, #276, #274, #266, #237, #221, #154, #153, #152, #142, #137, #135, #94, #48), and exact PR-head containment remains unchanged. Exact-head included PRs remain ancestors of the stack. The non-integrated PRs were probed again in isolated worktrees from the current stack. Direct merge probes reconfirmed #94/#48/#137 as superseded or retarget-only, #221 as dependent on #237, #153/#154/#237 as MTP salvage candidates, #305 as a Laguna/common-MoE hybrid salvage candidate, and #135 as a separate scheduler salvage candidate. Claude read-only delegated reviews for #305/#237 reached the configured turn limit without a usable report; Codex read-only delegated reviews produced long inspection transcripts but did not reach a concise final conclusion before they were stopped, so manual conflict inspection and prior Codex conclusions remain the basis for classification.
+No product-code stack changes were available in this run. The open non-draft set still contains 23 PRs (#310, #309, #308, #306, #305, #297, #295, #294, #289, #285, #276, #274, #266, #237, #221, #154, #153, #152, #142, #137, #135, #94, #48), and exact PR-head containment remains unchanged. Exact-head included PRs remain ancestors of the stack. The non-integrated PRs were probed again in isolated worktrees from the current stack. Direct merge probes reconfirmed #94/#48/#137 as superseded or retarget-only, #221 as dependent on #237, #153/#154/#237 as MTP salvage candidates, #305 as a Laguna/common-MoE hybrid salvage candidate, and #135 as a separate scheduler salvage candidate. Claude read-only delegated review for #305 reached the configured turn limit without a usable report. A Codex tmux read-only review for #237 completed and independently reconfirmed that native MTP foundation value is not superseded but should be selective-ported into the current `server/` layout rather than direct-merged.
 
 ## Included in the current non-draft stack
 
@@ -38,13 +38,15 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T13:02:37-04:00` during preflight and `2026-05-30T13:07:15-04:00` for this manifest refresh.
+- `date -Is` -> `2026-05-30T13:20:28-04:00` during preflight and `2026-05-30T13:21:39-04:00` for this manifest refresh.
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version` (`codex-cli 0.130.0`).
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Current open PR enumeration reported 23 non-draft PRs and 7 draft/excluded PRs.
 - Explicit fetch of each open non-draft PR head succeeded. Exact-head containment against the refreshed `auto-integration` tip confirmed #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 as ancestors; #305, #237, #221, #154, #153, #137, #135, #94, and #48 remain non-ancestors and stay in the blocked/salvage buckets below.
-- Probe worktrees were created from the current stack and direct-merge attempts were run for all non-integrated PRs; conflict file lists are recorded under `/tmp/luce-auto-cron-20260530-130319-logs/`.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-132139`; merging `origin/main` reported `Already up to date`.
+- Probe worktrees were created from the current stack and direct-merge attempts were run for all non-integrated PRs; conflict file lists are recorded under `/tmp/luce-auto-cron-20260530-132139-logs/`.
+- Delegation: Claude tmux read-only review for #305 exited with `Error: Reached max turns (6)` and no usable report. Codex tmux read-only review for #237 completed with a usable selective-port recommendation; it also hit a Git LFS clean-filter message while inspecting, but reported no files changed.
 - `git diff --check -- docs/auto-integration.md` passed for this manifest-only change.
 - No product-code tests or builds were rerun because no product-code changes were made; the local CUDA/CMake blocker from prior runs remains unchanged and still prevents full replay HTTP / pytest validation in this environment.
 
@@ -70,17 +72,17 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained worktrees/logs for audit because probe worktrees contain conflicted indexes and safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260530-130319`
-- `/tmp/luce-probe-20260530-130319-pr-305`
-- `/tmp/luce-probe-20260530-130319-pr-237`
-- `/tmp/luce-probe-20260530-130319-pr-221`
-- `/tmp/luce-probe-20260530-130319-pr-154`
-- `/tmp/luce-probe-20260530-130319-pr-153`
-- `/tmp/luce-probe-20260530-130319-pr-137`
-- `/tmp/luce-probe-20260530-130319-pr-135`
-- `/tmp/luce-probe-20260530-130319-pr-94`
-- `/tmp/luce-probe-20260530-130319-pr-48`
-- Logs under `/tmp/luce-auto-cron-20260530-130319-logs/`, including `merge-*.log`, `status-*.txt`, `conflicts-*.txt`, `claude-pr*.txt`, and `codex-pr*.txt`.
+- `/tmp/luce-auto-cron-20260530-132139`
+- `/tmp/luce-probe-20260530-132139-pr-305`
+- `/tmp/luce-probe-20260530-132139-pr-237`
+- `/tmp/luce-probe-20260530-132139-pr-221`
+- `/tmp/luce-probe-20260530-132139-pr-154`
+- `/tmp/luce-probe-20260530-132139-pr-153`
+- `/tmp/luce-probe-20260530-132139-pr-137`
+- `/tmp/luce-probe-20260530-132139-pr-135`
+- `/tmp/luce-probe-20260530-132139-pr-94`
+- `/tmp/luce-probe-20260530-132139-pr-48`
+- Logs under `/tmp/luce-auto-cron-20260530-132139-logs/`, including `merge-*.log`, `status-*.txt`, `conflicts-*.txt`, `claude-pr305.txt`, and `codex-pr237.txt`.
 
 ## Notes
 
