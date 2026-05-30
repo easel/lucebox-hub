@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T15:37:07-04:00`
+Last refresh: `2026-05-30T15:38:58-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `d1685012`
-Current integration tip before push: `d1685012`
+Previous integration tip: `easel/auto-integration` `7e0e77f5`
+Current integration tip before push: `afa0afb6`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
-This run found no new cleanly integrable contributor PR heads. `origin/main` is still an ancestor of `easel/auto-integration`, all previously included non-draft PR heads remain exact ancestors of the stack, and direct probe merges for the remaining non-integrated PRs still conflict in the same broad conflict classes described below. No product code changed in this refresh.
+After the first docs refresh was pushed, a final re-enumeration found that non-draft #285 had advanced to `6ea9694a`. A second worktree integrated that updated #285 head cleanly on top of `easel/auto-integration`, preserving `origin/main` as an ancestor. The remaining non-integrated PRs still require manual/supervised ports as described below.
 
 ## Included in the current non-draft stack
 
@@ -26,7 +26,7 @@ This run found no new cleanly integrable contributor PR heads. `origin/main` is 
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support is carried exactly. |
 | #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, and unit coverage are carried exactly. |
 | #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
-| #285 | `feat/lucebox-docker` | `148fba03` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, and long-context grader coverage are carried exactly. |
+| #285 | `feat/lucebox-docker` | `6ea9694a` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, and the latest Bragi GPU-power-throttle experiment notes are carried exactly. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
 | #274 | `feat/pflash-drafter-ee7` | `8c1f37db` | included | Adaptive pFlash composition and effective-size admission/keep-ratio guard update are carried exactly. |
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried exactly. |
@@ -39,16 +39,17 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T15:30:49-04:00` during preflight and `2026-05-30T15:37:07-04:00` for this manifest refresh.
+- `date -Is` -> `2026-05-30T15:30:49-04:00` during preflight and `2026-05-30T15:38:58-04:00` for the final manifest refresh.
 - Primary checkout preflight: `git status --short --branch` was clean on `auto-integration` tracking `easel/auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version`.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Current open PR enumeration reported 24 non-draft PRs and 7 draft/excluded PRs.
-- Explicit fetch of each open non-draft PR head succeeded. Exact-head containment showed #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are ancestors of `easel/auto-integration`; #305, #237, #221, #154, #153, #137, #135, #94, and #48 remain non-ancestors.
+- Explicit fetch of each open non-draft PR head succeeded. Initial exact-head containment showed #314, #310, #309, #308, #306, #297, #295, #294, #289, #285 at old head `148fba03`, #276, #274, #266, #152, and #142 were ancestors of the stack; #305, #237, #221, #154, #153, #137, #135, #94, and #48 remained non-ancestors.
 - A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-153049`; `origin/main` was already an ancestor of the stack and `git merge --no-edit origin/main` reported `Already up to date.`
 - Probe worktrees were created from the current stack and direct-merge attempts were rerun for all still-non-integrated PRs; conflict file lists are recorded under `/tmp/luce-auto-cron-20260530-153049-logs/`.
 - Delegated #305 assessment: Claude Code was run through tmux with a read-only prompt but hit `Error: Reached max turns (12)` without producing a report. Codex was then run through tmux and produced `/tmp/luce-auto-cron-20260530-153049-logs/codex-pr305-report.txt`, concluding that #305 is a human-scale refactor rather than a safe unattended selective port.
-- Verification for this docs-only refresh: `git diff --check HEAD -- docs/auto-integration.md`, `git diff --check HEAD^..HEAD`, and a conflict-marker scan of the refreshed manifest. No product build was run because no product code changed in this pass; previous runs found the local CUDA/CMake environment selects unsupported `sm_52` during CUDA compiler detection and lacks populated `server/deps/llama.cpp` submodule headers in the worktree.
+- The first docs refresh was pushed as `7e0e77f5`; a post-push PR re-enumeration then showed #285 had advanced to `6ea9694a` and was no longer an ancestor. A second worktree at `/tmp/luce-auto-cron-20260530-154010` merged `origin/pr/285` cleanly with no conflicts, producing merge commit `afa0afb6` before this manifest commit.
+- Verification for the #285 update and docs refresh: `git diff --check HEAD -- docs/auto-integration.md`, `git diff --check HEAD^..HEAD`, conflict-marker scans for the refreshed manifest, and `git diff --check` on the #285 merge delta. No product build was run because #285's new delta only adds experiment-note lines; previous runs found the local CUDA/CMake environment selects unsupported `sm_52` during CUDA compiler detection and lacks populated `server/deps/llama.cpp` submodule headers in the worktree.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -82,7 +83,9 @@ This run retained worktrees/logs for audit because probe worktrees contain confl
 - `/tmp/luce-probe-20260530-153049-pr-135`
 - `/tmp/luce-probe-20260530-153049-pr-94`
 - `/tmp/luce-probe-20260530-153049-pr-48`
+- `/tmp/luce-auto-cron-20260530-154010`
 - Logs under `/tmp/luce-auto-cron-20260530-153049-logs/`, including `merge-*.log`, `status-*.txt`, `conflicts-*.txt`, `claude-pr305-report.txt`, and `codex-pr305-report.txt`.
+- Logs under `/tmp/luce-auto-cron-20260530-154010-logs/`, including the clean #285 merge record.
 
 ## Notes
 
