@@ -4,12 +4,12 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-30T03:16:00-04:00
+Last refresh: 2026-05-30T03:30:16-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `19480d25`
+Current integration tip before this refresh: `easel/auto-integration` `606db587`
 Manifest refresh prepared in this run: this commit
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed `origin/main` was already included, then reconciled in `/tmp/luce-auto-cron-20260530-031057/stack`.
+This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed `origin/main` was already included, then reconciled in `/tmp/luce-auto-cron-20260530-033059/stack`.
 
 New in this refresh: no source PR head needed to be added to the stack. PR #312, which was integrated in the prior run, is now draft and is reclassified as draft/excluded while remaining present in stack history for dependency awareness. Fresh worktree probes were rerun for all eight non-draft PRs that are not ancestors of the stack, and a tmux-driven Codex salvage review was rerun for #237. The result remains: direct merge is blocked for old-layout/dependent MTP and scheduler PRs; #237 is feasible only as a current-layout selective port.
 
@@ -44,7 +44,7 @@ New in this refresh: no source PR head needed to be added to the stack. PR #312,
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T03:10:57-04:00` during preflight.
+- `date -Is` -> `2026-05-30T03:30:16-04:00` during preflight.
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and harmless `codex --version` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
@@ -52,10 +52,10 @@ This run performed:
 - Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
 - Containment checks confirmed #311, #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are ancestors of the current integration stack; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below. PR #312 is also an ancestor but is now draft/excluded.
 - `origin/main` remains included in `auto-integration`; merging `origin/main` in the reconciliation worktree reported `Already up to date.`
-- Fresh probe worktrees attempted direct merges for the remaining non-integrated non-draft PRs. All eight still conflict in old-layout or dependent MTP/scheduler areas; logs are retained under `/tmp/luce-auto-cron-20260530-031057/probes/pr-*-merge.log`, status snapshots under `/tmp/luce-auto-cron-20260530-031057/probes/pr-*-status.txt`, and conflict-file lists under `/tmp/luce-auto-cron-20260530-031057/probes/pr-*-conflicts.txt`.
-- Fresh tmux-driven Codex delegation for #237 (`luce-codex-237-20260530-031057`) completed and wrote `/tmp/luce-auto-cron-20260530-031057/probes/codex-pr237-salvage-report.txt`. It recommends keeping #237 blocked for direct merge and salvaging it as a new current-layout integration task, starting with a narrow Qwen35 MTP foundation that is off by default plus focused orchestrator/Qwen35 smoke coverage.
+- Fresh probe worktrees attempted direct merges for the remaining non-integrated non-draft PRs. All eight still conflict in old-layout or dependent MTP/scheduler areas; logs are retained under `/tmp/luce-auto-cron-20260530-033059/probes/pr-*-merge.log`, status snapshots under `/tmp/luce-auto-cron-20260530-033059/probes/pr-*-status.txt`, and conflict-file lists under `/tmp/luce-auto-cron-20260530-033059/probes/pr-*-conflicts.txt`.
+- Fresh tmux-driven Codex delegation for #237 (`luce-codex-237-20260530033126`) completed and wrote `/tmp/luce-auto-cron-20260530-033059/probes/codex-pr237-salvage-report.txt`. It recommends keeping #237 blocked for direct merge and salvaging it as a new current-layout integration task, starting with a narrow Qwen35 MTP foundation that is off by default plus focused orchestrator/Qwen35 smoke coverage.
 - `git diff --check` passed in the reconciliation worktree.
-- Targeted Python validation passed: `uv run --python 3.12 --with pytest pytest lucebox/tests luce-bench/tests -q` -> `362 passed in 28.60s`.
+- Targeted Python validation passed: `uv run --python 3.12 --with pytest pytest lucebox/tests luce-bench/tests -q` -> `362 passed in 25.73s`.
 - CMake/CUDA configure was not rerun in this refresh because no source/build files changed; the previous run's local CUDA compiler-identification blocker remains the last C++ environment result (`ptxas fatal : Value 'sm_52' is not defined`).
 
 ## Pending / blocked-needs-human / selective-port candidates
@@ -79,20 +79,20 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained worktrees/logs for audit because probe worktrees contain conflicted indexes and safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260530-031057/stack`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-237-probe`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-221-probe`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-154-probe`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-153-probe`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-137-probe`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-135-probe`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-94-probe`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-48-probe`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-*-merge.log`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-*-status.txt`
-- `/tmp/luce-auto-cron-20260530-031057/probes/pr-*-conflicts.txt`
-- `/tmp/luce-auto-cron-20260530-031057/probes/codex-pr237-salvage-report.txt`
-- `/tmp/luce-auto-cron-20260530-031057/probes/codex-pr237-pane.txt`
+- `/tmp/luce-auto-cron-20260530-033059/stack`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-237-probe`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-221-probe`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-154-probe`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-153-probe`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-137-probe`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-135-probe`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-94-probe`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-48-probe`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-*-merge.log`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-*-status.txt`
+- `/tmp/luce-auto-cron-20260530-033059/probes/pr-*-conflicts.txt`
+- `/tmp/luce-auto-cron-20260530-033059/probes/codex-pr237-salvage-report.txt`
+- `/tmp/luce-auto-cron-20260530-033059/probes/codex-pr237-pane.txt`
 
 Useful prior probe/delegation artifacts remain for unresolved old-layout PRs:
 
