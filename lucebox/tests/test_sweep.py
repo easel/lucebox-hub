@@ -10,6 +10,7 @@ profile.run_profile) have their own tests.
 from __future__ import annotations
 
 import json
+import os
 import signal
 from pathlib import Path
 from unittest import mock
@@ -150,7 +151,7 @@ def test_pick_winner_breaks_ties_by_max_ctx_then_budget() -> None:
         mean_decode_tps=50.0,
         error=None,
     )
-    winner = sweep_mod._pick_winner([r1, r2, r3])
+    winner = sweep_mod._pick_winner([r1, r2, r3], "decode_tps_snapshot")
     # All tied tps. Lower max_ctx wins, then lower budget.
     assert winner is r2
 
@@ -163,7 +164,7 @@ def test_pick_winner_returns_none_when_all_failed() -> None:
         mean_decode_tps=None,
         error="server-not-ready",
     )
-    assert sweep_mod._pick_winner([r]) is None
+    assert sweep_mod._pick_winner([r], "decode_tps_snapshot") is None
 
 
 def test_pick_winner_picks_highest_tps() -> None:
@@ -178,7 +179,128 @@ def test_pick_winner_picks_highest_tps() -> None:
         index=2, config=DflashRuntime(budget=32), snapshot_dir=None,
         mean_decode_tps=30.0, error=None,
     )
-    assert sweep_mod._pick_winner([r1, r2, r3]) is r2
+    assert sweep_mod._pick_winner([r1, r2, r3], "decode_tps_snapshot") is r2
+
+
+def test_pick_winner_agent_replay_filters_failures_and_ranks_by_speed() -> None:
+    """coding-agent-loop ranking: only passing cells qualify; higher
+    speed_metric wins; among ties, larger max_ctx then larger
+    fa_window then lower budget."""
+    failed = sweep_mod.CellResult(
+        index=0,
+        config=DflashRuntime(max_ctx=131072, fa_window=2048, budget=22),
+        snapshot_dir=None,
+        mean_decode_tps=None,
+        error=None,
+        passed=False,
+        pass_reason="HTTP 500",
+        speed_metric=None,
+    )
+    slow = sweep_mod.CellResult(
+        index=1,
+        config=DflashRuntime(max_ctx=131072, fa_window=0, budget=22),
+        snapshot_dir=None,
+        mean_decode_tps=None,
+        error=None,
+        passed=True,
+        pass_reason="ok",
+        speed_metric=5.0,
+    )
+    fast = sweep_mod.CellResult(
+        index=2,
+        config=DflashRuntime(max_ctx=98304, fa_window=2048, budget=22),
+        snapshot_dir=None,
+        mean_decode_tps=None,
+        error=None,
+        passed=True,
+        pass_reason="ok",
+        speed_metric=25.0,
+    )
+    winner = sweep_mod._pick_winner([failed, slow, fast], "agent_replay_pass_rate")
+    assert winner is fast, "highest speed_metric should win among passing cells"
+
+
+def test_pick_winner_agent_replay_returns_none_when_all_failed() -> None:
+    failed = sweep_mod.CellResult(
+        index=0,
+        config=DflashRuntime(max_ctx=131072),
+        snapshot_dir=None,
+        mean_decode_tps=None,
+        error=None,
+        passed=False,
+        pass_reason="HTTP 500",
+        speed_metric=None,
+    )
+    assert sweep_mod._pick_winner([failed], "agent_replay_pass_rate") is None
+
+
+def test_pick_winner_agent_replay_tiebreak_prefers_larger_max_ctx() -> None:
+    """Tied speed → larger max_ctx wins (more headroom for the workload)."""
+    small_ctx = sweep_mod.CellResult(
+        index=0,
+        config=DflashRuntime(max_ctx=65536, fa_window=0, budget=22),
+        snapshot_dir=None,
+        mean_decode_tps=None,
+        error=None,
+        passed=True,
+        speed_metric=20.0,
+    )
+    big_ctx = sweep_mod.CellResult(
+        index=1,
+        config=DflashRuntime(max_ctx=131072, fa_window=0, budget=22),
+        snapshot_dir=None,
+        mean_decode_tps=None,
+        error=None,
+        passed=True,
+        speed_metric=20.0,
+    )
+    winner = sweep_mod._pick_winner([small_ctx, big_ctx], "agent_replay_pass_rate")
+    assert winner is big_ctx
+
+
+def test_fa_window_in_dflash_allowlist() -> None:
+    """fa_window must be in the sweep's write allowlist so the
+    bracket axis lands on disk per cell."""
+    assert "fa_window" in sweep_mod.DFLASH_ALLOWLIST
+
+
+def test_sweep_falls_back_to_persisted_host_when_env_empty(
+    stub_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: when LUCEBOX_HOST_* env vars are absent (e.g. sweep
+    invoked via `uv run` instead of the lucebox.sh wrapper), the sweep
+    must read host facts from config.toml's persisted [host] block —
+    otherwise every profile bracket falls through to base-only and the
+    sweep silently degrades to a 1-cell smoke test."""
+    # Persist a [host] section with real VRAM in the test's config.toml.
+    cfg_path = stub_env / "lucebox" / "config.toml"
+    cfg_text = cfg_path.read_text() if cfg_path.exists() else ""
+    cfg_path.write_text(
+        cfg_text
+        + "\n[host]\nvram_gb = 24\ngpu_vendor = \"nvidia\"\ngpu_count = 1\n"
+    )
+    # Ensure the LUCEBOX_HOST_* env vars are NOT set.
+    for k in list(os.environ):
+        if k.startswith("LUCEBOX_HOST_"):
+            monkeypatch.delenv(k, raising=False)
+
+    # Stub the heavyweight side-effects (subprocess, urllib, restart)
+    # so the test only exercises the host-facts resolution path.
+    monkeypatch.setattr(sweep_mod, "_systemctl_restart", lambda: 0)
+    monkeypatch.setattr(sweep_mod, "_wait_ready", lambda *a, **kw: True)
+    monkeypatch.setattr(
+        sweep_mod,
+        "_score_agent_replay",
+        lambda *a, **kw: (True, "ok", 20.0, "test-case", 1024),
+    )
+
+    rc = sweep_mod.run_sweep(yes=True, profile="coding-agent-loop")
+    assert rc == 0
+    # If the fallback works, the gemma 24 GB bracket emits >1 cell.
+    # Read the persisted config to confirm at least one non-base cell
+    # was applied (the winner-apply step writes dflash.max_ctx).
+    final = (stub_env / "lucebox" / "config.toml").read_text()
+    assert "max_ctx" in final, "sweep should have written a winning max_ctx"
 
 
 # ── pre-flight ─────────────────────────────────────────────────────────────
