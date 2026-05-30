@@ -4,7 +4,7 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T17:00:31-04:00`
+Last refresh: `2026-05-30T17:00:35-04:00`
 Current base: `origin/main` `c95dfcab`
 Previous integration tip: `easel/auto-integration` `9ea26c14`
 Current integration tip before push: `9ea26c14`
@@ -39,7 +39,7 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T16:56:41-04:00` during preflight and `2026-05-30T17:00:31-04:00` for the manifest refresh.
+- `date -Is` -> `2026-05-30T16:56:41-04:00` during preflight and `2026-05-30T17:00:35-04:00` for the manifest refresh.
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version`.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
