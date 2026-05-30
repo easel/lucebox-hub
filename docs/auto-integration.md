@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T12:37:12-04:00`
+Last refresh: `2026-05-30T12:55:03-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `327b2d47`
+Previous integration tip: `easel/auto-integration` `d6b88bd4`
 Latest product-code integration tip before this manifest refresh: `8fc6a081`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed the current stack already matches `easel/auto-integration` and contains `origin/main`, fetched all open non-draft PR refs, and rechecked exact PR-head containment against the refreshed stack.
+This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed the current stack already matches `easel/auto-integration` and contains `origin/main`, pruned stale remote-tracking PR refs, fetched the current open PR list, and rechecked exact PR-head containment against the refreshed stack.
 
-No product-code stack changes were available in this run. The open non-draft set still contains 23 PRs (#310, #309, #308, #306, #305, #297, #295, #294, #289, #285, #276, #274, #266, #237, #221, #154, #153, #152, #142, #137, #135, #94, #48), and exact PR-head containment is unchanged from the prior refresh. Exact-head included PRs remain ancestors of the stack. The non-integrated PRs were freshly probed again in isolated worktrees from the current stack. Direct merge probes reconfirmed #94/#48/#137 as superseded or retarget-only, #221 as dependent on #237, #153/#154/#237 as MTP salvage candidates, #305 as a Laguna/common-MoE hybrid salvage candidate, and #135 as a separate scheduler salvage candidate. Prior tmux-driven Codex read-only reviews for #305 and #237 remain applicable because their heads did not change; whole-PR merges are stale while selective current-layout ports remain feasible.
+No product-code stack changes were available in this run. The open non-draft set still contains 23 PRs (#310, #309, #308, #306, #305, #297, #295, #294, #289, #285, #276, #274, #266, #237, #221, #154, #153, #152, #142, #137, #135, #94, #48), and exact PR-head containment is unchanged from the prior refresh. Exact-head included PRs remain ancestors of the stack. The non-integrated PRs were freshly probed again in isolated worktrees from the current stack. Direct merge probes reconfirmed #94/#48/#137 as superseded or retarget-only, #221 as dependent on #237, #153/#154/#237 as MTP salvage candidates, #305 as a Laguna/common-MoE hybrid salvage candidate, and #135 as a separate scheduler salvage candidate. Prior tmux-driven Codex read-only reviews for #305 and #237 remain applicable because their heads did not change; whole-PR merges are stale while selective current-layout ports remain feasible. PR #313 is now closed and its local remote-tracking ref was pruned during refresh.
 
 ## Included in the current non-draft stack
 
@@ -46,18 +46,13 @@ No product-code stack changes were available in this run. The open non-draft set
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T12:37:12-04:00` during preflight and for manifest refresh metadata.
-- Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
-- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version`.
+- `date -Is` -> `2026-05-30T12:55:03-04:00` during the manifest refresh.
+- Primary checkout preflight: `git status --short --branch` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
+- Auth/tooling checks with real user credentials remained valid: `gh auth status`, `claude auth status --text`, and `codex --version`.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
-- Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and found 23 open non-draft PRs plus 7 draft/excluded PRs.
-- Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
-- Containment checks against the refreshed stack confirmed #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are exact ancestors; #305, #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below. #313 remains carried even though it is no longer open; #311 and #307 remain included through `origin/main`.
-- Worktree reconciliation at `/tmp/luce-auto-cron-20260530-123712` started from `easel/auto-integration` `327b2d47`; `origin/main` `c95dfcab` was already contained, so the base merge was already up to date.
-- Fresh direct-merge probes were run for #305, #237, #221, #154, #153, #137, #135, #94, and #48 from the current stack. Conflict paths are summarized below and detailed in `/tmp/luce-auto-cron-20260530-123712-logs/merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
-- No new external-agent delegation was run this cycle because all non-integrated PR heads were unchanged from the prior tmux-driven Codex reviews. The prior #305 review at `/tmp/luce-auto-cron-20260530-121923-logs/codex-pr-305.txt` and #237 review at `/tmp/luce-auto-cron-20260530-121923-logs/codex-pr-237.txt` remain the current delegated evidence.
-- `git diff --check` passed in the stack worktree for this docs-only refresh.
-- No product-code tests were rerun because no product-code changes were made. The local CUDA/CMake build status is unchanged from prior refreshes: local `/usr/bin/nvcc`/CMake fails during CUDA compiler identification with unsupported `sm_52` before project compilation, so replay HTTP binary and pytest remain blocked in this environment until CUDA configure is fixed or the Docker CUDA toolchain gate is used.
+- `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 100` still reported 23 open non-draft PRs and 7 draft/excluded PRs.
+- Exact-head containment against the refreshed `auto-integration` tip confirmed #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 as ancestors, while #305, #237, #221, #154, #153, #137, #135, #94, and #48 remain non-ancestors and stay in the blocked/salvage buckets below.
+- No product-code tests or builds were rerun because no product-code changes were made; the local CUDA/CMake blocker remains unchanged and still prevents full replay HTTP / pytest validation in this environment.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
