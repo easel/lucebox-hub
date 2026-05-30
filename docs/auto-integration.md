@@ -6,17 +6,18 @@ Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
 Last refresh: 2026-05-30T01:48:13-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `11c709ae`
-Manifest refresh and unresolved-PR probe update prepared in this run: this commit
+Current integration tip before this refresh: `easel/auto-integration` `11c709ae`; intermediate pushed manifest-only tip `d0817737`
+Manifest refresh and PR #311 integration prepared in this run: this commit
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed `origin/main` was already included, and performed fresh direct-merge probing in `/tmp/luce-auto-cron-20260530-014420/probes/pr-*-probe` worktrees.
+This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed `origin/main` was already included, and performed fresh direct-merge probing in `/tmp/luce-auto-cron-20260530-014420/probes/pr-*-probe` worktrees. After the first push, a new non-draft PR #311 appeared; this run fetched it, inspected the diff, cleanly merged it on top of the stack, re-verified, and is pushing the updated stack.
 
-No new non-draft contributor PR head required a code stack rewrite in this run. The current stack already contains the latest heads of #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142. Fresh direct-merge probes for the remaining old-layout PRs still conflict with the same old `dflash/` to current `server/` restructuring and dependent MTP/scheduler areas. A fresh tmux-driven Codex delegation re-reviewed #135 and wrote `/tmp/luce-auto-cron-20260530-014420/probes/codex-pr135-refresh-report.txt`; it confirmed #135 is not directly mergeable and that no small, safe, buildable scheduler slice is appropriate without a deliberate current-daemon/server design port.
+The current stack contains the latest heads of #311, #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142. Fresh direct-merge probes for the remaining old-layout PRs still conflict with the same old `dflash/` to current `server/` restructuring and dependent MTP/scheduler areas. A fresh tmux-driven Codex delegation re-reviewed #135 and wrote `/tmp/luce-auto-cron-20260530-014420/probes/codex-pr135-refresh-report.txt`; it confirmed #135 is not directly mergeable and that no small, safe, buildable scheduler slice is appropriate without a deliberate current-daemon/server design port.
 
 ## Included in the current stack
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
+| #311 | `fix/prefix-cache-recurrent-state` | `c470446a` | included | Prefix-cache/spec-decode fix is carried: full-attention defaults for Qwen3.6 paths, draft feature-mirror resync after snapshot restore, and chunk-aligned prefix snapshots. |
 | #310 | `feat-backend-activation-precision-policy-after-306` | `bf9f4b57` | included | Backend activation precision policy / graph tensor precision helpers are carried. |
 | #309 | `experiment-dflash-feature-dtype` | `ea6ac481` | included | Feature mirror dtype policy is carried. |
 | #307 | `docs/why-this-exists-copy` | `236fc2fd` | included | README “Why this exists” copy remains preserved. |
@@ -47,13 +48,14 @@ This run performed:
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and harmless `codex --version` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
-- Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and found 30 open PRs total: 22 non-draft and 8 draft/excluded.
+- Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and initially found 30 open PRs total: 22 non-draft and 8 draft/excluded. Post-push re-enumeration found new non-draft PR #311.
 - Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
-- Containment checks confirmed #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are ancestors of the current integration stack; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below.
+- Containment checks confirmed #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of the current integration stack before the #311 follow-up; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below.
 - `origin/main` remains included in `auto-integration`; merging `origin/main` reported `Already up to date.`
-- Fresh probe worktrees attempted direct merges for every non-integrated non-draft PR. All eight still conflict in old-layout or dependent MTP/scheduler areas; logs are retained under `/tmp/luce-auto-cron-20260530-014420/probes/pr-*-merge.log`, status snapshots under `/tmp/luce-auto-cron-20260530-014420/probes/pr-*-status.txt`, and conflict-file lists under `/tmp/luce-auto-cron-20260530-014420/probes/pr-*-conflicts.txt`.
+- Fresh probe worktrees attempted direct merges for every non-integrated non-draft PR known at the start of the run. All eight still conflict in old-layout or dependent MTP/scheduler areas; logs are retained under `/tmp/luce-auto-cron-20260530-014420/probes/pr-*-merge.log`, status snapshots under `/tmp/luce-auto-cron-20260530-014420/probes/pr-*-status.txt`, and conflict-file lists under `/tmp/luce-auto-cron-20260530-014420/probes/pr-*-conflicts.txt`.
 - Fresh delegation: Codex ran in tmux session `luce-codex-135-*` and produced `/tmp/luce-auto-cron-20260530-014420/probes/codex-pr135-refresh-report.txt`; the tmux session exited after producing the report.
-- Verification for the final manifest-only update: `git diff --check` passed in the reconciliation worktree. No code changed in this run, so the prior targeted `luce-bench` result (`108 passed in 1.64s` on the current #285 head) remains the latest code-test signal.
+- PR #311 follow-up: fetched `origin/pr/311` (`c470446a`), inspected its six-file diff, and merged it cleanly into the reconciliation worktree.
+- Verification for the final update: `git diff --check` passed in the reconciliation worktree after the #311 merge. No runtime tests were run for #311 in this pass; the changed code is limited to Qwen35 prefix-cache/spec-decode restore/prefill logic and default full-attention configuration, and should receive targeted prefix-cache/tool-call regression testing next.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
