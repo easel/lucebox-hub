@@ -608,11 +608,20 @@ GenerateResult Qwen35Backend::generate(const GenerateRequest & req,
             // without sacrificing spec-decode throughput for the bulk of
             // generation. Most requests never hit the tail because the
             // model closes </think> naturally well before the budget edge.
-            if (!do_spec_decode(committed, req.n_gen, result.tokens, out_io,
-                                 result.accept_rate, result.spec_decode_ran,
-                                 req.hint_tokens, &req.budget_hook,
-                                 &result.budget_forced_close,
-                                 &result.degenerate_decode_close)) {
+            bool spec_ok = do_spec_decode(committed, req.n_gen, result.tokens, out_io,
+                                          result.accept_rate, result.spec_decode_ran,
+                                          req.hint_tokens, &req.budget_hook,
+                                          &result.budget_forced_close,
+                                          &result.degenerate_decode_close);
+            if (spec_ok && result.tokens.empty()) {
+                // Spec-decode can degenerately accept EOS as the first token on
+                // some agentic turns; fall back to AR decode for those contexts.
+                spec_ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
+                                       req.budget_hook,
+                                       &result.budget_forced_close,
+                                       &result.degenerate_decode_close);
+            }
+            if (!spec_ok) {
                 result.error = "decode";
                 return result;
             }
@@ -700,11 +709,20 @@ GenerateResult Qwen35Backend::restore_and_generate(int slot,
         // without sacrificing spec-decode throughput for the bulk of
         // generation. Most requests never hit the tail because the
         // model closes </think> naturally well before the budget edge.
-        if (!do_spec_decode(committed, req.n_gen, result.tokens, out_io,
-                             result.accept_rate, result.spec_decode_ran,
-                             req.hint_tokens, &req.budget_hook,
-                             &result.budget_forced_close,
-                             &result.degenerate_decode_close)) {
+        bool spec_ok = do_spec_decode(committed, req.n_gen, result.tokens, out_io,
+                                      result.accept_rate, result.spec_decode_ran,
+                                      req.hint_tokens, &req.budget_hook,
+                                      &result.budget_forced_close,
+                                      &result.degenerate_decode_close);
+        if (spec_ok && result.tokens.empty()) {
+            // Spec-decode can degenerately accept EOS as the first token on
+            // some agentic turns; fall back to AR decode for those contexts.
+            spec_ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
+                                   req.budget_hook,
+                                   &result.budget_forced_close,
+                                   &result.degenerate_decode_close);
+        }
+        if (!spec_ok) {
             result.error = "decode";
             return result;
         }
