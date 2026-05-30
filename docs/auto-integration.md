@@ -4,33 +4,23 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T12:55:03-04:00`
+Last refresh: `2026-05-30T13:07:15-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `d6b88bd4`
+Previous integration tip: `easel/auto-integration` `421dca5b`
 Latest product-code integration tip before this manifest refresh: `8fc6a081`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed the current stack already matches `easel/auto-integration` and contains `origin/main`, pruned stale remote-tracking PR refs, fetched the current open PR list, and rechecked exact PR-head containment against the refreshed stack.
+This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed the current stack already matches `easel/auto-integration` and contains `origin/main`, fetched current PR heads, and rechecked exact PR-head containment against the refreshed stack.
 
-No product-code stack changes were available in this run. The open non-draft set still contains 23 PRs (#310, #309, #308, #306, #305, #297, #295, #294, #289, #285, #276, #274, #266, #237, #221, #154, #153, #152, #142, #137, #135, #94, #48), and exact PR-head containment is unchanged from the prior refresh. Exact-head included PRs remain ancestors of the stack. The non-integrated PRs were freshly probed again in isolated worktrees from the current stack. Direct merge probes reconfirmed #94/#48/#137 as superseded or retarget-only, #221 as dependent on #237, #153/#154/#237 as MTP salvage candidates, #305 as a Laguna/common-MoE hybrid salvage candidate, and #135 as a separate scheduler salvage candidate. Prior tmux-driven Codex read-only reviews for #305 and #237 remain applicable because their heads did not change; whole-PR merges are stale while selective current-layout ports remain feasible. PR #313 is now closed and its local remote-tracking ref was pruned during refresh.
+No product-code stack changes were available in this run. The open non-draft set still contains 23 PRs (#310, #309, #308, #306, #305, #297, #295, #294, #289, #285, #276, #274, #266, #237, #221, #154, #153, #152, #142, #137, #135, #94, #48), and exact PR-head containment remains unchanged. Exact-head included PRs remain ancestors of the stack. The non-integrated PRs were probed again in isolated worktrees from the current stack. Direct merge probes reconfirmed #94/#48/#137 as superseded or retarget-only, #221 as dependent on #237, #153/#154/#237 as MTP salvage candidates, #305 as a Laguna/common-MoE hybrid salvage candidate, and #135 as a separate scheduler salvage candidate. Claude read-only delegated reviews for #305/#237 reached the configured turn limit without a usable report; Codex read-only delegated reviews produced long inspection transcripts but did not reach a concise final conclusion before they were stopped, so manual conflict inspection and prior Codex conclusions remain the basis for classification.
 
 ## Included in the current non-draft stack
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
-| #313 | `fix/server-agentic-thinking-default` | `1d85ee7f` | included / PR now closed | Agentic tool-call turns default thinking on when `tools` are present, while explicit thinking/reasoning overrides still win. Carried in stack history even though no longer open. |
-| #311 | `fix/prefix-cache-recurrent-state` | upstream `d0bdef72` merge | included through upstream | Prefix-cache/spec-decode fix is in `origin/main` and therefore carried by the stack base. |
 | #310 | `feat-backend-activation-precision-policy-after-306` | `bf9f4b57` | included | Backend activation precision policy / graph tensor precision helpers are carried exactly. |
 | #309 | `experiment-dflash-feature-dtype` | `ea6ac481` | included | Feature mirror dtype policy is carried exactly. |
 | #308 | `fix/qwen-think-channel` | `9d4defe1` | included | Qwen3.6/Laguna think-mode reasoning is routed to `reasoning_content`; stack carries the replay HTTP stub harness and regression scenarios exactly. |
-| #307 | `docs/why-this-exists-copy` | upstream `c95dfcab` merge | included through upstream | README “Why this exists” copy is in `origin/main`. |
 | #306 | `refactor-server-layer-split-runtime` | `988fc933` | included | Shared layer-split runtime helper extraction is carried exactly. |
-| #303 | `fix/harness-portable-run-dirs` | upstream `05b008a0` | included through upstream and stack | Harness portable run/cache dirs are in `origin/main`; stack compatibility docs/helpers remain carried. |
-| #302 | `fix/harness-model-paths` | upstream | included through upstream | Harness model-path override behavior is in `origin/main`. |
-| #301 | `fix/ddtree-test-harness` | upstream | included through upstream | DDTree test harness fixes are in `origin/main`. |
-| #300 | `fix/sigterm-gpu-unload` | upstream | included through upstream | SIGTERM GPU-unload fix remains in upstream. |
-| #299 | `feat/draft-swa-flag` | upstream | included through upstream | Draft SWA env/flag support remains in upstream. |
-| #298 | `fix/gemma4-destructor-link` | upstream | included through upstream | Gemma4 destructor-link fix remains in upstream. |
-| #292 | `feat-backend-ipc-payload-pipe-open` | upstream / `90bc52f` | included through upstream and stack | Backend IPC payload-pipe support is upstream and represented in carried stack history. |
 | #297 | `feat-server-laguna-layer-split-adapter-v2` | `53dd1686` | included | Laguna target-layer-split adapter is carried exactly. |
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support is carried exactly. |
 | #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, and unit coverage are carried exactly. |
@@ -42,24 +32,28 @@ No product-code stack changes were available in this run. The open non-draft set
 | #152 | `main` | `cf735bee` | included | Gemma 4 RTX 4090 backend helpers are carried exactly. |
 | #142 | `xabicasa/dflash-safetensors-draft-fp16` | `f2fbf62f` | included | FP16 safetensors drafter support is carried exactly. |
 
+Closed or upstreamed PRs still represented by the stack/base include #313 (closed, carried in stack history), #311, #307, #303, #302, #301, #300, #299, #298, and #292.
+
 ## Validation run
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T12:55:03-04:00` during the manifest refresh.
-- Primary checkout preflight: `git status --short --branch` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
-- Auth/tooling checks with real user credentials remained valid: `gh auth status`, `claude auth status --text`, and `codex --version`.
+- `date -Is` -> `2026-05-30T13:02:37-04:00` during preflight and `2026-05-30T13:07:15-04:00` for this manifest refresh.
+- Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
+- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version` (`codex-cli 0.130.0`).
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
-- `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 100` still reported 23 open non-draft PRs and 7 draft/excluded PRs.
-- Exact-head containment against the refreshed `auto-integration` tip confirmed #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 as ancestors, while #305, #237, #221, #154, #153, #137, #135, #94, and #48 remain non-ancestors and stay in the blocked/salvage buckets below.
-- No product-code tests or builds were rerun because no product-code changes were made; the local CUDA/CMake blocker remains unchanged and still prevents full replay HTTP / pytest validation in this environment.
+- Current open PR enumeration reported 23 non-draft PRs and 7 draft/excluded PRs.
+- Explicit fetch of each open non-draft PR head succeeded. Exact-head containment against the refreshed `auto-integration` tip confirmed #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 as ancestors; #305, #237, #221, #154, #153, #137, #135, #94, and #48 remain non-ancestors and stay in the blocked/salvage buckets below.
+- Probe worktrees were created from the current stack and direct-merge attempts were run for all non-integrated PRs; conflict file lists are recorded under `/tmp/luce-auto-cron-20260530-130319-logs/`.
+- `git diff --check -- docs/auto-integration.md` passed for this manifest-only change.
+- No product-code tests or builds were rerun because no product-code changes were made; the local CUDA/CMake blocker from prior runs remains unchanged and still prevents full replay HTTP / pytest validation in this environment.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
 | PR | Head branch | Head | Current status | Probe result / next useful action |
 |---:|---|---:|---|---|
-| #305 | `layersplit_refactor` | `1de45e4d` | blocked-needs-human / selective-port | Fresh direct merge into the current #289/#306/#310 stack still conflicts broadly across README/spec/harness docs, backend IPC, backend precision, layer-split backend/adapters, Laguna/Qwen35/Qwen35MoE internals, and server tests. Codex read-only review this run found the whole PR stale; remaining unique value is generic `common/moe_hybrid_*` infrastructure, Laguna hybrid expert offload/dynamic placement/`DFLASH_EXPERT_BUDGET_PCT`, and Qwen35MoE pipelined decode refinements (`qwen35moe_pipelined_decode.*`, cached DeltaNet/routed FFN graphs, GPU-resident `act_cur`, async GPU copies/logits, gallocr reuse). Port selectively into `server/src/common/moe_hybrid_*`, `server/src/laguna/*`, `server/src/qwen35moe/*`, and `server/CMakeLists.txt` while preserving current IPC, layer-split runtime/precision APIs, #289 Qwen35MoE fixes, docs, harness, and tests. |
-| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | blocked-needs-human / human-scale server-layout port | Fresh probe still conflicts across old `dflash/` files and current `server/` files including CMake, backend factory, common MTP interfaces, Qwen35 graph/loader/backend, and tests. Codex read-only review this run confirmed native MTP is absent from the live stack and should be selectively ported into `server/`: add/adapt `common/gguf_metadata.h`, `common/mtp_interface.h`, `common/mtp_chain_runner.*`, `common/mtp_orchestrator.*`, `qwen35/qwen35_mtp*`, `qwen35/qwen35_mtp_graph*`, `qwen35/qwen35_mtp_loader.cpp`, and MTP tests; adapt current backend factory, server_main, model backend, target/step graph, qwen35 loader/graph/backend/daemon files without regressing remote-draft, pFlash, budget hooks, layer-split, native server, thinking-budget, or Qwen35MoE changes. |
+| #305 | `layersplit_refactor` | `1de45e4d` | blocked-needs-human / selective-port | Fresh direct merge still conflicts broadly across README/spec/harness docs, backend IPC, backend precision, layer-split backend/adapters, Laguna/Qwen35/Qwen35MoE internals, and server tests. Whole-PR merge is unsafe. Remaining likely unique value is generic `common/moe_hybrid_*` infrastructure, Laguna hybrid expert offload/dynamic placement/`DFLASH_EXPERT_BUDGET_PCT`, and Qwen35MoE pipelined decode refinements; port selectively while preserving current IPC, #306/#310 layer-split/precision APIs, and existing #289 Qwen35MoE behavior. |
+| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | blocked-needs-human / human-scale server-layout port | Fresh probe still conflicts across old `dflash/` files and current `server/` files including CMake, backend factory, common MTP interfaces, Qwen35 graph/loader/backend, and tests. Native MTP is still absent from the live stack and should be selectively ported into current `server/` layout: `common/gguf_metadata.h`, `common/mtp_interface.h`, `common/mtp_chain_runner.*`, `common/mtp_orchestrator.*`, `qwen35/qwen35_mtp*`, `qwen35/qwen35_mtp_graph*`, `qwen35/qwen35_mtp_loader.cpp`, and MTP tests. |
 | #221 | `feat/mtp-prefix-warm-ghost` | `05502974` | blocked-needs-human / dependent salvage-port | Fresh direct-merge probe still conflicts in old `dflash/` scripts/backend plus current MTP/common/prefix-cache/Qwen35 files and tests. Mine prefix-cache WARM behavior only after a current-layout #237-equivalent MTP foundation lands. |
 | #154 | `xabicasa/dflash-mtp-speculative-loop` | `2f4ede79` | blocked-needs-human / dependency | Fresh probe conflicts in old `dflash/CMakeLists.txt`, MTP docs, CUDA/internal/Qwen35 graph/loader files, and MTP smoke/contract tests. Mine linear MTP decode semantics after current-layout Qwen35 MTP exists. |
 | #153 | `xabicasa/dflash-mtp-integrated` | `e9b17cb1` | blocked-needs-human / dependency | Fresh probe conflicts in old `dflash/CMakeLists.txt`, MTP docs, CUDA/internal/Qwen35 graph/loader files, and MTP smoke/contract tests. Mine loader/graph/cache/test ideas after current-layout Qwen35 MTP exists. |
@@ -76,18 +70,18 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained worktrees/logs for audit because probe worktrees contain conflicted indexes and safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260530-123712`
-- `/tmp/luce-probe-20260530-123712-pr-305`
-- `/tmp/luce-probe-20260530-123712-pr-237`
-- `/tmp/luce-probe-20260530-123712-pr-221`
-- `/tmp/luce-probe-20260530-123712-pr-154`
-- `/tmp/luce-probe-20260530-123712-pr-153`
-- `/tmp/luce-probe-20260530-123712-pr-137`
-- `/tmp/luce-probe-20260530-123712-pr-135`
-- `/tmp/luce-probe-20260530-123712-pr-94`
-- `/tmp/luce-probe-20260530-123712-pr-48`
-- Logs under `/tmp/luce-auto-cron-20260530-123712-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`. Prior delegated Codex logs remain under `/tmp/luce-auto-cron-20260530-121923-logs/`.
+- `/tmp/luce-auto-cron-20260530-130319`
+- `/tmp/luce-probe-20260530-130319-pr-305`
+- `/tmp/luce-probe-20260530-130319-pr-237`
+- `/tmp/luce-probe-20260530-130319-pr-221`
+- `/tmp/luce-probe-20260530-130319-pr-154`
+- `/tmp/luce-probe-20260530-130319-pr-153`
+- `/tmp/luce-probe-20260530-130319-pr-137`
+- `/tmp/luce-probe-20260530-130319-pr-135`
+- `/tmp/luce-probe-20260530-130319-pr-94`
+- `/tmp/luce-probe-20260530-130319-pr-48`
+- Logs under `/tmp/luce-auto-cron-20260530-130319-logs/`, including `merge-*.log`, `status-*.txt`, `conflicts-*.txt`, `claude-pr*.txt`, and `codex-pr*.txt`.
 
 ## Notes
 
-The next useful integration work remains two dedicated selective ports: first, a current-`server/` #237 MTP foundation port; second, a #305 Laguna/common-MoE hybrid port that preserves the current #289 Qwen35MoE path and #306/#310 layer-split/precision APIs. Keep #135 as a separate scheduler/batched-target selective port. #137 and #48 look like old `dflash/CMakeLists.txt` changes that should be closed or retargeted, and #94 appears largely superseded by current draft/SWA support. The #308 replay HTTP stub harness gives a useful CPU-only validation pattern for future API/wire-format fixes once the local CUDA configure blocker is bypassed or the deterministic Docker CUDA path is used.
+The next useful integration work remains two dedicated selective ports: first, a current-`server/` #237 MTP foundation port; second, a #305 Laguna/common-MoE hybrid port that preserves the current #289 Qwen35MoE path and #306/#310 layer-split/precision APIs. Keep #135 as a separate scheduler/batched-target selective port. #137 and #48 look like old `dflash/CMakeLists.txt` changes that should be closed or retargeted, and #94 appears largely superseded by current draft/SWA support.
