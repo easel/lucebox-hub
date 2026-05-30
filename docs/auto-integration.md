@@ -4,19 +4,20 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T14:11:30-04:00`
+Last refresh: `2026-05-30T14:24:35-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `120e23d2`
-Latest product-code integration tip before this manifest refresh: `8fc6a081`
+Previous integration tip: `easel/auto-integration` `97fa608f`
+Current integration tip before push: `8fb66794`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack. `HEAD` and `easel/auto-integration` were already identical at `120e23d2`, and the stack already contains `origin/main` `c95dfcab`.
+This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
-No product-code stack changes were accepted in this run. The open non-draft set still contains 23 PRs (#310, #309, #308, #306, #305, #297, #295, #294, #289, #285, #276, #274, #266, #237, #221, #154, #153, #152, #142, #137, #135, #94, #48). Exact-head included PRs remain ancestors of the stack. The non-integrated PRs were probed again in isolated worktrees from the current stack. Direct merge probes reconfirmed #94/#48/#137 as superseded or retarget-only, #221 as dependent on #237, #153/#154/#237 as MTP salvage candidates, #305 as a Laguna/common-MoE hybrid salvage candidate, and #135 as a separate scheduler salvage candidate. A fresh Claude tmux selective-port attempt for #305 reached `Error: Reached max turns (12)` with no edits/report. A fresh Codex tmux selective-port attempt for #305 performed an attempted extraction and reverted it, leaving the worktree clean; its report concluded #305 is too broad for a safe unattended port without a larger compatibility refactor.
+This run accepted one product-code update: PR #314, which adds AR fallback when Qwen35 spec-decode degenerately emits no tokens. The merge conflicted with the existing C2 fa-window gate in `Qwen35Backend::generate`; the resolution preserves the C2 AR fallback path and applies PR #314's empty-spec-decode fallback only inside the spec-decode path. The same fallback was kept and style-normalized in `restore_and_generate`.
 
 ## Included in the current non-draft stack
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
+| #314 | `fix/specdecode-empty-ar-fallback` | `38f92c48` | included | Qwen35 falls back to AR decode when spec-decode succeeds but produces an empty token vector. |
 | #310 | `feat-backend-activation-precision-policy-after-306` | `bf9f4b57` | included | Backend activation precision policy / graph tensor precision helpers are carried exactly. |
 | #309 | `experiment-dflash-feature-dtype` | `ea6ac481` | included | Feature mirror dtype policy is carried exactly. |
 | #308 | `fix/qwen-think-channel` | `9d4defe1` | included | Qwen3.6/Laguna think-mode reasoning is routed to `reasoning_content`; stack carries the replay HTTP stub harness and regression scenarios exactly. |
@@ -38,31 +39,31 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T13:59:59-04:00` during preflight and `2026-05-30T14:11:30-04:00` for this manifest refresh.
+- `date -Is` -> `2026-05-30T14:24:35-04:00`.
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
-- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version` (`codex-cli 0.130.0`).
+- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless Codex help check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
-- Current open PR enumeration reported 23 non-draft PRs and 7 draft/excluded PRs.
-- Explicit fetch of each open non-draft PR head succeeded. Exact-head containment against `easel/auto-integration` confirmed #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 as ancestors; #305, #237, #221, #154, #153, #137, #135, #94, and #48 remain non-ancestors and stay in the blocked/salvage buckets below.
-- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-140040`; `origin/main` was already an ancestor of the stack.
-- Probe worktrees were created from the current stack and direct-merge attempts were run for all non-integrated PRs; conflict file lists are recorded under `/tmp/luce-auto-cron-20260530-140040-logs/`.
-- Delegation for #305: Claude tmux session `luce-claude-305-1400` exited with `Error: Reached max turns (12)` and no repo changes. Codex tmux session `luce-codex-305-1403` attempted an extraction, ran `git diff --check`, then reverted its edits and produced `/tmp/luce-codex-305-1403-report.txt`; final `git status --short` in the stack worktree was clean before this manifest edit.
-- `git diff --check -- docs/auto-integration.md` passed for this manifest-only change.
-- No product-code tests or builds were rerun because no product-code changes were retained; Codex reconfirmed local verification blockers for #305: CUDA compiler detection selects unsupported `sm_52`, and the `server/deps/llama.cpp` submodule headers are absent in this worktree.
+- Current open PR enumeration reported 24 non-draft PRs and 7 draft/excluded PRs.
+- Explicit fetch of each open non-draft PR head succeeded. Exact-head containment against the updated stack confirmed #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 as ancestors; #305, #237, #221, #154, #153, #137, #135, #94, and #48 remain non-ancestors and stay in the blocked/salvage buckets below.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-142514`; `origin/main` was already an ancestor of the stack.
+- PR #314 was merged in that worktree. Its only conflict was `server/src/qwen35/qwen35_backend.cpp`; the manual resolution preserved the current C2 fa-window AR fallback and added the empty-spec-decode AR retry in both generation paths.
+- Probe worktrees were created from the post-#314 stack and direct-merge attempts were rerun for all still-non-integrated PRs; conflict file lists are recorded under `/tmp/luce-auto-cron-20260530-142514-logs/`.
+- Verification passed: `git diff --check HEAD^..HEAD`, `git diff --check -- server/src/qwen35/qwen35_backend.cpp`, and conflict-marker scan of `git diff HEAD^..HEAD`.
+- No full product build was run in this unattended pass; previous runs found the local CUDA/CMake environment selects unsupported `sm_52` during CUDA compiler detection and lacks populated `server/deps/llama.cpp` submodule headers in the worktree.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
 | PR | Head branch | Head | Current status | Probe result / next useful action |
 |---:|---|---:|---|---|
-| #305 | `layersplit_refactor` | `1de45e4d` | blocked-needs-human / selective-port | Fresh direct merge still conflicts broadly across README/spec/harness docs, backend IPC, backend precision, layer-split backend/adapters, Laguna/Qwen35/Qwen35MoE internals, and server tests. Fresh Codex selective-port attempt concluded no code should be retained unattended: the PR changes default Laguna startup/generation rather than adding a narrow opt-in path, changes CUDA device selection, removes current Laguna layer-split factory wiring and `LagunaBackendArgs::device`, drops current graph precision conversions, rewrites partial-load/cache surfaces instead of adapting `TargetLoadPlan`, and introduces common MoE helper types that collide with current Qwen35MoE hybrid helpers unless a larger compatibility rename/wrapper refactor is done. |
-| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | blocked-needs-human / human-scale server-layout port | Fresh probe still conflicts across old `dflash/` files and current `server/` files including CMake, backend factory, common MTP interfaces, Qwen35 graph/loader/backend, and tests. Native MTP is still absent from the live stack and should be selectively ported into current `server/` layout: `common/gguf_metadata.h`, `common/mtp_interface.h`, `common/mtp_chain_runner.*`, `common/mtp_orchestrator.*`, `qwen35/qwen35_mtp*`, `qwen35/qwen35_mtp_graph*`, `qwen35/qwen35_mtp_loader.cpp`, and MTP tests. |
+| #305 | `layersplit_refactor` | `1de45e4d` | blocked-needs-human / selective-port | Fresh direct merge after #314 still conflicts broadly across README/spec/harness docs, backend IPC, backend precision, layer-split backend/adapters, Laguna/Qwen35/Qwen35MoE internals, and server tests. Prior Claude and Codex tmux selective-port attempts did not produce a safe unattended port; keep for supervised common-MoE/Laguna compatibility refactor. |
+| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | blocked-needs-human / human-scale server-layout port | Fresh probe still conflicts across old `dflash/` files and current `server/` files including CMake, backend factory, common MTP interfaces, Qwen35 graph/loader/backend, and tests. Native MTP is still absent from the live stack and should be selectively ported into current `server/` layout. |
 | #221 | `feat/mtp-prefix-warm-ghost` | `05502974` | blocked-needs-human / dependent salvage-port | Fresh direct-merge probe still conflicts in old `dflash/` scripts/backend plus current MTP/common/prefix-cache/Qwen35 files and tests. Mine prefix-cache WARM behavior only after a current-layout #237-equivalent MTP foundation lands. |
 | #154 | `xabicasa/dflash-mtp-speculative-loop` | `2f4ede79` | blocked-needs-human / dependency | Fresh probe conflicts in old `dflash/CMakeLists.txt`, MTP docs, CUDA/internal/Qwen35 graph/loader files, and MTP smoke/contract tests. Mine linear MTP decode semantics after current-layout Qwen35 MTP exists. |
 | #153 | `xabicasa/dflash-mtp-integrated` | `e9b17cb1` | blocked-needs-human / dependency | Fresh probe conflicts in old `dflash/CMakeLists.txt`, MTP docs, CUDA/internal/Qwen35 graph/loader files, and MTP smoke/contract tests. Mine loader/graph/cache/test ideas after current-layout Qwen35 MTP exists. |
 | #135 | `xabicasa/dflash-multi-request-scheduler-batched-target-step` | `561b0ac1` | blocked-needs-human / selective-port | Fresh direct probe conflicts in `server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp`. Preserve current `ModelBackend::generate`, `DaemonIO::emit`, snapshot slots, current single-request `TargetCache`, and `build_target_step()` ABI; selectively port scheduler state and qwen35-only batched target helpers if still desired. |
-| #137 | `xabicasa/dflash-build-cmake-sm89-bsa` | `297fc74e` | suggested-close/superseded | Fresh probe only conflicts on deleted old `dflash/CMakeLists.txt`; ask author to close or retarget to current `server/CMakeLists.txt` if anything remains. |
-| #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | suggested-close/superseded | Fresh probe conflicts in current `server/src/draft/draft_graph.cpp`, `server/src/draft/draft_safetensors_loader.cpp`, and `server/src/internal.h`. Useful SWA/draft behavior is already present in current auto-integration (`DraftLayer::is_swa`, `DraftWeights::swa_window`, `--draft-swa-window`, `DFLASH27B_DRAFT_SWA_WINDOW`, qwen35 draft SWA propagation, and fixed bare-filename `config.json` lookup). Suggested close or author retarget with a minimal delta if still needed. |
-| #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | suggested-close/superseded | Fresh probe only conflicts on deleted old `dflash/CMakeLists.txt`; close or retarget to current `server/CMakeLists.txt` if still needed. |
+| #137 | `xabicasa/dflash-build-cmake-sm89-bsa` | `297fc74e` | suggested-close/superseded | Fresh probe still only conflicts on deleted old `dflash/CMakeLists.txt`; ask author to close or retarget to current `server/CMakeLists.txt` if anything remains. |
+| #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | suggested-close/superseded | Fresh probe conflicts in current `server/src/draft/draft_graph.cpp`, `server/src/draft/draft_safetensors_loader.cpp`, and `server/src/internal.h`. Useful SWA/draft behavior is already present in current auto-integration; suggested close or author retarget with a minimal delta if still needed. |
+| #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | suggested-close/superseded | Fresh probe still only conflicts on deleted old `dflash/CMakeLists.txt`; close or retarget to current `server/CMakeLists.txt` if still needed. |
 
 ## Draft / excluded
 
@@ -72,18 +73,17 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained worktrees/logs for audit because probe worktrees contain conflicted indexes and safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260530-140040`
-- `/tmp/luce-probe-20260530-140040-pr-305`
-- `/tmp/luce-probe-20260530-140040-pr-237`
-- `/tmp/luce-probe-20260530-140040-pr-221`
-- `/tmp/luce-probe-20260530-140040-pr-154`
-- `/tmp/luce-probe-20260530-140040-pr-153`
-- `/tmp/luce-probe-20260530-140040-pr-137`
-- `/tmp/luce-probe-20260530-140040-pr-135`
-- `/tmp/luce-probe-20260530-140040-pr-94`
-- `/tmp/luce-probe-20260530-140040-pr-48`
-- Logs under `/tmp/luce-auto-cron-20260530-140040-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
-- Delegation transcripts/reports: `/tmp/luce-claude-305-1400.out`, `/tmp/luce-codex-305-1403.out`, and `/tmp/luce-codex-305-1403-report.txt`.
+- `/tmp/luce-auto-cron-20260530-142514`
+- `/tmp/luce-probe-20260530-142514-pr-305`
+- `/tmp/luce-probe-20260530-142514-pr-237`
+- `/tmp/luce-probe-20260530-142514-pr-221`
+- `/tmp/luce-probe-20260530-142514-pr-154`
+- `/tmp/luce-probe-20260530-142514-pr-153`
+- `/tmp/luce-probe-20260530-142514-pr-137`
+- `/tmp/luce-probe-20260530-142514-pr-135`
+- `/tmp/luce-probe-20260530-142514-pr-94`
+- `/tmp/luce-probe-20260530-142514-pr-48`
+- Logs under `/tmp/luce-auto-cron-20260530-142514-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
 
 ## Notes
 
