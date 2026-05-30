@@ -616,6 +616,7 @@ GenerateResult Qwen35Backend::generate(const GenerateRequest & req,
             result.error = "decode";
             return result;
         }
+        }
         result.decode_s = std::chrono::duration<double>(
             std::chrono::steady_clock::now() - t_decode_start).count();
     }
@@ -728,6 +729,7 @@ GenerateResult Qwen35Backend::restore_and_generate(int slot,
         if (!decode_ok) {
             result.error = "decode";
             return result;
+        }
         }
         result.decode_s = std::chrono::duration<double>(
             std::chrono::steady_clock::now() - t_decode_start).count();
