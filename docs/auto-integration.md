@@ -7,7 +7,7 @@ Upstream remote: `origin` / `Luce-Org`
 Last refresh: 2026-05-30T03:57:20-04:00
 Current base: `origin/main` `8782d07a`
 Previous integration tip: `easel/auto-integration` `7c8445f7`
-Current integration tip after this refresh: `29a52957`
+Latest product/manifest/report tip before this docs-only correction: `dae8b449`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, found that the non-draft #285 head had advanced, and reconciled in `/tmp/luce-auto-cron-20260530-034711/integration-pr285-refresh`.
 
@@ -57,7 +57,7 @@ This run performed:
 - `git diff --check` passed.
 - Targeted Python validation passed: `python3 -m py_compile harness/src/harness/clients/*.py luce-bench/src/lucebench/areas/__init__.py lucebox/src/lucebox/*.py`.
 - Broader Python bytecode validation passed: `python3 -m compileall -q lucebox/src/lucebox luce-bench/src/lucebench harness/src/harness`.
-- GitHub status for pushed commit `29a52957` reported `combined_status=pending` with zero legacy statuses at check time; no check-run rows were returned yet.
+- GitHub status for pushed commit `dae8b449` reported `combined_status=pending` with zero legacy statuses at check time; no check-run rows were returned yet.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
