@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-30T02:10:21-04:00
+Last refresh: 2026-05-30T02:14:01-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `30a4158e`
-Manifest refresh prepared in this run: this commit
+Current integration tip before this refresh: `easel/auto-integration` `30a4158e`; intermediate pushed manifest-only tip `80b22568`
+Manifest refresh and PR #285 update prepared in this run: this commit
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed `origin/main` was already included, re-enumerated open PRs, and performed fresh direct-merge probing in `/tmp/luce-auto-cron-20260530-020354/probes/pr-*-probe` worktrees.
+This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed `origin/main` was already included, re-enumerated open PRs, and performed fresh direct-merge probing in `/tmp/luce-auto-cron-20260530-020354/probes/pr-*-probe` worktrees. After the first push, post-push re-enumeration found non-draft PR #285 had advanced from `9a6db60e` to `4b244457`; this run fetched and cleanly merged that update on top of the stack.
 
-The current stack still contains the latest heads of #311, #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142. Fresh direct-merge probes for the remaining old-layout PRs still conflict with the same old `dflash/` to current `server/` restructuring and dependent MTP/scheduler areas. A fresh tmux-driven Codex delegation re-reviewed #237 and wrote `/tmp/luce-auto-cron-20260530-020354/probes/codex-pr237-refresh-report.txt`; it confirmed #237 is not directly mergeable and that no small, safe, buildable MTP foundation slice is appropriate without a deliberate current-server MTP port.
+The current stack now contains the latest heads of #311, #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142. Fresh direct-merge probes for the remaining old-layout PRs still conflict with the same old `dflash/` to current `server/` restructuring and dependent MTP/scheduler areas. A fresh tmux-driven Codex delegation re-reviewed #237 and wrote `/tmp/luce-auto-cron-20260530-020354/probes/codex-pr237-refresh-report.txt`; it confirmed #237 is not directly mergeable and that no small, safe, buildable MTP foundation slice is appropriate without a deliberate current-server MTP port.
 
 ## Included in the current stack
 
@@ -33,7 +33,7 @@ The current stack still contains the latest heads of #311, #310, #309, #307, #30
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support remains an ancestor of the stack. |
 | #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Server passthrough proxy wiring, piecewise keep-ratio curve, query survival checks, multimodal last-user text extraction, curl cleanup, and unit coverage are carried. |
 | #289 | `pipeline_moe` | `27bad6d3` | included | Pipelined hybrid Qwen35 MoE decode update plus sub-batch hybrid prefill FFN MMQ-bounds fix are carried. |
-| #285 | `feat/lucebox-docker` | `9a6db60e` | included | Latest Docker stack / `lucebox` CLI / bench-profile / harness / `luce-bench` refresh is carried, including card-driven thinking-control and client-side thinking-budget updates; the branch also brings the Qwen3.6/Laguna reasoning-channel commits from draft #308. |
+| #285 | `feat/lucebox-docker` | `4b244457` | included | Latest Docker stack / `lucebox` CLI / bench-profile / harness / `luce-bench` refresh is carried, including card-driven thinking-control, client-side thinking-budget updates, autotune/profile sweep protocol docs, Qwen3.6/Gemma4 sweep runbooks, and agent-recorded luce-bench fixture/test coverage. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried. |
 | #274 | `feat/pflash-drafter-ee7` | `8c1f37d` | included | Latest adaptive pFlash composition plus effective-size admission/keep-ratio guard update is carried. |
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried. |
@@ -44,17 +44,18 @@ The current stack still contains the latest heads of #311, #310, #309, #307, #30
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T02:03:06-04:00` during preflight and `2026-05-30T02:10:21-04:00` for manifest refresh.
+- `date -Is` -> `2026-05-30T02:03:06-04:00` during preflight and `2026-05-30T02:14:01-04:00` for manifest refresh.
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and harmless `codex --help` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
-- Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and found 31 open PRs total: 23 non-draft and 8 draft/excluded.
+- Open PR enumeration used `gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...` and found 31 open PRs total: 23 non-draft and 8 draft/excluded. Post-push re-enumeration found #285 advanced to `4b244457`, so it was fetched and merged in the same run.
 - Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
-- Containment checks confirmed #311, #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are ancestors of the current integration stack; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below.
+- Containment checks confirmed #311, #310, #309, #307, #306, #297, #295, #294, #289, #276, #274, #266, #152, and #142 were ancestors of the current integration stack before the #285 follow-up; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below.
 - `origin/main` remains included in `auto-integration`; merging `origin/main` in the reconciliation worktree reported `Already up to date.`
 - Fresh probe worktrees attempted direct merges for every non-integrated non-draft PR. All eight still conflict in old-layout or dependent MTP/scheduler areas; logs are retained under `/tmp/luce-auto-cron-20260530-020354/probes/pr-*-merge.log`, status snapshots under `/tmp/luce-auto-cron-20260530-020354/probes/pr-*-status.txt`, and conflict-file lists under `/tmp/luce-auto-cron-20260530-020354/probes/pr-*-conflicts.txt`.
 - Fresh delegation: Codex ran in tmux session `luce-codex-237-020422` and produced `/tmp/luce-auto-cron-20260530-020354/probes/codex-pr237-refresh-report.txt`; the tmux session exited after producing the report.
-- Verification for the final update: `git diff --check` passed in the reconciliation worktree. No runtime tests were run because this run only refreshed documentation/probe status and made no source changes.
+- PR #285 follow-up: fetched `origin/pr/285` (`4b244457`), merged it cleanly into the reconciliation worktree, and preserved the new autotune/profile sweep docs, Qwen3.6/Gemma4 runbooks, `lucebox` sweep/autotune changes, and `luce-bench` agent-recorded fixtures/tests.
+- Verification for the final update: `git diff --check` passed in the reconciliation worktree. Initial `python3 -m pytest ...` failed because the profile Python 3.14 environment lacked `pytest`; rerunning with `uv run --python 3.12 --with pytest --with rich --with typer --with tomli-w --with httpx --with anthropic --with huggingface_hub python -m pytest lucebox/tests/test_autotune.py lucebox/tests/test_autotune_candidate_configs.py lucebox/tests/test_sweep.py luce-bench/tests/test_agent_recorded.py luce-bench/tests/test_extract_agentic_fixture.py` passed: 61 tests in 1.75s.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
