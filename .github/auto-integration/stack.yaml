@@ -1,20 +1,19 @@
-updated_at: 2026-05-30T03:57:20-04:00
+updated_at: 2026-05-30T08:20:42-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
   upstream: origin
   writable: easel
 heads:
-  upstream_main: 8782d07a
-  easel_auto_integration_before_refresh: 7c8445f7
-  current_integration_head_before_metadata_commit: 6162071a
+  upstream_main: c95dfcab
+  easel_auto_integration_before_refresh: 4048afd3
+  current_integration_head_before_metadata_commit: 4048afd3
   base_before_run: easel/auto-integration
 stack:
   included:
-    - {pr: 311, head: c470446a, status: included, note: transparent prefix cache with spec-decode}
     - {pr: 310, head: bf9f4b57, status: included, note: backend activation precision policy}
     - {pr: 309, head: ea6ac481, status: included, note: dflash feature mirror dtype policy}
-    - {pr: 307, head: 236fc2fd, status: included, note: README why-this-exists copy}
+    - {pr: 308, head: 9d4defe1, status: included, note: Qwen3.6/Laguna think-mode reasoning_content channel and replay stub regression harness}
     - {pr: 306, head: 988fc933, status: included, note: shared target layer-split runtime helpers}
     - {pr: 297, head: 53dd1686, status: included, note: Laguna layer-split adapter}
     - {pr: 295, head: a9aedf7d, status: included, note: target layer-split sampling}
@@ -27,6 +26,8 @@ stack:
     - {pr: 152, head: cf735bee, status: included, note: Gemma 4 RTX 4090 backend helpers}
     - {pr: 142, head: f2fbf62f, status: included, note: FP16 safetensors drafter support}
   included_through_upstream:
+    - {pr: 311, head: d0bdef72, note: prefix-cache recurrent state fix merged upstream}
+    - {pr: 307, head: c95dfcab, note: README why-this-exists copy merged upstream}
     - {pr: 303, head: 05b008a0, note: harness portable run/cache dirs}
     - {pr: 302, note: harness model path override behavior}
     - {pr: 301, note: DDTree test harness fixes}
@@ -35,66 +36,59 @@ stack:
     - {pr: 298, note: Gemma4 destructor-link fix}
     - {pr: 292, note: backend IPC payload-pipe support}
   attempted_this_run:
-    - pr: 285
-      status: integrated-clean-merge-refresh
-      worktree: /tmp/luce-auto-cron-20260530-034711/integration-pr285-refresh
-      previous_head: 9a6db60e
-      new_head: 3dffb306
-      note: merged updated contributor/easel PR head; product changes are autotune/sweep Bragi docs and CLI tuning updates
     - pr: 237
-      status: conflict-not-integrated-after-direct-probe-and-codex-tmux-assessment
-      worktree: /tmp/luce-auto-cron-20260530-034711/probes/pr-237-probe
+      status: conflict-not-integrated
+      worktree: /tmp/luce-probe-20260530-082042-pr-237
       unmerged_count: 24
-      delegation: tmux session luce-pr237-codex-034711; Codex reported mechanical resolution unsafe and recommended selective architecture port into current server layout
-      next: selectively port MTP foundation while preserving remote-draft, pflash budget, qwen35moe, layer-split, and current server parser behavior
+      next: selective current-server MTP foundation port; direct merge still crosses deleted dflash paths and current server MTP/Qwen35/common files
     - pr: 221
       status: conflict-not-integrated
-      worktree: /tmp/luce-auto-cron-20260530-034711/probes/pr-221-probe
+      worktree: /tmp/luce-probe-20260530-082042-pr-221
       unmerged_count: 23
       next: mine prefix-cache WARM behavior after current-layout MTP foundation
     - pr: 154
       status: conflict-not-integrated
-      worktree: /tmp/luce-auto-cron-20260530-034711/probes/pr-154-probe
+      worktree: /tmp/luce-probe-20260530-082042-pr-154
       unmerged_count: 12
       next: mine linear MTP decode semantics after current-layout Qwen35 MTP exists
     - pr: 153
       status: conflict-not-integrated
-      worktree: /tmp/luce-auto-cron-20260530-034711/probes/pr-153-probe
+      worktree: /tmp/luce-probe-20260530-082042-pr-153
       unmerged_count: 10
       next: mine loader/graph/cache/test ideas after current-layout Qwen35 MTP exists
     - pr: 137
       status: conflicts-only-on-deleted-old-dflash-cmake
-      worktree: /tmp/luce-auto-cron-20260530-034711/probes/pr-137-probe
+      worktree: /tmp/luce-probe-20260530-082042-pr-137
       unmerged_count: 1
       next: suggest close or retarget to server/CMakeLists.txt
     - pr: 135
-      status: conflict-not-integrated-after-prior-manual-and-agent-attempts
-      worktree: /tmp/luce-auto-cron-20260530-034711/probes/pr-135-probe
+      status: conflict-not-integrated
+      worktree: /tmp/luce-probe-20260530-082042-pr-135
       unmerged_count: 3
       next: selective-port scheduler/batched target semantics into current daemon/backend architecture
     - pr: 94
       status: conflict-not-integrated-superseded-by-current-stack
-      worktree: /tmp/luce-auto-cron-20260530-034711/probes/pr-94-probe
+      worktree: /tmp/luce-probe-20260530-082042-pr-94
       unmerged_count: 3
-      next: suggest close after author review
+      next: suggest close after author review or retarget with minimal delta
     - pr: 48
       status: conflicts-only-on-deleted-old-dflash-cmake
-      worktree: /tmp/luce-auto-cron-20260530-034711/probes/pr-48-probe
+      worktree: /tmp/luce-probe-20260530-082042-pr-48
       unmerged_count: 1
       next: suggest close or retarget to server/CMakeLists.txt
   pending: []
   blocked_needs_human:
-    - {pr: 237, reason: old-layout MTP foundation needs architecture-aware selective port; Codex tmux assessment this run confirmed mechanical merge unsafe}
+    - {pr: 237, reason: old-layout MTP foundation needs architecture-aware selective port}
     - {pr: 221, reason: depends on current-layout MTP foundation; old-layout prefix-cache WARM branch conflicts broadly}
     - {pr: 154, reason: stacked/dependent old-layout MTP speculative-loop work}
     - {pr: 153, reason: stacked/dependent old-layout MTP integrated work}
     - {pr: 135, reason: multi-request scheduler conflicts with current daemon/backend architecture and needs selective port}
   suggested_close_or_superseded:
     - {pr: 137, reason: obsolete old dflash/CMakeLists.txt-only conflict; retarget if still needed}
-    - {pr: 94, reason: useful SWA/draft behavior appears present in current stack per prior Codex review}
+    - {pr: 94, reason: useful SWA/draft behavior appears present in current stack}
     - {pr: 48, reason: obsolete old dflash/CMakeLists.txt-only conflict; retarget if still needed}
   draft_excluded:
-    - {prs: [312, 308, 305, 304, 291, 290, 275, 249, 193], reason: draft PRs excluded except dependency awareness}
+    - {prs: [312, 305, 304, 291, 290, 275, 249, 193], reason: draft PRs excluded except dependency awareness}
   tests_and_checks:
     - date -Is
     - git status --short; git branch --show-current; git remote -v
@@ -103,17 +97,12 @@ stack:
     - HOME=/home/erik /home/linuxbrew/.linuxbrew/bin/codex --help
     - git fetch --prune origin
     - git fetch --prune easel
-    - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json number,title,author,isDraft,headRefName,headRefOid,baseRefName,updatedAt,mergeable --jq ...
-    - git fetch origin pull/<n>/head:refs/remotes/origin/pr/<n> for each open non-draft PR
-    - git merge-base --is-ancestor origin/pr/<n> auto-integration for all non-draft PRs
-    - clean merge of origin/pr/285 in /tmp/luce-auto-cron-20260530-034711/integration-pr285-refresh
+    - git fetch origin '+refs/pull/*/head:refs/remotes/origin/pr/*'
+    - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...
+    - git merge-base --is-ancestor origin/pr/<n> auto-integration for all open non-draft PRs
     - direct merge probes for PRs 237, 221, 154, 153, 137, 135, 94, 48 from refreshed integration head
-    - tmux-driven Codex assessment for PR 237 in /tmp/luce-auto-cron-20260530-034711/probes/pr-237-probe
-    - git diff --check
-    - python3 -m py_compile harness/src/harness/clients/*.py luce-bench/src/lucebench/areas/__init__.py lucebox/src/lucebox/*.py
-    - python3 -m compileall -q lucebox/src/lucebox luce-bench/src/lucebench harness/src/harness
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start and remained untouched during worktree integration.
-  - Reconciliation and conflict probe worktrees retained under /tmp/luce-auto-cron-20260530-034711 for audit/follow-up.
-  - This run made a product-code/docs merge for updated PR 285 plus an integration metadata refresh.
-  - Current origin/main remains 8782d07a; no upstream rebase was required.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start and only integration metadata was changed.
+  - Reconciliation confirmed easel/auto-integration is already based on current origin/main c95dfcab.
+  - Conflict probe worktrees are retained under /tmp/luce-probe-20260530-082042-pr-* for audit/follow-up.
+  - No product-code PR changed head relative to the current carried stack during this run.
