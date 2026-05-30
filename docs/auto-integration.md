@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: 2026-05-30T01:13:19-04:00
+Last refresh: 2026-05-30T01:26:47-04:00
 Current base: `origin/main` `8782d07a`
-Current integration tip before this refresh: `easel/auto-integration` `8677cb19`
+Current integration tip before this refresh: `easel/auto-integration` `b34f79ab`
 Manifest refresh and unresolved-PR probe update prepared in this run: this commit
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed `origin/main` was already included, and performed fresh direct-merge probing in `/tmp/luce-auto-cron-20260530-011319/probes/pr-*-probe` worktrees.
+This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, confirmed `origin/main` was already included, and performed fresh direct-merge probing in `/tmp/luce-auto-cron-20260530-012647/probes/pr-*-probe` worktrees.
 
-No new non-draft contributor PR head required a code stack rewrite in this run. The current stack already contains the latest heads of #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142. Fresh direct-merge probes for the remaining old-layout PRs still conflict with the same old `dflash/` to current `server/` restructuring and dependent MTP/scheduler areas. No new delegation was launched because the unresolved PR heads and conflict classes remain unchanged from the immediately prior run; the latest usable delegated #237 report remains `/tmp/luce-auto-cron-20260529-220930/probes/codex-pr237-slice-report.txt`. Codex previously confirmed direct merge is unsafe and narrowed the smallest buildable #237 salvage slice to common MTP orchestration only, excluding qwen35 native-head runtime integration until a separate manual port preserves the current remote-draft, pFlash/C2, qwen35moe, budget, and GGUF-loader behavior.
+No new non-draft contributor PR head required a code stack rewrite in this run. The current stack already contains the latest heads of #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142. Fresh direct-merge probes for the remaining old-layout PRs still conflict with the same old `dflash/` to current `server/` restructuring and dependent MTP/scheduler areas. A fresh tmux-driven Codex delegation re-reviewed #237 and wrote `/tmp/luce-auto-cron-20260530-012647/probes/codex-pr237-refresh-report.txt`; it confirmed #237 is not directly mergeable and that no meaningful MTP runtime slice is safely buildable now without a deliberate server-layout port.
 
 ## Included in the current stack
 
@@ -43,7 +43,7 @@ No new non-draft contributor PR head required a code stack rewrite in this run. 
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T01:12:41-04:00` during preflight and `2026-05-30T01:13:19-04:00` for the reconciliation worktree name / manifest refresh.
+- `date -Is` -> `2026-05-30T01:25:59-04:00` during preflight and `2026-05-30T01:26:47-04:00` for the reconciliation worktree name / manifest refresh.
 - Primary checkout preflight: `git status --short` was clean; branch was `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and harmless `codex --version` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
@@ -51,15 +51,15 @@ This run performed:
 - Open non-draft PR refs were fetched individually to `refs/remotes/origin/pr/<n>`.
 - Containment checks confirmed #310, #309, #307, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 are ancestors of the current integration stack; #237, #221, #154, #153, #137, #135, #94, and #48 are not ancestors and remain classified below.
 - `origin/main` remains included in `auto-integration`; merging `origin/main` reported `Already up to date.`
-- Fresh probe worktrees attempted direct merges for every non-integrated non-draft PR. All eight still conflict in old-layout or dependent MTP/scheduler areas; logs are retained under `/tmp/luce-auto-cron-20260530-011319/probes/pr-*-merge.log`, status snapshots under `/tmp/luce-auto-cron-20260530-011319/probes/pr-*-status.txt`, and conflict-file lists under `/tmp/luce-auto-cron-20260530-011319/probes/pr-*-conflicts.txt`.
-- Delegation status: no new agent was launched this run because heads and conflict classes are unchanged from the previous probe/delegation cycle; the latest usable delegated #237 report remains `/tmp/luce-auto-cron-20260529-220930/probes/codex-pr237-slice-report.txt`.
+- Fresh probe worktrees attempted direct merges for every non-integrated non-draft PR. All eight still conflict in old-layout or dependent MTP/scheduler areas; logs are retained under `/tmp/luce-auto-cron-20260530-012647/probes/pr-*-merge.log`, status snapshots under `/tmp/luce-auto-cron-20260530-012647/probes/pr-*-status.txt`, and conflict-file lists under `/tmp/luce-auto-cron-20260530-012647/probes/pr-*-conflicts.txt`.
+- Fresh delegation: Codex ran in tmux session `luce-codex-237-012712` and produced `/tmp/luce-auto-cron-20260530-012647/probes/codex-pr237-refresh-report.txt`; the tmux session was stopped after the report was verified.
 - Verification for the final manifest-only update: `git diff --check` passed in the reconciliation worktree. No code changed in this run, so the prior targeted `luce-bench` result (`108 passed in 1.64s` on the current #285 head) remains the latest code-test signal.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
 | PR | Head branch | Head | Current status | Probe result / next useful action |
 |---:|---|---:|---|---|
-| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | blocked-needs-human / human-scale salvage-port | Fresh direct-merge probe still conflicts across deleted old `dflash/` server/backend files plus current `server/CMakeLists.txt`, backend factory, MTP common files, Qwen35 loader/graph/backend/dflash target/MTP files, and tests. Claude produced no usable report in the prior delegation cycle. Codex confirms direct merge is unsafe: taking either side would drop important current behavior or MTP wiring. Smallest buildable salvage slice is common MTP orchestration only: adapt `model_backend.h`, `dflash_target.h`, `mtp_interface.*`, `mtp_chain_runner.*`, `mtp_orchestrator.*`, add only common `.cpp` files to `dflash_common`, and trim `test_common_mtp_orchestrator.cpp` to common stubs. Defer qwen35 MTP modules/backend generation/loader/test_dflash/server CLI until a manual port can preserve current remote-draft, pFlash/C2 budget, qwen35moe router capture, GGUF arch-prefix handling, and degenerate-close plumbing. |
+| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | blocked-needs-human / human-scale server-layout port | Fresh direct-merge probe still conflicts across deleted old `dflash/` server/backend files plus current `server/CMakeLists.txt`, backend factory, MTP common files, Qwen35 loader/graph/backend/dflash target/MTP files, and tests. Fresh Codex report says direct merge is unsafe and no meaningful MTP runtime slice is safe now: the common MTP files require new `ModelBackend` MTP hooks, `DFlashTarget` hidden-capture/rollback APIs, and a broad Qwen35 target implementation. A tiny `server/src/common/gguf_metadata.h` port would be build-neutral but unused and would not advance functionality. Manual path: first remap the old `dflash/` patch to `server/`, then port the interface layer with no-op defaults, then Qwen35 capture/rollback, then expose CLI/backend-factory flags after build checks. |
 | #221 | `feat/mtp-prefix-warm-ghost` | `05502974` | blocked-needs-human / dependent salvage-port | Fresh direct-merge probe still conflicts in old `dflash/` scripts/backend plus current MTP/common/prefix-cache/Qwen35 files and tests. Prior Codex report says no small safe buildable prefix-warm slice should be extracted now: mine prefix-cache WARM behavior only after a current-layout #237-equivalent MTP foundation lands. |
 | #154 | `xabicasa/dflash-mtp-speculative-loop` | `2f4ede79` | blocked-needs-human / dependency | Fresh probe conflicts in old `dflash/CMakeLists.txt`, MTP docs, CUDA/internal/Qwen35 graph/loader files, and MTP smoke/contract tests. Mine linear MTP decode semantics after current-layout Qwen35 MTP exists. |
 | #153 | `xabicasa/dflash-mtp-integrated` | `e9b17cb1` | blocked-needs-human / dependency | Fresh probe conflicts in old `dflash/CMakeLists.txt`, MTP docs, CUDA/internal/Qwen35 graph/loader files, and MTP smoke/contract tests. Mine loader/graph/cache/test ideas after current-layout Qwen35 MTP exists. |
@@ -76,17 +76,19 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained all worktrees/logs for audit because probe worktrees contain conflicted indexes and safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-237-probe`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-221-probe`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-154-probe`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-153-probe`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-137-probe`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-135-probe`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-94-probe`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-48-probe`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-*-merge.log`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-*-status.txt`
-- `/tmp/luce-auto-cron-20260530-011319/probes/pr-*-conflicts.txt`
+- `/tmp/luce-auto-cron-20260530-012647/stack`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-237-probe`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-221-probe`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-154-probe`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-153-probe`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-137-probe`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-135-probe`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-94-probe`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-48-probe`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-*-merge.log`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-*-status.txt`
+- `/tmp/luce-auto-cron-20260530-012647/probes/pr-*-conflicts.txt`
+- `/tmp/luce-auto-cron-20260530-012647/probes/codex-pr237-refresh-report.txt`
 
 Useful prior probe/delegation artifacts remain for unresolved old-layout PRs:
 
@@ -111,4 +113,4 @@ Useful prior probe/delegation artifacts remain for unresolved old-layout PRs:
 
 ## Notes
 
-The next useful integration work remains concrete: manually start the small common-MTP slice from #237 in a clean auto-integration worktree, with a trimmed common-only orchestrator test. If that compiles, follow with a separate qwen35 native-head MTP port that preserves remote-draft, pFlash/C2, qwen35moe, budget, and GGUF-loader behavior. Then attempt #221/#153/#154 MTP follow-ups after the foundation exists. Keep #135 as a separate scheduler/batched-target selective port. #137 and #48 look like old `dflash/CMakeLists.txt` changes that should be closed or retargeted, and #94 appears largely superseded by current draft/SWA support.
+The next useful integration work remains concrete but manual: start a dedicated current-`server/` #237 port, not a direct merge. Add the interface/no-op surface first, then Qwen35 capture/rollback and common MTP tests, then follow with #221/#153/#154 MTP behavior after the foundation exists. Keep #135 as a separate scheduler/batched-target selective port. #137 and #48 look like old `dflash/CMakeLists.txt` changes that should be closed or retargeted, and #94 appears largely superseded by current draft/SWA support.
