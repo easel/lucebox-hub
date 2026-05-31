@@ -629,42 +629,35 @@ GenerateResult Qwen35Backend::generate(const GenerateRequest & req,
     // Decode (speculative or AR)
     if (req.n_gen > 0) {
         auto t_decode_start = std::chrono::steady_clock::now();
-        if (!fa_within_budget) {
-            // AR fallback: fa_window override too wide for spec decode.
-            bool ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
-                                    req.budget_hook,
-                                    &result.budget_forced_close,
-                                    &result.degenerate_decode_close);
+        // Pass the budget hook into spec-decode. When token count nears
+        // the budget edge, do_spec_decode breaks out and tails off via
+        // AR with the hook still active — force-close fires correctly
+        // without sacrificing spec-decode throughput for the bulk of
+        // generation. Most requests never hit the tail because the
+        // model closes </think> naturally well before the budget edge.
+        bool decode_ok = false;
+        if (req.force_ar_decode || !fa_within_budget) {
+            // AR fallback: caller forced it, or fa_window override is too wide
+            // for spec decode.
+            decode_ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
+                                     req.budget_hook,
+                                     &result.budget_forced_close,
+                                     &result.degenerate_decode_close);
             out_io.emit(-1);
-            if (!ok) { result.error = "decode"; return result; }
         } else {
-            // Pass the budget hook into spec-decode. When token count nears
-            // the budget edge, do_spec_decode breaks out and tails off via
-            // AR with the hook still active — force-close fires correctly
-            // without sacrificing spec-decode throughput for the bulk of
-            // generation. Most requests never hit the tail because the
-            // model closes </think> naturally well before the budget edge.
-            bool spec_ok = do_spec_decode(committed, req.n_gen, result.tokens, out_io,
-                                          result.accept_rate, result.spec_decode_ran,
-                                          req.hint_tokens,
-                                          req.stall_tool_prefix_tokens,
-                                          req.stall_action_suffix_tokens,
-                                          req.stall_skip_tokens,
-                                          &req.budget_hook,
-                                          &result.budget_forced_close,
-                                          &result.degenerate_decode_close);
-            if (spec_ok && result.tokens.empty()) {
-                // Spec-decode can degenerately accept EOS as the first token on
-                // some agentic turns; fall back to AR decode for those contexts.
-                spec_ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
-                                       req.budget_hook,
+            decode_ok = do_spec_decode(committed, req.n_gen, result.tokens, out_io,
+                                       result.accept_rate, result.spec_decode_ran,
+                                       req.hint_tokens,
+                                       req.stall_tool_prefix_tokens,
+                                       req.stall_action_suffix_tokens,
+                                       req.stall_skip_tokens,
+                                       &req.budget_hook,
                                        &result.budget_forced_close,
                                        &result.degenerate_decode_close);
-            }
-            if (!spec_ok) {
-                result.error = "decode";
-                return result;
-            }
+        }
+        if (!decode_ok) {
+            result.error = "decode";
+            return result;
         }
         result.decode_s = std::chrono::duration<double>(
             std::chrono::steady_clock::now() - t_decode_start).count();
@@ -749,24 +742,25 @@ GenerateResult Qwen35Backend::restore_and_generate(int slot,
         // without sacrificing spec-decode throughput for the bulk of
         // generation. Most requests never hit the tail because the
         // model closes </think> naturally well before the budget edge.
-        bool spec_ok = do_spec_decode(committed, req.n_gen, result.tokens, out_io,
-                                      result.accept_rate, result.spec_decode_ran,
-                                      req.hint_tokens,
-                                      req.stall_tool_prefix_tokens,
-                                      req.stall_action_suffix_tokens,
-                                      req.stall_skip_tokens,
-                                      &req.budget_hook,
-                                      &result.budget_forced_close,
-                                      &result.degenerate_decode_close);
-        if (spec_ok && result.tokens.empty()) {
-            // Spec-decode can degenerately accept EOS as the first token on
-            // some agentic turns; fall back to AR decode for those contexts.
-            spec_ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
-                                   req.budget_hook,
-                                   &result.budget_forced_close,
-                                   &result.degenerate_decode_close);
+        bool decode_ok = false;
+        if (req.force_ar_decode) {
+            decode_ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
+                                     req.budget_hook,
+                                     &result.budget_forced_close,
+                                     &result.degenerate_decode_close);
+            out_io.emit(-1);
+        } else {
+            decode_ok = do_spec_decode(committed, req.n_gen, result.tokens, out_io,
+                                       result.accept_rate, result.spec_decode_ran,
+                                       req.hint_tokens,
+                                       req.stall_tool_prefix_tokens,
+                                       req.stall_action_suffix_tokens,
+                                       req.stall_skip_tokens,
+                                       &req.budget_hook,
+                                       &result.budget_forced_close,
+                                       &result.degenerate_decode_close);
         }
-        if (!spec_ok) {
+        if (!decode_ok) {
             result.error = "decode";
             return result;
         }
