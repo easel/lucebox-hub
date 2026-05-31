@@ -267,6 +267,8 @@ add_library(dflash_common STATIC
     src/qwen35/qwen35_layer_split_dflash_target.cpp
     src/qwen35/layer_split_daemon_loop.cpp
     src/qwen35/qwen35_daemon.cpp
+    src/common/mtp_chain_runner.cpp
+    src/common/mtp_orchestrator.cpp
     src/common/sampler.cpp
     src/common/backend_precision.cpp
     src/common/daemon_loop.cpp
@@ -566,6 +568,15 @@ if(DFLASH27B_TESTS)
         add_executable(test_gguf_mmap test/test_gguf_mmap.cpp)
         target_include_directories(test_gguf_mmap PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
         target_link_libraries(test_gguf_mmap PRIVATE dflash_common)
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_common_mtp_orchestrator.cpp")
+        add_executable(test_common_mtp_orchestrator
+            test/test_common_mtp_orchestrator.cpp)
+        target_include_directories(test_common_mtp_orchestrator PRIVATE
+            ${DFLASH27B_SRC_INCLUDE_DIRS})
+        target_link_libraries(test_common_mtp_orchestrator PRIVATE dflash_common)
+        add_test(NAME common_mtp_orchestrator
+            COMMAND test_common_mtp_orchestrator)
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_early_exit_score_range.cpp")
         add_executable(test_drafter_early_exit_score_range

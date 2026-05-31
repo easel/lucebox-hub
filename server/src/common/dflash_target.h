@@ -16,6 +16,8 @@
 
 namespace dflash::common {
 
+struct DDTree;
+
 struct DFlashTarget {
     virtual ~DFlashTarget() = default;
 
@@ -33,6 +35,16 @@ struct DFlashTarget {
                               int & last_tok,
                               std::vector<int32_t> * all_argmax = nullptr) = 0;
 
+    virtual bool verify_tree(const std::vector<int32_t> & flat_tokens,
+                             const DDTree & tree,
+                             int base_pos,
+                             std::vector<int32_t> & out_argmax,
+                             std::vector<float> * out_logits = nullptr) {
+        (void)flat_tokens; (void)tree; (void)base_pos;
+        (void)out_argmax; (void)out_logits;
+        return false;
+    }
+
     // ── KV state management ─────────────────────────────────────────
 
     // Snapshot KV cache state before speculative verify, so it can be
@@ -41,6 +53,19 @@ struct DFlashTarget {
 
     // Restore KV cache to the last snapshot (undo speculative forward).
     virtual bool restore_kv() = 0;
+
+    virtual bool restore_kv_at_dfs(const std::vector<int> & accepted_dfs) {
+        (void)accepted_dfs;
+        return false;
+    }
+
+    virtual bool restore_kv_at_chain(int accept_n) {
+        (void)accept_n;
+        return false;
+    }
+
+    virtual void enable_chain_capture(bool /*on*/) {}
+    virtual void capture_topology_for_chain(int /*n_tokens*/, int /*base_pos*/) {}
 
     // ── Token utilities ─────────────────────────────────────────────
 
@@ -61,6 +86,14 @@ struct DFlashTarget {
                                           int n_tokens,
                                           std::vector<int32_t> & tokens_out) = 0;
 
+    virtual bool project_hidden_to_logits(const float * /*hidden*/,
+                                          int /*n_tokens*/,
+                                          std::vector<float> & /*logits_out*/,
+                                          int & out_vocab) {
+        out_vocab = 0;
+        return false;
+    }
+
     // ── Configuration for draft model ───────────────────────────────
 
     // Target's hidden dimension (draft model must match).
@@ -72,6 +105,28 @@ struct DFlashTarget {
     // Which target layers to capture intermediate activations from.
     // The draft model's fc layer expects exactly this many feature slices.
     virtual const std::vector<int> & capture_layer_ids() const = 0;
+
+    virtual const float * last_hidden() const { return nullptr; }
+
+    virtual const float * last_hidden_seq(int * out_n_tokens) const {
+        if (out_n_tokens) *out_n_tokens = 0;
+        return nullptr;
+    }
+
+    virtual const float * hidden_at_pos(int abs_pos) const {
+        (void)abs_pos;
+        return nullptr;
+    }
+
+    virtual const float * hidden_at_pos_pre_norm(int abs_pos) const {
+        (void)abs_pos;
+        return nullptr;
+    }
+
+    virtual void enable_hidden_seq_capture(bool /*on*/) {}
+
+    enum class VerifyCaptureScope { FULL_SEQ, LAST_ROW_ONLY };
+    virtual void set_hidden_capture_scope(VerifyCaptureScope /*scope*/) {}
 };
 
 } // namespace dflash::common

@@ -26,6 +26,8 @@ namespace dflash::common {
 // Return true to continue generation, false to abort.
 using TokenCallback = std::function<bool(int32_t token)>;
 
+namespace mtp { struct IMtpModule; }
+
 // ─── I/O handle passed to backend methods that need protocol output ─────
 struct DaemonIO {
     int stream_fd = -1;
@@ -272,6 +274,12 @@ struct ModelBackend {
     // Return the DFlashTarget adapter for this backend. Only valid when
     // supports_dflash_spec_decode() returns true. Default returns nullptr.
     virtual class DFlashTarget * dflash_target() { return nullptr; }
+
+    // ── MTP speculative decode support ───────────────────────────────
+    // Optional generic MTP module hook. Existing backends stay opted out
+    // until they override both methods.
+    virtual bool supports_mtp() const { return false; }
+    virtual mtp::IMtpModule * mtp() { return nullptr; }
 
     // Release oversized scratch buffers between requests to prevent VRAM
     // growth over time. Default is a no-op.
