@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T11:21:54-04:00`
+Last refresh: `2026-05-31T11:24:44-04:00`
 Current base: `origin/main` `8305b6c2`
 Previous integration tip: `easel/auto-integration` `9bd74e8f`
 Current integration source tip before this refresh: `9bd74e8f`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 21 exact current open non-draft PR heads and carries selective salvage from three remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap plus the current-layout Qwen35MoE batched-FFN gallocr reuse / caller-side `kFfnSafeBatch` removal, #237's common MTP interface/chain-runner/orchestrator foundation, and #135's capture-free `n_seqs` target-graph/cache plumbing, request-tagged daemon stream framing, and batched target-feature capture buffer plumbing for current qwen35 work. There are currently 27 open non-draft PRs and 8 draft/excluded PRs. This refresh integrated the advanced #285 Docker/CLI/bench head (`5b15d340`) with current-stack conflict resolutions. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305, #237, and #135 are now partially represented beyond their already-carried broad themes. Fresh direct-merge probes were rerun for all remaining non-ancestors on top of `e8cae946`; conflict counts remained effectively unchanged. A tmux-driven Codex attempt for the next #135 multi-cache-slot scaffolding slice in `/tmp/luce-probe-20260531-111916-pr-135` generated a large transcript but remained stuck with the same three unmerged files, so no #135 source patch was promoted. The next safe #135 order remains: multi-cache-slot scaffolding, then scheduler state/introspection, then diagnostic-only batch probing before live copyback/target-step mutation.
+The current stack contains 21 exact current open non-draft PR heads and carries selective salvage from three remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap plus the current-layout Qwen35MoE batched-FFN gallocr reuse / caller-side `kFfnSafeBatch` removal, #237's common MTP interface/chain-runner/orchestrator foundation, and #135's capture-free `n_seqs` target-graph/cache plumbing, request-tagged daemon stream framing, and batched target-feature capture buffer plumbing for current qwen35 work. There are currently 27 open non-draft PRs and 8 draft/excluded PRs. This refresh integrated the twice-advanced #285 Docker/CLI/bench head (`6790deba`) with current-stack conflict resolutions and a fast-follow clean merge adding the pFlash session benchmark helper. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305, #237, and #135 are now partially represented beyond their already-carried broad themes. Fresh direct-merge probes were rerun for all remaining non-ancestors on top of `e8cae946`; conflict counts remained effectively unchanged. A tmux-driven Codex attempt for the next #135 multi-cache-slot scaffolding slice in `/tmp/luce-probe-20260531-111916-pr-135` generated a large transcript but remained stuck with the same three unmerged files, so no #135 source patch was promoted. The next safe #135 order remains: multi-cache-slot scaffolding, then scheduler state/introspection, then diagnostic-only batch probing before live copyback/target-step mutation.
 
 ## Included in the current non-draft stack
 
@@ -29,7 +29,7 @@ The current stack contains 21 exact current open non-draft PR heads and carries 
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support is carried exactly. |
 | #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, and unit coverage are carried exactly. |
 | #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
-| #285 | `feat/lucebox-docker` | `5b15d340` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, GPU-power-throttle notes, luce-bench grader fixes, think-vs-nothink baseline summary, Forge grader tests, workdir backup ignore rules, README wording refresh, and Qwen closed-think/unit-comment updates are carried exactly with current-stack conflict resolutions. |
+| #285 | `feat/lucebox-docker` | `6790deba` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, GPU-power-throttle notes, luce-bench grader fixes, think-vs-nothink baseline summary, Forge grader tests, workdir backup ignore rules, README wording refresh, Qwen closed-think/unit-comment updates, and the pFlash multi-turn session benchmark helper are carried exactly with current-stack conflict resolutions. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
 | #274 | `feat/pflash-drafter-ee7` | `8fc961b5` | included | Adaptive pFlash composition, effective-size admission/keep-ratio guard, and opt-in pFlash regime router are carried with current stack conflict resolutions preserved. |
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried exactly. |
@@ -111,6 +111,8 @@ This run performed:
 - Fresh direct-merge probes on top of `e8cae946` reconfirmed current conflict/status counts for the remaining non-ancestor PRs: #305 (57 status entries), #237 (33), #221 (88), #154 (13), #153 (10), and #135 (3).
 - Tmux-driven Codex delegation for the next #135 target-cache-slot scaffolding slice in `/tmp/luce-probe-20260531-111916-pr-135` wrote a large transcript to `/tmp/luce-codex-pr135-slots-20260531-111916.txt` but stayed stuck with the same three files unmerged (`server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp`), so no #135 source patch was promoted.
 - Validation for this source/manifest refresh: `git diff --check` passed before commit. Full CMake validation was not rerun because this checkout still lacks populated `server/deps/llama.cpp` and the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+- Post-push re-enumeration found #285 had advanced again from `5b15d340` to `6790deba` while this run was in progress. A fresh worktree `/tmp/luce-auto-cron-20260531-1126-pr285` merged the new #285 head cleanly on top of `12509548`, adding `scripts/pflash_session_bench.py` and Dockerfile updates.
+- Validation after the #285 fast-follow merge: `git diff --check` passed, `python3 -m py_compile scripts/pflash_session_bench.py` passed, and `uv run --project luce-bench --extra dev pytest luce-bench/tests/test_forge_grader.py` passed (`16 passed`).
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -135,6 +137,8 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 ## Retained worktrees / logs
 
 This run retained the updated stack worktree, conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+
+- `/tmp/luce-auto-cron-20260531-1126-pr285` (fast-follow advanced #285 merge worktree)
 
 - `/tmp/luce-auto-cron-20260531-111916` (current source/manifest refresh worktree; advanced #285 merged here)
 - `/tmp/luce-probe-20260531-111916-pr-305`
