@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T20:32:35-04:00`
+Last refresh: `2026-05-30T20:53:50-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `14260be0`
-Current integration tip before push: `14260be0`
+Previous integration tip: `easel/auto-integration` `4a198d19`
+Current integration tip before push: `4a198d19`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
-No product-code PR was newly integrated in this refresh: `origin/main` was already included in the stack and every currently included non-draft PR head was already an ancestor of `easel/auto-integration`. The open non-draft set still contains 24 PRs; 15 are exactly included and 9 remain non-ancestor conflict/selective-port or superseded candidates. This run reran direct merge probes for every still-non-integrated non-draft PR and also ran three delegated salvage/supersedence audits to avoid treating conflicts as blockers without substantive review.
+No product-code PR was newly integrated in this refresh: `origin/main` was already included in the stack and every currently included non-draft PR head was already an ancestor of `easel/auto-integration`. The open non-draft set still contains 24 PRs; 15 are exactly included and 9 remain non-ancestor conflict/selective-port or superseded candidates. This run reran direct merge probes for every still-non-integrated non-draft PR and ran a tmux-driven Codex read-only audit for #237/#305. A tmux-driven Claude audit attempt for #237/#305 produced no stdout/report after roughly 90 seconds and was stopped as stuck before the successful Codex fallback.
 
 ## Included in the current non-draft stack
 
@@ -39,26 +39,26 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T20:29:27-04:00` during preflight and `2026-05-30T20:32:35-04:00` while refreshing this manifest.
+- `date -Is` -> `2026-05-30T20:45:30-04:00` during preflight and `2026-05-30T20:53:50-04:00` while refreshing this manifest.
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless `codex --help` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Current open PR enumeration reported 24 non-draft PRs and 7 draft/excluded PRs.
 - Explicit fetch of open PR heads succeeded for all current non-draft PRs.
 - Exact-head containment showed #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of the stack; #305, #237, #221, #154, #153, #137, #135, #94, and #48 remained non-ancestors.
-- A reconcile worktree from `auto-integration` was created at `/tmp/luce-auto-cron-20260530-203020`; `git merge --no-edit origin/main` reported `Already up to date.`
-- Probe worktrees were created from the current stack and direct-merge attempts were rerun for all still-non-integrated PRs; conflict file lists are recorded under `/tmp/luce-auto-cron-20260530-203020-logs/`.
+- A reconcile worktree from `auto-integration` was created at `/tmp/luce-auto-cron-20260530-204620`; `git merge --no-edit origin/main` reported `Already up to date.`
+- Probe worktrees were created from the current stack and direct-merge attempts were rerun for all still-non-integrated PRs; conflict file lists are recorded under `/tmp/luce-auto-cron-20260530-204620-logs/`.
 - Direct merge probes remained conflicted: #305=29, #237=24, #221=23, #154=12, #153=10, #137=1, #135=3, #94=3, #48=1.
-- Delegated read-only audits refined the classifications: #237 is a salvage candidate; #221 is superseded for direct integration and should only be mined after #237-style MTP salvage; #305 has 21 patch-equivalent commits and 10 remaining selective-port commits; #137/#48/#94 are superseded; #135 remains a high-risk selective-port candidate.
+- Delegated read-only audit: Claude Code through tmux produced no report/stdout and was stopped; Codex through tmux produced `/tmp/luce-codex-audit-237-305-report.txt`, confirming no classification change for #237 or #305. Codex found #237 has no newly direct-portable minimal subset; #305 has two textually applicable commits (`999376f8`, `ac5470d9`) but they are not coherent standalone ports because they depend on the broader `init_pipelined_decode_state`/telemetry/common-MoE changes.
 - Verification for this docs-only refresh: `git diff --check HEAD -- docs/auto-integration.md` passed before commit. No product build was run because the stack did not gain product-code changes in this run.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
 | PR | Head branch | Head | Current status | Probe result / next useful action |
 |---:|---|---:|---|---|
-| #305 | `layersplit_refactor` | `1de45e4d` | selective salvage only / human-scale | Fresh direct merge still conflicts across 29 files. Delegated audit confirmed first 21 PR commits are patch-equivalent/already absorbed; the 10 patch-unique commits cover common MoE hybrid extraction, routed FFN cached graphs, GPU-resident `act_cur` and async logits, Laguna hot/cold placement and `DFLASH_EXPERT_BUDGET_PCT`, and no-sub-batch reused-`gallocr` behavior. Do not direct-merge; selectively port desired Laguna/common-MoE behavior into current `server/` layout while preserving current qwen35moe pipeline, Laguna layer-split adapter, backend precision policy, IPC payload transport, and harness/Docker layout. |
-| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | salvage-port candidate / human-scale server-layout port | Fresh probe still conflicts across 24 old `dflash/` and current `server/` files including CMake, backend factory, common MTP interfaces, Qwen35 graph/loader/backend, and tests. Delegated audit found 13 non-equivalent MTP-focused commits and no current MTP source implementation beyond test shells. Port old CLI/config semantics into current `server/src/server/server_main.cpp`; merge `MtpSource`, native/external MTP GGUF detection, backend factory assignment, MTP hidden captures, and Qwen35 helpers without regressing remote-draft, Qwen35MoE, layer-split, or PFlash helpers. |
-| #135 | `xabicasa/dflash-multi-request-scheduler-batched-target-step` | `561b0ac1` | selective-port candidate / high risk | Fresh direct probe still conflicts in `server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp`. Delegated audit found no current hits for `SCHED_BATCH_*`, `SCHED_STEP`, `LIST_REQUESTS`, `--target-cache-slots`, `--stream-tagged`, `PendingQuantum`, or `ActiveDaemonSlot`; current `TargetCache` remains single-cache/slot oriented and qwen35 target graph still has internal `n_seqs = 1` assumptions. Split any salvage into smaller current-layout changes: cache slots/ownership, tagged framing, scheduler protocol, then batched target step. |
+| #305 | `layersplit_refactor` | `1de45e4d` | selective salvage only / human-scale | Fresh direct merge still conflicts across 29 files. Delegated audit reconfirmed first 21 PR commits are patch-equivalent/already absorbed; the 10 patch-unique commits cover common MoE hybrid extraction, routed FFN cached graphs, GPU-resident `act_cur` and async logits, Laguna hot/cold placement and `DFLASH_EXPERT_BUDGET_PCT`, and no-sub-batch reused-`gallocr` behavior. Do not direct-merge; selectively port desired Laguna/common-MoE behavior into current `server/` layout while preserving current qwen35moe pipeline, Laguna layer-split adapter, backend precision policy, IPC payload transport, and harness/Docker layout. |
+| #237 | `feat/dflash-mtp-foundation` | `02c6a6c4` | salvage-port candidate / human-scale server-layout port | Fresh probe still conflicts across 24 old `dflash/` and current `server/` files including CMake, backend factory, common MTP interfaces, Qwen35 graph/loader/backend, and tests. Delegated audit reconfirmed no newly direct-portable minimal subset; port old CLI/config semantics into current `server/src/server/server_main.cpp`; merge `MtpSource`, native/external MTP GGUF detection, backend factory assignment, MTP hidden captures, and Qwen35 helpers without regressing remote-draft, Qwen35MoE, layer-split, or PFlash helpers. |
+| #135 | `xabicasa/dflash-multi-request-scheduler-batched-target-step` | `561b0ac1` | selective-port candidate / high risk | Fresh direct probe still conflicts in `server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp`. Prior delegated audit found no current hits for `SCHED_BATCH_*`, `SCHED_STEP`, `LIST_REQUESTS`, `--target-cache-slots`, `--stream-tagged`, `PendingQuantum`, or `ActiveDaemonSlot`; current `TargetCache` remains single-cache/slot oriented and qwen35 target graph still has internal `n_seqs = 1` assumptions. Split any salvage into smaller current-layout changes: cache slots/ownership, tagged framing, scheduler protocol, then batched target step. |
 | #154 | `xabicasa/dflash-mtp-speculative-loop` | `2f4ede79` | blocked-needs-human / dependency | Fresh probe conflicts in 12 old/current MTP docs, `dflash/CMakeLists.txt`, CUDA/internal/Qwen35 graph/loader files, and MTP smoke/contract tests. Mine linear MTP decode semantics after current-layout #237-equivalent Qwen35 MTP exists. |
 | #153 | `xabicasa/dflash-mtp-integrated` | `e9b17cb1` | blocked-needs-human / dependency | Fresh probe conflicts in 10 old/current MTP docs, `dflash/CMakeLists.txt`, CUDA/internal/Qwen35 graph/loader files, and MTP smoke/contract tests. Mine loader/graph/cache/test ideas after current-layout #237-equivalent Qwen35 MTP exists. |
 
@@ -66,10 +66,10 @@ This run performed:
 
 | PR | Head branch | Head | Current status | Evidence / suggested action |
 |---:|---|---:|---|---|
-| #221 | `feat/mtp-prefix-warm-ghost` | `05502974` | superseded for direct integration; mine only after #237 | Fresh direct-merge probe still conflicts across 23 old/current files. Delegated audit found 12 non-equivalent commits, but the branch is older/broader than #237 and mixes early MTP, prefix-cache warm-hit, PFlash dispatcher/protocol, benches, and docs; #237 is the better MTP foundation salvage base. |
-| #137 | `xabicasa/dflash-build-cmake-sm89-bsa` | `297fc74e` | suggested-close/superseded | Fresh probe conflicts only on deleted old `dflash/CMakeLists.txt`. Delegated audit confirmed current `server/CMakeLists.txt` already honors `DFLASH27B_USER_CUDA_ARCHITECTURES`, applies resolved CUDA arches to `dflash_common`, and keeps `DFLASH27B_ENABLE_BSA` on except explicit HIP Phase 1. |
-| #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | suggested-close/superseded | Fresh probe conflicts in current draft/internal files. Delegated audit confirmed current tree has `DraftLayer::is_swa`, `DraftWeights::swa_window`, bare-filename config fallback, safetensors `sliding_window`/`layer_types` parsing, SWA-aware draft graph masks, and GGUF SWA metadata support. |
-| #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | suggested-close/superseded | Fresh probe conflicts only on deleted old `dflash/CMakeLists.txt`. Delegated audit confirmed current `server/CMakeLists.txt` conditionally adds CUDA `120`/`110`/`121` by CUDA version and sets `GGML_CUDA_BLACKWELL_CONSUMER` from resolved 12x arches. |
+| #221 | `feat/mtp-prefix-warm-ghost` | `05502974` | superseded for direct integration; mine only after #237 | Fresh direct-merge probe still conflicts across 23 old/current files. Prior delegated audit found 12 non-equivalent commits, but the branch is older/broader than #237 and mixes early MTP, prefix-cache warm-hit, PFlash dispatcher/protocol, benches, and docs; #237 is the better MTP foundation salvage base. |
+| #137 | `xabicasa/dflash-build-cmake-sm89-bsa` | `297fc74e` | suggested-close/superseded | Fresh probe conflicts only on deleted old `dflash/CMakeLists.txt`. Prior delegated audit confirmed current `server/CMakeLists.txt` already honors `DFLASH27B_USER_CUDA_ARCHITECTURES`, applies resolved CUDA arches to `dflash_common`, and keeps `DFLASH27B_ENABLE_BSA` on except explicit HIP Phase 1. |
+| #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | suggested-close/superseded | Fresh probe conflicts in current draft/internal files. Prior delegated audit confirmed current tree has `DraftLayer::is_swa`, `DraftWeights::swa_window`, bare-filename config fallback, safetensors `sliding_window`/`layer_types` parsing, SWA-aware draft graph masks, and GGUF SWA metadata support. |
+| #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | suggested-close/superseded | Fresh probe conflicts only on deleted old `dflash/CMakeLists.txt`. Prior delegated audit confirmed current `server/CMakeLists.txt` conditionally adds CUDA `120`/`110`/`121` by CUDA version and sets `GGML_CUDA_BLACKWELL_CONSUMER` from resolved 12x arches. |
 
 ## Draft / excluded
 
@@ -79,19 +79,20 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained worktrees/logs for audit because probe worktrees contain conflicted indexes and safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260530-203020`
-- `/tmp/luce-probe-20260530-203020-pr-305`
-- `/tmp/luce-probe-20260530-203020-pr-237`
-- `/tmp/luce-probe-20260530-203020-pr-221`
-- `/tmp/luce-probe-20260530-203020-pr-154`
-- `/tmp/luce-probe-20260530-203020-pr-153`
-- `/tmp/luce-probe-20260530-203020-pr-137`
-- `/tmp/luce-probe-20260530-203020-pr-135`
-- `/tmp/luce-probe-20260530-203020-pr-94`
-- `/tmp/luce-probe-20260530-203020-pr-48`
-- Logs under `/tmp/luce-auto-cron-20260530-203020-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
+- `/tmp/luce-auto-cron-20260530-204620`
+- `/tmp/luce-probe-20260530-204620-pr-305`
+- `/tmp/luce-probe-20260530-204620-pr-237`
+- `/tmp/luce-probe-20260530-204620-pr-221`
+- `/tmp/luce-probe-20260530-204620-pr-154`
+- `/tmp/luce-probe-20260530-204620-pr-153`
+- `/tmp/luce-probe-20260530-204620-pr-137`
+- `/tmp/luce-probe-20260530-204620-pr-135`
+- `/tmp/luce-probe-20260530-204620-pr-94`
+- `/tmp/luce-probe-20260530-204620-pr-48`
+- Logs under `/tmp/luce-auto-cron-20260530-204620-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
+- Delegated audit transcripts: `/tmp/luce-codex-audit-237-305.stdout`, `/tmp/luce-codex-audit-237-305-report.txt`, and empty/stuck Claude attempt files `/tmp/luce-claude-audit-237-305.stdout` / `/tmp/luce-claude-audit-237-305-report.txt`.
 
-Earlier retained audit paths from prior runs include `/tmp/luce-auto-cron-20260530-201608`, `/tmp/luce-auto-cron-20260530-200216`, `/tmp/luce-auto-cron-20260530-194121`, `/tmp/luce-auto-cron-20260530-192047`, `/tmp/luce-auto-cron-20260530-184231`, `/tmp/luce-auto-cron-20260530-181103`, `/tmp/luce-auto-cron-20260530-175155`, `/tmp/luce-auto-cron-20260530-173141`, `/tmp/luce-auto-cron-20260530-171420`, `/tmp/luce-auto-cron-20260530-165724`, `/tmp/luce-auto-cron-20260530-164341`, `/tmp/luce-auto-cron-20260530-162504`, `/tmp/luce-auto-cron-20260530-161133`, `/tmp/luce-auto-cron-20260530-155251`, `/tmp/luce-auto-cron-20260530-153049`, `/tmp/luce-auto-cron-20260530-154010`, their corresponding probe worktrees, and logs.
+Earlier retained audit paths from prior runs include `/tmp/luce-auto-cron-20260530-203020`, `/tmp/luce-auto-cron-20260530-201608`, `/tmp/luce-auto-cron-20260530-200216`, `/tmp/luce-auto-cron-20260530-194121`, `/tmp/luce-auto-cron-20260530-192047`, `/tmp/luce-auto-cron-20260530-184231`, `/tmp/luce-auto-cron-20260530-181103`, `/tmp/luce-auto-cron-20260530-175155`, `/tmp/luce-auto-cron-20260530-173141`, `/tmp/luce-auto-cron-20260530-171420`, `/tmp/luce-auto-cron-20260530-165724`, `/tmp/luce-auto-cron-20260530-164341`, `/tmp/luce-auto-cron-20260530-162504`, `/tmp/luce-auto-cron-20260530-161133`, `/tmp/luce-auto-cron-20260530-155251`, `/tmp/luce-auto-cron-20260530-153049`, `/tmp/luce-auto-cron-20260530-154010`, their corresponding probe worktrees, and logs.
 
 ## Notes
 
