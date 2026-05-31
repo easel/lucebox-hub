@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T21:12:21-04:00`
+Last refresh: `2026-05-30T21:25:36-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `52706687`
-Current integration tip before push: `52706687`
+Previous integration tip: `easel/auto-integration` `cb6dde1d`
+Current integration tip before push: `cb6dde1d`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
-This refresh integrated new non-draft PR #315 (`codex/dflash-spec-tool-recovery`, head `6c8db53f`) on top of the existing stack. `origin/main` was already included. The open non-draft set now contains 25 PRs; 16 are included by exact head containment after this merge and 9 remain non-ancestor conflict/selective-port or superseded candidates. PR #315 initially conflicted only in `server/src/qwen35/qwen35_backend.cpp`; the resolution preserves the existing C2 `fa_window` AR fallback while threading the new stall-recovery token vectors through both qwen35 `do_spec_decode` call sites.
+This refresh found no new ready contributor PR heads beyond the current stack. `origin/main` was already included. The open non-draft set contains 25 PRs; 16 are included by exact head containment and 9 remain non-ancestor conflict/selective-port or superseded candidates. Fresh direct-merge probes for all 9 non-ancestor PRs still conflict in the same broad classes recorded below, so this run made no product-code changes.
 
 ## Included in the current non-draft stack
 
@@ -40,17 +40,16 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T21:07:07-04:00` during preflight and `2026-05-30T21:12:21-04:00` while refreshing this manifest.
+- `date -Is` -> `2026-05-30T21:25:36-04:00` during preflight.
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless `codex --help` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Current open PR enumeration reported 25 non-draft PRs and 7 draft/excluded PRs.
 - Explicit fetch of open PR heads succeeded for all current non-draft PRs.
-- Exact-head containment before this merge showed #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of the stack; #315, #305, #237, #221, #154, #153, #137, #135, #94, and #48 were non-ancestors.
-- A reconcile worktree from `auto-integration` was created at `/tmp/luce-auto-cron-20260530-210747`; `git merge --no-edit origin/main` reported `Already up to date.`
-- `git merge --no-edit origin/pr/315` conflicted only in `server/src/qwen35/qwen35_backend.cpp`; the manual resolution kept the existing `fa_within_budget`/AR branch and added PR #315's three stall-recovery arguments to both qwen35 `do_spec_decode` calls.
-- Delegated review: tmux-driven Claude Code hit `Error: Reached max turns (4)` without a useful report; tmux-driven Codex produced `/tmp/luce-codex-review-315-report.txt` and reported `Review: PASS`, confirming both qwen35 call sites include the stall-recovery arguments and the C2 `fa_window` AR fallback remains present.
-- Verification for the product-code merge: `git diff --cached --check` passed; targeted Python syntax compilation for the server Python tests passed; a local CMake configure attempt (`cmake -S server -B /tmp/luce-build-20260530-210747 -DCMAKE_BUILD_TYPE=Release -DDFLASH27B_TESTS=OFF -DDFLASH27B_ENABLE_BSA=OFF -DCMAKE_CUDA_ARCHITECTURES=89`) failed during CUDA compiler identification before project compilation because local nvcc/CMake selected unsupported `sm_52` (`ptxas fatal: Value 'sm_52' is not defined`).
+- Exact-head containment showed #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of the stack; #305, #237, #221, #154, #153, #137, #135, #94, and #48 were non-ancestors.
+- A reconcile worktree from `auto-integration` was created at `/tmp/luce-auto-cron-20260530-212604`; `origin/main` was already an ancestor of the stack.
+- Fresh direct-merge probes were created for all 9 non-ancestor non-draft PRs from stack commit `cb6dde1d`; all still conflicted: #305 (29 conflicted files), #237 (24), #221 (23), #154 (12), #153 (10), #137 (1 old `dflash/CMakeLists.txt`), #135 (3), #94 (3), and #48 (1 old `dflash/CMakeLists.txt`).
+- Verification for this docs-only refresh: `git diff --check` passed in the reconcile worktree; no product-code tests were rerun because no product code changed.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -77,13 +76,16 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 ## Retained worktrees / logs
 
-This run retained the PR #315 reconciliation worktree and delegated review transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+This run retained the docs-only refresh worktree and fresh conflicted probe logs for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+
+- `/tmp/luce-auto-cron-20260530-212604`
+- Fresh conflicted probe worktrees: `/tmp/luce-probe-20260530-212604-pr-305`, `/tmp/luce-probe-20260530-212604-pr-237`, `/tmp/luce-probe-20260530-212604-pr-221`, `/tmp/luce-probe-20260530-212604-pr-154`, `/tmp/luce-probe-20260530-212604-pr-153`, `/tmp/luce-probe-20260530-212604-pr-137`, `/tmp/luce-probe-20260530-212604-pr-135`, `/tmp/luce-probe-20260530-212604-pr-94`, and `/tmp/luce-probe-20260530-212604-pr-48`.
+- Fresh logs under `/tmp/luce-auto-cron-20260530-212604-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
+
+Prior retained worktrees/logs for conflicted/superseded probes and the #315 product-code integration:
 
 - `/tmp/luce-auto-cron-20260530-210747`
-- Delegated review transcripts: `/tmp/luce-codex-review-315-report.txt`, `/tmp/luce-claude-review-315-report.txt`, and `/tmp/luce-claude-review-315.stdout`.
-
-Prior retained worktrees/logs for conflicted/superseded probes:
-
+- Delegated review transcripts from the #315 merge: `/tmp/luce-codex-review-315-report.txt`, `/tmp/luce-claude-review-315-report.txt`, and `/tmp/luce-claude-review-315.stdout`.
 - `/tmp/luce-auto-cron-20260530-204620`
 - `/tmp/luce-probe-20260530-204620-pr-305`
 - `/tmp/luce-probe-20260530-204620-pr-237`
