@@ -448,6 +448,93 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
         cleanup_ffn_allocs();
     };
 
+    // Helper: process one token through all layers (host-based with cached graphs)
+    auto process_one_token = [&](int kv_pos) -> bool {
+        for (int il = 0; il < n_layer; ++il) {
+            if (out_io.should_cancel()) return false;
+            const bool is_attn = (((il + 1) % target_weights().full_attention_interval) == 0);
+            const auto t0 = HybridClock::now();
+
+            StepGraph * sg_ptr;
+            if (!is_attn && prefn_built[(size_t)il]) {
+                sg_ptr = &cached_prefn[(size_t)il];
+            } else {
+                StepGraph & sg = is_attn ? layer_sg : cached_prefn[(size_t)il];
+                if (!build_layer_prefn_step(sg, target_weights(), target_cache(), target_backend(),
+                                            il, kv_pos, /*n_tokens=*/1,
+                                            /*with_mask=*/false, /*fa_window=*/0, cfg_.kq_stride_pad)) {
+                    return false;
+                }
+                if (!is_attn) prefn_built[(size_t)il] = true;
+                sg_ptr = &sg;
+            }
+
+            // Upload act_cur from host → GPU (standard path)
+            ggml_backend_tensor_set(sg_ptr->inp_embed, act_cur.data(), 0, sizeof(float) * (size_t)hidden);
+            if (sg_ptr->positions) {
+                int32_t pos4[4] = {kv_pos, kv_pos, kv_pos, 0};
+                ggml_backend_tensor_set(sg_ptr->positions, pos4, 0, sizeof(pos4));
+            }
+            const auto t1 = HybridClock::now();
+            build_us_total += elapsed_us(t0, t1);
+
+            auto st = ggml_backend_graph_compute(target_backend(), sg_ptr->gf);
+            const auto compute_result = classify_daemon_compute_result(st, out_io);
+            if (compute_result == DaemonComputeResult::Failed) return false;
+            if (compute_result == DaemonComputeResult::Cancelled) return false;
+            const auto t2 = HybridClock::now();
+            compute_us_total += elapsed_us(t1, t2);
+
+            // Read back pre-FFN outputs
+            ggml_backend_tensor_get(sg_ptr->ffn_residual, residual_buf.data(), 0, sizeof(float) * (size_t)hidden);
+            ggml_backend_tensor_get(sg_ptr->ffn_post, post_buf.data(), 0, sizeof(float) * (size_t)hidden);
+            ggml_tensor * layer_selected = (!sg_ptr->moe_selected.empty() && (size_t)il < sg_ptr->moe_selected.size())
+                ? sg_ptr->moe_selected[(size_t)il]
+                : nullptr;
+            if (!layer_selected || !sg_ptr->moe_weights) return false;
+            ggml_backend_tensor_get(layer_selected, selected.data(), 0,
+                                    sizeof(int32_t) * selected.size());
+            ggml_backend_tensor_get(sg_ptr->moe_weights, weights_buf.data(), 0,
+                                    sizeof(float) * weights_buf.size());
+            if (routing_stats_) {
+                routing_stats_->observe(il, selected.data(), (int)selected.size());
+            }
+            const auto t3 = HybridClock::now();
+            readback_us_total += elapsed_us(t2, t3);
+
+            // Hybrid FFN: hot on GPU, cold on CPU
+            auto & storage = target_weights().moe_hybrid->layers[(size_t)il];
+            const auto & L = target_weights().layers[(size_t)il];
+            if (!eval_qwen35moe_hybrid_ffn_single(
+                    target_backend(), target_weights(), L, storage, cpu_be,
+                    post_buf.data(), selected.data(), weights_buf.data(),
+                    (int)selected.size(), ffn_out, nullptr, nullptr)) {
+                return false;
+            }
+
+            // Layer output = FFN output + residual
+            for (int i = 0; i < hidden; ++i) {
+                act_cur[(size_t)i] = ffn_out[(size_t)i] + residual_buf[(size_t)i];
+            }
+
+            if (hybrid_telemetry_) {
+                for (int32_t expert : selected) {
+                    if (expert >= 0 && expert < (int32_t)storage.hot_local_by_global.size()) {
+                        if (storage.hot_local_by_global[(size_t)expert] >= 0) {
+                            ffn_tel_accum.hot_selected++;
+                        } else {
+                            ffn_tel_accum.cold_selected++;
+                        }
+                    }
+                }
+            }
+
+            const auto t4 = HybridClock::now();
+            ffn_us_total += elapsed_us(t3, t4);
+        }
+        return true;
+    };
+
     // Helper: compute logits from act_cur (persistent graph, built once)
     auto compute_logits = [&]() -> bool {
         if (!logits_sg.ctx) {
@@ -566,14 +653,15 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
 
             // Compute batched pre-FFN
             auto st = ggml_backend_graph_compute(target_backend(), prefill_sg.gf);
-            if (out_io.should_cancel()) {
-                result.ok = true;
+            const auto compute_result = classify_daemon_compute_result(st, out_io);
+            if (compute_result == DaemonComputeResult::Failed) {
+                result.error = "prefill_compute";
                 step_graph_destroy(prefill_sg);
                 cleanup_graphs();
                 return result;
             }
-            if (st != GGML_STATUS_SUCCESS) {
-                result.error = "prefill_compute";
+            if (compute_result == DaemonComputeResult::Cancelled) {
+                result.ok = true;
                 step_graph_destroy(prefill_sg);
                 cleanup_graphs();
                 return result;
