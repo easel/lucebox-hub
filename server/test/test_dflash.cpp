@@ -237,6 +237,40 @@ static bool parse_float_list(const char * text, std::vector<double> & out) {
     return !out.empty();
 }
 
+static bool parse_daemon_request_prefix(std::string & line, int & request_id) {
+    request_id = 0;
+    size_t prefix_len = 0;
+    if (line.rfind("REQUEST", 0) == 0) {
+        prefix_len = 7;
+    } else if (line.rfind("REQ", 0) == 0) {
+        prefix_len = 3;
+    } else {
+        return true;
+    }
+
+    size_t pos = prefix_len;
+    if (line.size() <= pos) return false;
+    if (line[pos] == '=') {
+        pos++;
+    } else if (line[pos] == ' ' || line[pos] == '\t') {
+        while (pos < line.size() && (line[pos] == ' ' || line[pos] == '\t')) pos++;
+    } else {
+        return true;
+    }
+    if (pos >= line.size()) return false;
+
+    char * end = nullptr;
+    long parsed = std::strtol(line.c_str() + pos, &end, 10);
+    if (end == line.c_str() + pos || parsed < 0 || parsed > 0x3fffffff) return false;
+
+    size_t end_pos = (size_t)(end - line.c_str());
+    while (end_pos < line.size() && (line[end_pos] == ' ' || line[end_pos] == '\t')) end_pos++;
+    if (end_pos >= line.size()) return false;
+    request_id = (int)parsed;
+    line.erase(0, end_pos);
+    return true;
+}
+
 // ─── Draft IPC — extracted to src/qwen35/draft_ipc.{h,cpp} ──
 #include "dflash_draft_ipc.h"
 using dflash::common::DFlashDraftIpcClient;
@@ -676,7 +710,7 @@ int main(int argc, char ** argv) {
     }
     if (argc < 3) {
         std::fprintf(stderr,
-            "usage: %s <target.gguf> <draft.safetensors> [<prompt_ids.bin> <n_gen> <out_ids.bin>] [--daemon] [-ctk <type>] [-ctv <type>] ...\n"
+            "usage: %s <target.gguf> <draft.safetensors> [<prompt_ids.bin> <n_gen> <out_ids.bin>] [--daemon] [--stream-tagged] [-ctk <type>] [-ctv <type>] ...\n"
             "       %s --draft-ipc-daemon <draft.safetensors|draft.gguf> --ring-cap=N --stream-fd=FD [--draft-gpu=N]\n",
             argv[0], argv[0]);
         return 2;
@@ -790,6 +824,7 @@ int main(int argc, char ** argv) {
         }
     }
     int   stream_fd     = -1;     // write each committed token to this fd (int32 LE) as they land
+    bool  stream_tagged = false;  // frame as [-2, request_id, token] for multiplexed callers
     bool  daemon_mode   = false;
     for (int i = flags_start; i < argc; i++) {
         if      (std::strcmp(argv[i], "--daemon") == 0)        daemon_mode = true;
@@ -893,6 +928,10 @@ int main(int argc, char ** argv) {
         }
         else if (std::strncmp(argv[i], "--stream-fd=", 12) == 0) {
             stream_fd = std::atoi(argv[i] + 12);
+        }
+        else if (std::strcmp(argv[i], "--stream-tagged") == 0 ||
+                 std::strcmp(argv[i], "--tagged-stream") == 0) {
+            stream_tagged = true;
         }
         else if (std::strncmp(argv[i], "--max-ctx=", 10) == 0) {
             g_max_ctx_override = std::atoi(argv[i] + 10);
@@ -1013,17 +1052,24 @@ int main(int argc, char ** argv) {
         return dflash::common::run_gemma4_daemon(g4args);
     }
 
-    // Helper: write a committed token to the stream fd immediately (int32 LE).
+    int current_stream_request_id = 0;
+
+    // Helper: write a committed token to the stream fd immediately.
+    // Default protocol is legacy int32 tokens. With --stream-tagged each token
+    // is framed as [-2, request_id, token] so callers can demux interleaved
+    // request streams without changing the legacy path.
     // Caller invokes after every out_all.push_back(tok) when stream_fd >= 0.
     // On Windows stream_fd holds a Win32 HANDLE value (passed via msvcrt.get_osfhandle).
     auto stream_emit = [&](int32_t tok) {
         if (stream_fd < 0) return;
-        int32_t v = tok;
+        int32_t frame[3] = {-2, current_stream_request_id, tok};
+        const void * data = stream_tagged ? (const void *)frame : (const void *)&tok;
+        const size_t bytes = sizeof(int32_t) * (stream_tagged ? 3 : 1);
 #if defined(_WIN32)
         DWORD written;
-        WriteFile((HANDLE)(intptr_t)stream_fd, &v, sizeof(v), &written, nullptr);
+        WriteFile((HANDLE)(intptr_t)stream_fd, data, (DWORD)bytes, &written, nullptr);
 #else
-        ssize_t n = ::write(stream_fd, &v, sizeof(v));
+        ssize_t n = ::write(stream_fd, data, bytes);
         (void)n;
 #endif
     };
@@ -1044,11 +1090,11 @@ int main(int argc, char ** argv) {
                      "--draft-ipc-bin requires --target-split-dflash or --target-split-load-draft\n");
         return 2;
     }
-    std::printf("[cfg] seq_verify=%d fast_rollback=%d ddtree=%d budget=%d temp=%.2f chain_seed=%d fa_window=%d draft_swa=%d draft_ctx_max=%d draft_feature_mirror=%d peer_access=%d target_gpu=%d draft_gpu=%d\n",
+    std::printf("[cfg] seq_verify=%d fast_rollback=%d ddtree=%d budget=%d temp=%.2f chain_seed=%d fa_window=%d draft_swa=%d draft_ctx_max=%d draft_feature_mirror=%d peer_access=%d stream_tagged=%d target_gpu=%d draft_gpu=%d\n",
                 (int)seq_verify, (int)fast_rollback, (int)ddtree_mode,
                 ddtree_budget, ddtree_temp, (int)ddtree_chain_seed, g_fa_window,
                 g_draft_swa_window, g_draft_ctx_max, (int)draft_feature_mirror,
-                (int)g_peer_access_opt_in, target_gpu, draft_gpu);
+                (int)g_peer_access_opt_in, (int)stream_tagged, target_gpu, draft_gpu);
     if (draft_ipc_bin) {
         std::printf("[cfg] draft_ipc_bin=%s draft_ipc_gpu=%d draft_ipc_ring_cap=%d\n",
                     draft_ipc_bin, draft_ipc_gpu, draft_ipc_ring_cap);
@@ -2227,6 +2273,12 @@ int main(int argc, char ** argv) {
         if (daemon_mode) {
             std::string line;
             if (!std::getline(std::cin, line)) break;
+            current_stream_request_id = 0;
+            if (!parse_daemon_request_prefix(line, current_stream_request_id)) {
+                std::fprintf(stderr, "[daemon] bad request prefix\n");
+                stream_emit(-1);
+                continue;
+            }
             g_sampler = SamplerCfg{};
             if (parse_sampler_token(line, g_sampler) && g_sampler.seed != 0) {
                 g_sampler_rng.seed(g_sampler.seed);
