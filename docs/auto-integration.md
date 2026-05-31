@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T01:29:27-04:00`
+Last refresh: `2026-05-31T01:48:36-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `ae0f3d35`
-Current integration tip before push: `51644d2e`
+Previous integration tip: `easel/auto-integration` `5ba5c8d5`
+Current integration tip before push: `5ba5c8d5`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
-This run made three superseded PR heads exact ancestors without changing the current tree content: #137 and #48 were merged by resolving their only conflict in the retired `dflash/CMakeLists.txt` path by preserving that deletion, and #94 was recorded with the current SWA draft implementation via an `ours` merge. The open non-draft set contains 27 PRs; 21 are included by exact head containment and 6 remain non-ancestor conflict/selective-port candidates.
+This run found `origin/main` and `easel/auto-integration` unchanged relative to the prior manifest refresh. The open non-draft set still contains 27 PRs; 21 are included by exact head containment and 6 remain non-ancestor conflict/selective-port candidates. Fresh worktree probes reconfirmed the same conflict surfaces for #305, #237, #221, #154, #153, and #135. No PR head could be newly integrated as-is in this run.
 
 ## Included in the current non-draft stack
 
@@ -45,18 +45,18 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-31T01:27:35-04:00` during preflight and `2026-05-31T01:29:27-04:00` before manifest refresh.
+- `date -Is` -> `2026-05-31T01:42:51-04:00` during preflight and `2026-05-31T01:48:36-04:00` before manifest refresh.
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless Codex help check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Current open PR enumeration reported 27 non-draft PRs and 7 draft/excluded PRs.
 - Explicit fetch of open PR heads succeeded for all current non-draft PRs.
-- Exact-head containment before reconciliation showed #317, #316, #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of `easel/auto-integration`; #305, #237, #221, #154, #153, #137, #135, #94, and #48 were non-ancestors.
-- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-012821`; `origin/main` was already included.
-- Fresh direct-merge probes on top of `ae0f3d35` reconfirmed current conflict counts for all non-ancestor PRs: #305 (29 files), #237 (24), #221 (23), #154 (12), #153 (10), #137 (1 retired path), #135 (3), #94 (3), and #48 (1 retired path).
-- #137 and #48 were merged into the stack with targeted `git rm dflash/CMakeLists.txt` conflict resolutions, preserving the current tree deletion of that retired path.
-- #94 was merged with the `ours` strategy to record the superseded PR head while keeping the current SWA draft implementation unchanged.
-- Containment check after the merge commits confirmed `origin/main` and 21 included PR heads are ancestors of `HEAD`; the remaining non-ancestor PRs are #305, #237, #221, #154, #153, and #135.
+- Exact-head containment before reconciliation showed #317, #316, #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, #142, #137, #94, and #48 were ancestors of `easel/auto-integration`; #305, #237, #221, #154, #153, and #135 were non-ancestors.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-014341`; `origin/main` was already included.
+- Fresh direct-merge probes on top of `5ba5c8d5` reconfirmed current conflict counts for all remaining non-ancestor PRs: #305 (29 files), #237 (24), #221 (23), #154 (12), #153 (10), and #135 (3).
+- A tmux-driven Claude read-only feasibility attempt for #237 exited with `Error: Reached max turns (8)` and produced no useful report; a second narrower Claude/Codex tmux attempt exited before producing a report file. The manual conflict probe therefore remains the verified evidence for this run.
+- Containment check confirmed `origin/main` and 21 included PR heads are ancestors of `HEAD`; the remaining non-ancestor PRs are #305, #237, #221, #154, #153, and #135.
+- `git diff --check` on the manifest-only change passed.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -80,20 +80,18 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 ## Retained worktrees / logs
 
-This run retained the updated stack worktree and fresh probe worktrees for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+This run retained the updated stack worktree and fresh conflicted probe worktrees for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260531-012821` (updated stack worktree used for #137/#48/#94 merge commits and manifest refresh)
-- `/tmp/luce-probe-20260531-012821-pr-305`
-- `/tmp/luce-probe-20260531-012821-pr-237`
-- `/tmp/luce-probe-20260531-012821-pr-221`
-- `/tmp/luce-probe-20260531-012821-pr-154`
-- `/tmp/luce-probe-20260531-012821-pr-153`
-- `/tmp/luce-probe-20260531-012821-pr-137`
-- `/tmp/luce-probe-20260531-012821-pr-135`
-- `/tmp/luce-probe-20260531-012821-pr-94`
-- `/tmp/luce-probe-20260531-012821-pr-48`
+- `/tmp/luce-auto-cron-20260531-014341` (manifest-only refresh worktree)
+- `/tmp/luce-probe-20260531-014341-pr-305`
+- `/tmp/luce-probe-20260531-014341-pr-237`
+- `/tmp/luce-probe-20260531-014341-pr-221`
+- `/tmp/luce-probe-20260531-014341-pr-154`
+- `/tmp/luce-probe-20260531-014341-pr-153`
+- `/tmp/luce-probe-20260531-014341-pr-135`
+- `/tmp/luce-claude-20260531-014341-pr237-report.txt` (Claude max-turns failure report)
 
-Prior retained worktrees/logs for conflicted/superseded probes and earlier refreshes include `/tmp/luce-auto-cron-20260531-010104`, `/tmp/luce-auto-cron-20260531-002924`, `/tmp/luce-auto-cron-20260531-000900`, `/tmp/luce-auto-cron-20260530-235000`, `/tmp/luce-auto-cron-20260530-232125`, and earlier `/tmp/luce-auto-cron-*` / `/tmp/luce-probe-*` audit worktrees.
+Prior retained worktrees/logs for conflicted/superseded probes and earlier refreshes include `/tmp/luce-auto-cron-20260531-012821`, `/tmp/luce-probe-20260531-012821-pr-305`, `/tmp/luce-probe-20260531-012821-pr-237`, `/tmp/luce-probe-20260531-012821-pr-221`, `/tmp/luce-probe-20260531-012821-pr-154`, `/tmp/luce-probe-20260531-012821-pr-153`, `/tmp/luce-probe-20260531-012821-pr-135`, `/tmp/luce-auto-cron-20260531-010104`, `/tmp/luce-auto-cron-20260531-002924`, `/tmp/luce-auto-cron-20260531-000900`, `/tmp/luce-auto-cron-20260530-235000`, `/tmp/luce-auto-cron-20260530-232125`, and earlier `/tmp/luce-auto-cron-*` / `/tmp/luce-probe-*` audit worktrees.
 
 ## Notes
 
