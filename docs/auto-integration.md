@@ -4,19 +4,21 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T22:21:48-04:00`
+Last refresh: `2026-05-30T22:38:33-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `fa9c9797`
-Current integration tip before push: `fa9c9797`
+Previous integration tip: `easel/auto-integration` `b58e8f8d`
+Current integration tip before push: `cdf63178`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
-This refresh found no new non-draft PR heads beyond the already-pushed stack. `origin/main` was already included. The open non-draft set contains 25 PRs; 16 are included by exact head containment and 9 remain non-ancestor conflict/selective-port or superseded candidates. Fresh direct-merge probes for all 9 non-ancestor PRs still conflict in the same broad classes recorded below.
+This refresh integrated the two new non-draft contributor PR heads that were not ancestors of the previous stack: #317 and #316. The open non-draft set now contains 27 PRs; 18 are included by exact head containment and 9 remain non-ancestor conflict/selective-port or superseded candidates. Fresh direct-merge probes for all 9 non-ancestor PRs still conflict in the same broad classes recorded below.
 
 ## Included in the current non-draft stack
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
+| #317 | `docs/issue-102` | `7d3f873f` | included | Documents multi-GPU flags/env vars for PFlash/DFlash. The stack already had patch-equivalent README content, so the merge was resolved by retaining current README layout while making the PR head an exact ancestor. |
+| #316 | `fix/issue-233` | `d28eb1fb` | included | Captures daemon stderr in `DflashClient` error messages by redirecting child stderr to stdout for both Windows and POSIX subprocess launches. |
 | #315 | `codex/dflash-spec-tool-recovery` | `6c8db53f` | included | Recovers spec-decode agent stalls with env-gated tool-prefix floor injection while preserving existing qwen35 empty-output AR fallback and the C2 `fa_window` AR fallback. |
 | #314 | `fix/specdecode-empty-ar-fallback` | `38f92c48` | included | Qwen35 falls back to AR decode when spec-decode succeeds but produces an empty token vector. |
 | #310 | `feat-backend-activation-precision-policy-after-306` | `bf9f4b57` | included | Backend activation precision policy / graph tensor precision helpers are carried exactly. |
@@ -27,7 +29,7 @@ This refresh found no new non-draft PR heads beyond the already-pushed stack. `o
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support is carried exactly. |
 | #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, and unit coverage are carried exactly. |
 | #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
-| #285 | `feat/lucebox-docker` | `4b4fd286` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, Bragi GPU-power-throttle experiment notes, and the latest luce-bench grader fixes for `call:<verb>{}` agent/tool emissions and HumanEval trailing garbage trimming are carried exactly. |
+| #285 | `feat/lucebox-docker` | `4b4fd286` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, Bragi GPU-power-throttle experiment notes, and luce-bench grader fixes are carried exactly. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
 | #274 | `feat/pflash-drafter-ee7` | `8c1f37db` | included | Adaptive pFlash composition and effective-size admission/keep-ratio guard update are carried exactly. |
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried exactly. |
@@ -40,17 +42,18 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T22:20:18-04:00` during preflight.
+- `date -Is` -> `2026-05-30T22:34:47-04:00` during preflight.
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless `codex --help` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
-- Current open PR enumeration reported 25 non-draft PRs and 7 draft/excluded PRs.
+- Current open PR enumeration reported 27 non-draft PRs and 7 draft/excluded PRs.
 - Explicit fetch of open PR heads succeeded for all current non-draft PRs.
-- Exact-head containment before reconciliation showed #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of the stack; #305, #237, #221, #154, #153, #137, #135, #94, and #48 were non-ancestors.
-- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-222119`; `origin/main` was already included.
-- No contributor PR head merged this run because all ready PR heads were either already exact ancestors or remained conflicting/superseded candidates.
-- Fresh direct-merge probes were created for all 9 remaining non-ancestor non-draft PRs from stack commit `fa9c9797`; all still conflicted: #305 (29 conflicted files), #237 (24), #221 (23), #154 (12), #153 (10), #137 (1 old `dflash/CMakeLists.txt`), #135 (3), #94 (3), and #48 (1 old `dflash/CMakeLists.txt`).
-- Verification for the unchanged code stack: `git diff --check` passed. No targeted runtime tests were rerun because this run made only a manifest refresh after confirming no code/PR-head delta since the previous verified push.
+- Exact-head containment before reconciliation showed #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of the stack; #317, #316, #305, #237, #221, #154, #153, #137, #135, #94, and #48 were non-ancestors.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-223525`; `origin/main` was already included.
+- #317 was attempted and merged with a README conflict resolved by retaining the current stack layout because the PR's multi-GPU table content was already present.
+- #316 merged cleanly after #317 and added `stderr=subprocess.STDOUT` to `optimizations/pflash/pflash/dflash_client.py`.
+- Fresh direct-merge probes were created for all 9 remaining non-ancestor non-draft PRs from stack commit `cdf63178`; all still conflicted: #305 (29 conflicted files), #237 (24), #221 (23), #154 (12), #153 (10), #137 (1 old `dflash/CMakeLists.txt`), #135 (3), #94 (3), and #48 (1 old `dflash/CMakeLists.txt`).
+- Verification for this updated stack: `git diff --check` passed; `python3 -m py_compile optimizations/pflash/pflash/dflash_client.py` passed; containment check confirmed `origin/main` and all 18 included PR heads are ancestors of `HEAD`.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -79,11 +82,11 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained the updated stack worktree and fresh conflicted probe logs for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260530-222119`
-- Fresh conflicted probe worktrees: `/tmp/luce-probe-20260530-222119-pr-305`, `/tmp/luce-probe-20260530-222119-pr-237`, `/tmp/luce-probe-20260530-222119-pr-221`, `/tmp/luce-probe-20260530-222119-pr-154`, `/tmp/luce-probe-20260530-222119-pr-153`, `/tmp/luce-probe-20260530-222119-pr-137`, `/tmp/luce-probe-20260530-222119-pr-135`, `/tmp/luce-probe-20260530-222119-pr-94`, and `/tmp/luce-probe-20260530-222119-pr-48`.
-- Fresh logs under `/tmp/luce-auto-cron-20260530-222119-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
+- `/tmp/luce-auto-cron-20260530-223525`
+- Fresh conflicted probe worktrees: `/tmp/luce-probe-20260530-223525-pr-305`, `/tmp/luce-probe-20260530-223525-pr-237`, `/tmp/luce-probe-20260530-223525-pr-221`, `/tmp/luce-probe-20260530-223525-pr-154`, `/tmp/luce-probe-20260530-223525-pr-153`, `/tmp/luce-probe-20260530-223525-pr-137`, `/tmp/luce-probe-20260530-223525-pr-135`, `/tmp/luce-probe-20260530-223525-pr-94`, and `/tmp/luce-probe-20260530-223525-pr-48`.
+- Fresh logs under `/tmp/luce-auto-cron-20260530-223525-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
 
-Prior retained worktrees/logs for conflicted/superseded probes and earlier refreshes include `/tmp/luce-auto-cron-20260530-220557`, `/tmp/luce-auto-cron-20260530-215157`, `/tmp/luce-auto-cron-20260530-212604`, `/tmp/luce-auto-cron-20260530-210747`, `/tmp/luce-auto-cron-20260530-204620`, `/tmp/luce-auto-cron-20260530-203020`, `/tmp/luce-auto-cron-20260530-201608`, `/tmp/luce-auto-cron-20260530-200216`, `/tmp/luce-auto-cron-20260530-194121`, `/tmp/luce-auto-cron-20260530-192047`, `/tmp/luce-auto-cron-20260530-184231`, `/tmp/luce-auto-cron-20260530-181103`, `/tmp/luce-auto-cron-20260530-175155`, `/tmp/luce-auto-cron-20260530-173141`, `/tmp/luce-auto-cron-20260530-171420`, `/tmp/luce-auto-cron-20260530-165724`, `/tmp/luce-auto-cron-20260530-164341`, `/tmp/luce-auto-cron-20260530-162504`, `/tmp/luce-auto-cron-20260530-161133`, `/tmp/luce-auto-cron-20260530-155251`, `/tmp/luce-auto-cron-20260530-153049`, `/tmp/luce-auto-cron-20260530-154010`, their corresponding probe worktrees, and logs.
+Prior retained worktrees/logs for conflicted/superseded probes and earlier refreshes include `/tmp/luce-auto-cron-20260530-222119`, `/tmp/luce-auto-cron-20260530-220557`, `/tmp/luce-auto-cron-20260530-215157`, `/tmp/luce-auto-cron-20260530-212604`, `/tmp/luce-auto-cron-20260530-210747`, `/tmp/luce-auto-cron-20260530-204620`, `/tmp/luce-auto-cron-20260530-203020`, `/tmp/luce-auto-cron-20260530-201608`, `/tmp/luce-auto-cron-20260530-200216`, `/tmp/luce-auto-cron-20260530-194121`, `/tmp/luce-auto-cron-20260530-192047`, `/tmp/luce-auto-cron-20260530-184231`, `/tmp/luce-auto-cron-20260530-181103`, `/tmp/luce-auto-cron-20260530-175155`, `/tmp/luce-auto-cron-20260530-173141`, `/tmp/luce-auto-cron-20260530-171420`, `/tmp/luce-auto-cron-20260530-165724`, `/tmp/luce-auto-cron-20260530-164341`, `/tmp/luce-auto-cron-20260530-162504`, `/tmp/luce-auto-cron-20260530-161133`, `/tmp/luce-auto-cron-20260530-155251`, `/tmp/luce-auto-cron-20260530-153049`, `/tmp/luce-auto-cron-20260530-154010`, their corresponding probe worktrees, and logs.
 
 ## Notes
 
