@@ -1,4 +1,4 @@
-updated_at: 2026-05-31T14:21:02-04:00
+updated_at: 2026-05-31T14:47:06-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: 07ed3396
-  current_integration_head_before_metadata_commit: 07ed3396
+  easel_auto_integration_before_refresh: 6830cb72
+  current_integration_head_before_metadata_commit: 6830cb72
   base_before_run: auto-integration
 stack:
   included:
@@ -50,24 +50,14 @@ stack:
   attempted_this_run:
     - pr: 325
       head: b47fb3aa
-      status: conflict-not-integrated
-      worktree: /tmp/luce-auto-cron-20260531-142102/pr325
-      unmerged_files:
-        - server/src/common/backend_ipc.cpp
-        - server/src/common/dflash_draft_ipc.cpp
-        - server/src/common/dflash_draft_ipc_daemon.cpp
+      status: partial-selective-port
+      worktree: /tmp/luce-auto-cron-20260531-1439/reconcile
+      promoted_files:
         - server/src/common/layer_split_backend.cpp
         - server/src/common/layer_split_backend.h
-        - server/src/common/layer_split_runtime.cpp
-        - server/src/common/layer_split_runtime.h
-        - server/src/gemma4/gemma4_layer_split_adapter.cpp
-        - server/src/ipc/backend_ipc_main.cpp
-        - server/src/laguna/laguna_layer_split_adapter.cpp
-        - server/src/laguna/laguna_layer_split_adapter.h
-        - server/src/qwen35/layer_split_forward.cpp
         - server/src/qwen35/qwen35_layer_split_adapter.cpp
         - server/src/qwen35/qwen35_layer_split_adapter.h
-      next: integrate after/manual with PR321 mixed-backend layer-split runtime; conflicts overlap common IPC/runtime, Laguna/Gemma4/Qwen35 layer-split adapters, and disk-prefix cache plumbing
+      note: ported same-backend Qwen35 layer-split disk prefix-cache snapshot_ref/snapshot_adopt slice; mixed-backend IPC and Laguna disk-cache pieces remain pending
     - pr: 321
       head: 87fe7655
       status: conflict-not-integrated
@@ -88,7 +78,7 @@ stack:
       next: staged selective port of mixed-backend target layer-split runtime before reattempting PR325 disk prefix cache
   pending: []
   blocked_needs_human:
-    - {pr: 325, reason: depends on/overlaps PR321 runtime; direct merge has broad IPC/runtime and adapter conflicts requiring architecture-aware selective port}
+    - {pr: 325, reason: partial selective port landed for same-backend Qwen35 disk snapshot export/adopt; remaining Laguna and mixed-backend disk-cache pieces depend on/overlap PR321 runtime and still have broad IPC/runtime/adapter conflicts}
     - {pr: 321, reason: mixed-backend target layer-split runtime conflicts broadly with current carried layer-split runtime and adapters; Claude attempt did not produce a complete resolution}
     - {pr: 305, reason: direct merge has large common-MoE/Qwen35MoE/Laguna conflicts and remaining value requires staged selective port}
     - {pr: 237, reason: old-layout MTP foundation needs architecture-aware selective port}
