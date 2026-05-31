@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T18:01:53-04:00`
+Last refresh: `2026-05-31T18:16:55-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `790d2201`
-Current integration source tip before this refresh: `790d2201`
+Previous integration tip: `easel/auto-integration` `8e53375e`
+Current integration source tip before this refresh: `8e53375e`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -259,6 +259,10 @@ This run performed:
 - Fresh direct-merge probes on top of `790d2201` reconfirmed current conflict/status counts for the remaining non-ancestor PRs: #325 (26 status entries / 16 unmerged paths), #321 (24 / 15), #305 (61 / 44), #237 (33 / 27), #221 (88 / 83), #154 (13 / 13), #153 (10 / 10), and #135 (3 / 3).
 - Tmux-driven Codex delegation for #321 in session `codex-pr321-1802` completed with a usable narrow-slice report at `/tmp/luce-auto-cron-20260531-1802/codex-pr321-next.txt`. The orchestrator promoted only the inert target-shard IPC surface: `BackendIpcMode::Qwen35TargetShard`, parsing/name support for `qwen35-target-shard`, and the declaration-only `server/src/qwen35/qwen35_target_shard_ipc.h` client/daemon contract with reset/snapshot/save/restore hooks. The runtime implementation, CMake wiring, mixed-forward path, daemon main dispatch, and adapter activation remain intentionally unported until the broader current-layout conflicts are reconciled.
 - Validation for this source/manifest refresh: `git diff --check` passed; conflict-marker search found no merge markers in promoted source/metadata files; YAML parse of `.github/auto-integration/stack.yaml` passed after metadata update. A local compile of the new target-shard header remains blocked by the known missing `server/deps/llama.cpp` / `ggml-backend.h` dependency; no full CMake validation was rerun because the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+- `date -Is` -> `2026-05-31T18:16:55-04:00` during this metadata-only refresh; primary checkout was clean on `auto-integration` at `8e53375e`, remotes were unchanged, and auth/tooling checks again succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`).
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `8e53375e`.
+- Open PR enumeration again reported 32 non-draft PRs and 5 draft/excluded PRs. Exact-head containment remained unchanged: 24 current open non-draft PR heads are included, and #325, #321, #305, #237, #221, #154, #153, and #135 remain the non-ancestor / selective-port candidates.
+- No additional source changes were promoted this run; the latest stack tip already carries the staged #321 target-shard IPC contract slice, while the remaining candidates stay classified as partial salvage or blocked-needs-human.
 ## Pending / blocked-needs-human / selective-port candidates
 
 | PR | Head branch | Head | Current status | Probe result / next useful action |
