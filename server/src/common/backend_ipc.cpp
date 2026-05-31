@@ -93,10 +93,11 @@ bool BackendIpcProcess::start(const BackendIpcLaunchConfig & cfg) {
         if (stream_pipe[1] >= 0) ::close(stream_pipe[1]);
         return false;
     }
-    const bool shared_requested =
+    const bool shared_required =
         cfg.payload_transport == BackendIpcPayloadTransport::Shared;
-    if (cfg.payload_transport == BackendIpcPayloadTransport::Shared &&
-        cfg.shared_payload_bytes == 0) {
+    const bool shared_requested =
+        shared_required || cfg.payload_transport == BackendIpcPayloadTransport::Auto;
+    if (shared_required && cfg.shared_payload_bytes == 0) {
         std::fprintf(stderr, "backend-ipc shared payload requested with zero capacity\n");
         ::close(cmd_pipe[0]); ::close(cmd_pipe[1]);
         ::close(payload_pipe[0]); ::close(payload_pipe[1]);
@@ -105,13 +106,15 @@ bool BackendIpcProcess::start(const BackendIpcLaunchConfig & cfg) {
     }
     if (shared_requested && cfg.shared_payload_bytes > 0) {
         if (!init_shared_payload(cfg.shared_payload_bytes)) {
-            if (cfg.payload_transport == BackendIpcPayloadTransport::Shared) {
+            if (shared_required) {
                 close();
                 ::close(cmd_pipe[0]); ::close(cmd_pipe[1]);
                 ::close(payload_pipe[0]); ::close(payload_pipe[1]);
                 ::close(stream_pipe[0]); ::close(stream_pipe[1]);
                 return false;
             }
+            std::fprintf(stderr,
+                         "backend-ipc auto shared payload unavailable; using stream\n");
         }
     }
     resolved_payload_transport_ = has_shared_payload()

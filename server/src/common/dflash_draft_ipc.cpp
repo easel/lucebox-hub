@@ -16,14 +16,13 @@
 #include <cstdlib>
 #include <cstdio>
 #include <inttypes.h>
+#include <limits>
 #include <string>
 #include <vector>
 
 namespace dflash::common {
 
 namespace {
-
-static constexpr size_t kDraftIpcDefaultSharedBytes = 512ull * 1024ull * 1024ull;
 
 BackendIpcPayloadTransport draft_ipc_transport_from_env() {
     const char * raw = std::getenv("DFLASH_DRAFT_IPC_TRANSPORT");
@@ -34,22 +33,49 @@ BackendIpcPayloadTransport draft_ipc_transport_from_env() {
     if (!parse_backend_ipc_payload_transport(raw, transport)) {
         return BackendIpcPayloadTransport::Stream;
     }
-    return transport == BackendIpcPayloadTransport::Auto
-        ? BackendIpcPayloadTransport::Stream
-        : transport;
+    return transport;
 }
 
-size_t draft_ipc_shared_bytes_from_env() {
+bool checked_mul_size(size_t a, size_t b, size_t & out) {
+    if (a != 0 && b > std::numeric_limits<size_t>::max() / a) {
+        return false;
+    }
+    out = a * b;
+    return true;
+}
+
+size_t dflash_draft_ipc_required_shared_bytes(int hidden_size,
+                                              int block_size,
+                                              int ring_cap) {
+    if (hidden_size <= 0 || block_size <= 0 || ring_cap <= 0) {
+        return 0;
+    }
+    const size_t max_tokens =
+        (size_t)std::max(block_size, ring_cap);
+    size_t elements = 0;
+    size_t bytes = 0;
+    if (!checked_mul_size(max_tokens, (size_t)hidden_size, elements) ||
+        !checked_mul_size(elements, sizeof(float), bytes)) {
+        return 0;
+    }
+    return bytes;
+}
+
+size_t draft_ipc_shared_bytes_from_env(size_t required_bytes) {
     const char * raw = std::getenv("DFLASH_DRAFT_IPC_SHARED_BYTES");
     if (!raw || !*raw) {
-        return kDraftIpcDefaultSharedBytes;
+        return required_bytes;
+    }
+    if (raw[0] == '-') {
+        return required_bytes;
     }
     char * end = nullptr;
     const unsigned long long parsed = std::strtoull(raw, &end, 10);
-    if (end == raw || *end != '\0') {
-        return kDraftIpcDefaultSharedBytes;
+    if (end == raw || *end != '\0' ||
+        parsed > (unsigned long long)std::numeric_limits<size_t>::max()) {
+        return required_bytes;
     }
-    return static_cast<size_t>(parsed);
+    return std::max((size_t)parsed, required_bytes);
 }
 
 }  // namespace
@@ -75,7 +101,8 @@ bool DFlashDraftIpcClient::start(
     launch.payload_path = draft_path;
     launch.work_dir = work_dir;
     launch.payload_transport = draft_ipc_transport_from_env();
-    launch.shared_payload_bytes = draft_ipc_shared_bytes_from_env();
+    launch.shared_payload_bytes = draft_ipc_shared_bytes_from_env(
+        dflash_draft_ipc_required_shared_bytes(hidden_size_, block_size_, ring_cap));
     launch.args.push_back("--ring-cap=" + std::to_string(ring_cap));
     launch.args.push_back("--draft-gpu=" + std::to_string(std::max(0, draft_gpu)));
     if (!process_.start(launch)) {
