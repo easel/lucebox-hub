@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T10:16:00-04:00`
+Last refresh: `2026-05-31T10:27:55-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `a3ef342f`
-Current integration source tip before this refresh: `a3ef342f`
+Previous integration tip: `easel/auto-integration` `af8129a9`
+Current integration source tip before this refresh: `af8129a9`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 21 exact current open non-draft PR heads and carries selective salvage from three remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap for current Qwen35MoE dynamic expert placement, #237's common MTP interface/chain-runner/orchestrator foundation, and #135's capture-free `n_seqs` target-graph/cache plumbing, request-tagged daemon stream framing, and batched target-feature capture buffer plumbing for current qwen35 work. There are currently 27 open non-draft PRs and 8 draft/excluded PRs. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305, #237, and #135 are now partially represented beyond their already-carried broad themes. This refresh found no new non-draft PR heads and no upstream `origin/main` advance. Fresh direct-merge probes were rerun for all remaining non-ancestors on top of `a3ef342f`; conflict counts remained unchanged. A tmux-driven Codex attempt against #135 inspected the three conflicted current-layout files and started conflict-marker cleanup, but did not produce a usable narrow port or complete conflict resolution, so no source changes were promoted to the integration stack. The next safe #135 order remains: multi-cache-slot scaffolding, then scheduler state/introspection, then diagnostic-only batch probing before live copyback/target-step mutation.
+The current stack contains 21 exact current open non-draft PR heads and carries selective salvage from three remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap for current Qwen35MoE dynamic expert placement, #237's common MTP interface/chain-runner/orchestrator foundation, and #135's capture-free `n_seqs` target-graph/cache plumbing, request-tagged daemon stream framing, and batched target-feature capture buffer plumbing for current qwen35 work. There are currently 27 open non-draft PRs and 8 draft/excluded PRs. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305, #237, and #135 are now partially represented beyond their already-carried broad themes. This refresh found no new non-draft PR heads and no upstream `origin/main` advance. Fresh direct-merge probes were rerun for all remaining non-ancestors on top of `af8129a9`; conflict counts remained unchanged. A tmux-driven Codex attempt against #135 target-cache-slot scaffolding in `/tmp/luce-port-pr135-slots-20260531-102342` streamed large file excerpts and was stopped as stuck after producing no file changes, so no source changes were promoted to the integration stack. The next safe #135 order remains: multi-cache-slot scaffolding, then scheduler state/introspection, then diagnostic-only batch probing before live copyback/target-step mutation.
 
 ## Included in the current non-draft stack
 
@@ -81,6 +81,13 @@ This run performed:
 - Fresh direct-merge probes on top of `a3ef342f` reconfirmed current conflict/status counts for the remaining non-ancestor PRs: #305 (56 status entries), #237 (33), #221 (88), #154 (13), #153 (10), and #135 (3).
 - Tmux-driven Codex delegation for #135 in `/tmp/luce-probe-20260531-1003-pr-135` inspected the remaining three conflicted files and attempted conflict-marker cleanup, but exited without a complete resolution or usable narrow port; `git status --short` still showed all three files unmerged and `git diff --check` reported leftover conflict markers in `server/test/test_dflash.cpp`. No source changes were promoted.
 - Validation for this docs-only refresh: `git diff --check` passed. Full CMake validation was not rerun because no source code changed in this refresh and the known missing `server/deps/llama.cpp` / CUDA compiler-id environment blockers remain.
+- `date -Is` -> `2026-05-31T10:23:04-04:00` during this refresh preflight; primary checkout was clean on `auto-integration` at `af8129a9`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`).
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs remained `origin/main` `8305b6c2` and `easel/auto-integration` `af8129a9`.
+- Open PR enumeration again reported 27 non-draft PRs and 8 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed the same 21 open non-draft PR heads included and the same 6 non-ancestor selective-port candidates: #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-102342`; `origin/main` was already represented in the stack.
+- Fresh direct-merge probes on top of `af8129a9` reconfirmed current conflict/status counts for the remaining non-ancestor PRs: #305 (56 status entries), #237 (33), #221 (88), #154 (13), #153 (10), and #135 (3).
+- Tmux-driven Codex delegation for the next #135 target-cache-slot scaffolding slice in `/tmp/luce-port-pr135-slots-20260531-102342` streamed large excerpts from current `qwen35_target_graph.cpp`, remained active without a final report, and was stopped as stuck; it left no file changes, so no source patch was promoted.
+- Current commit status lookup for `af8129a9` via GitHub API returned combined status `pending` with zero legacy statuses and no check runs listed. Local validation for this docs-only refresh: `git diff --check` passed. Full CMake validation was not rerun because no source code changed and the known missing `server/deps/llama.cpp` / CUDA compiler-id environment blockers remain.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -106,7 +113,17 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained the updated stack worktree, conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260531-1003` (current docs-only refresh worktree)
+- `/tmp/luce-auto-cron-20260531-102342` (current docs-only refresh worktree)
+- `/tmp/luce-probe-20260531-102342-pr-305`
+- `/tmp/luce-probe-20260531-102342-pr-237`
+- `/tmp/luce-probe-20260531-102342-pr-221`
+- `/tmp/luce-probe-20260531-102342-pr-154`
+- `/tmp/luce-probe-20260531-102342-pr-153`
+- `/tmp/luce-probe-20260531-102342-pr-135`
+- `/tmp/luce-port-pr135-slots-20260531-102342` (Codex #135 target-cache-slot scaffolding attempt; no file changes)
+- `/tmp/luce-codex-pr135-slots-20260531-102342.txt` (Codex transcript; stopped as stuck)
+
+- `/tmp/luce-auto-cron-20260531-1003` (docs-only refresh worktree)
 - `/tmp/luce-probe-20260531-1003-pr-305`
 - `/tmp/luce-probe-20260531-1003-pr-237`
 - `/tmp/luce-probe-20260531-1003-pr-221`
