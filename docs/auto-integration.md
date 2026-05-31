@@ -11,7 +11,7 @@ Current integration tip before push: `e97aca57`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack still contains 20 exact current open non-draft PR heads and carries selective salvage from two remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap for current Qwen35MoE dynamic expert placement, and #135's capture-free `n_seqs` target-graph/cache plumbing for current qwen35 prefill-only probe work. There are currently 26 open non-draft PRs and 8 draft/excluded PRs. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305 and #135 are now partially represented beyond their already-carried broad themes. This refresh found no new ready non-draft PR heads to add; fresh worktree probes were run for all remaining non-ancestors. Claude port delegation for #135 reached max turns without changes; tmux-driven Codex then implemented the minimal two-file #135 slice and reported it as prefill-only, capture-free plumbing with runtime validation still required before scheduler/copyback follow-up.
+The current stack still contains 20 exact current open non-draft PR heads and carries selective salvage from two remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap for current Qwen35MoE dynamic expert placement, and #135's capture-free `n_seqs` target-graph/cache plumbing for current qwen35 prefill-only probe work. There are currently 26 open non-draft PRs and 9 draft/excluded PRs. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305 and #135 are now partially represented beyond their already-carried broad themes. This refresh found no new ready non-draft PR heads to add; fresh worktree probes were run for all remaining non-ancestors. Claude port delegation for #135 reached max turns without changes; tmux-driven Codex then implemented the minimal two-file #135 slice and reported it as prefill-only, capture-free plumbing with runtime validation still required before scheduler/copyback follow-up.
 
 ## Included in the current non-draft stack
 
@@ -49,7 +49,7 @@ This run performed:
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version` (`codex-cli 0.130.0`).
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
-- Current open PR enumeration reported 26 non-draft PRs and 8 draft/excluded PRs.
+- Current open PR enumeration reported 26 non-draft PRs and 9 draft/excluded PRs after the post-push recheck; no new non-draft PR appeared during the run. Draft #321 appeared after the initial enumeration and is excluded while draft.
 - Explicit fetch of all open non-draft PR heads succeeded.
 - Exact-head containment before reconciliation showed #319, #316, #315, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, #142, #137, #94, and #48 were ancestors of `easel/auto-integration`; #305, #237, #221, #154, #153, and #135 were non-ancestors by exact PR-head ancestry.
 - A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-064912`; `origin/main` was already up to date.
@@ -76,7 +76,7 @@ This run performed:
 
 ## Draft / excluded
 
-Draft PRs remain outside the primary non-draft integration target except for dependency awareness: #320, #312, #304, #291, #290, #275, #249, and #193. Draft #320 is an easel branch for plain-text tool-call synthesis and is conflicting against main; watch it but exclude while draft. Draft #312's backend IPC payload transport is related to already-carried IPC payload work, but remains draft/excluded. Draft #304 may touch compaction behavior and should be watched if it becomes ready.
+Draft PRs remain outside the primary non-draft integration target except for dependency awareness: #321, #320, #312, #304, #291, #290, #275, #249, and #193. Draft #321 is a mixed-backend target layer-split runtime follow-up and should be watched if it becomes ready. Draft #320 is an easel branch for plain-text tool-call synthesis and is conflicting against main; watch it but exclude while draft. Draft #312's backend IPC payload transport is related to already-carried IPC payload work, but remains draft/excluded. Draft #304 may touch compaction behavior and should be watched if it becomes ready.
 
 ## Retained worktrees / logs
 
