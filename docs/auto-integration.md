@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T03:20:56-04:00`
+Last refresh: `2026-05-31T03:39:52-04:00`
 Current base: `origin/main` `c95dfcab`
 Previous integration tip: `easel/auto-integration` `b90a3fed`
-Current integration tip before push: `b90a3fed`
+Current integration tip before push: `9ecd0734`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
@@ -57,7 +57,7 @@ This run performed:
 - Tmux-driven Claude read-only feasibility for #237 produced an empty redirected report after roughly one minute and was stopped as non-useful.
 - Tmux-driven Codex read-only feasibility for #237 completed and produced `/tmp/luce-codex-20260531-031416-pr237-report.txt`. It found PR #237 still valuable but not safe for direct merge: current `HEAD` has no `MtpSource`, `mtp-source`, `mtp-gguf`, `mtp_gamma`, or `supports_mtp` symbols, while #237 adds native Qwen35/Qwen3.6 MTP source selection, MTP head module, generic MTP interfaces/runner/orchestrator, hidden-state capture, server flags, and tests.
 - The Codex #237 audit recommended treating #237 as a donor branch and porting in slices: (1) `server/` MTP interface/runner/orchestrator and CMake/test entries, preserving current `model_backend.h` fields such as `BudgetHook`, `force_ar_decode`, `accept_rate`, `spec_decode_ran`, and remote draft support; (2) Qwen35 MTP module files; (3) minimal target hidden-capture changes in current `dflash_target`, `step_graph`, qwen35 target graph, and graph builders; (4) backend wiring; and (5) current C++ server CLI flags. It recommended deferring old `dflash/` tree restoration, Python/FastAPI wiring, MTP top-k/DDTree, and real GGUF MTP E2E until unit-level runner/module tests pass.
-- Containment check confirmed `origin/main` and 21 included current PR heads are ancestors of `HEAD`; the remaining non-ancestor PRs are #305, #237, #221, #154, #153, and #135.
+- Current follow-up containment check against the fetched open PR heads found 22 ancestors (including draft #312) and 12 non-ancestors; among the non-draft set, 21 heads remain ancestors and the non-ancestor set is still #305, #237, #221, #154, #153, and #135.
 - `git diff --check` on the manifest update passed.
 
 ## Pending / blocked-needs-human / selective-port candidates
