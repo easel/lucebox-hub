@@ -357,13 +357,14 @@ struct TargetCache {
     std::vector<ggml_tensor *> conv_input_cache;    // size = n_delta (48)
 
     // Rolling target layer features captured during target forward passes.
-    // Shape [5 * hidden, target_feat_cap] bf16. target_feat_cap is typically
-    // << max_ctx (e.g. 4096) so the buffer stays small at 128K context. The
-    // graph writes to slot `(kv_start + i) % target_feat_cap` so positions
-    // beyond the cap wrap and overwrite older entries. Readers (draft) only
-    // need the last DRAFT_CTX_MAX positions, so wrap is invisible in
-    // practice. Fed into the draft graph's fc projection after a bf16→f32
-    // cast (ggml_get_to_fp32_cuda).
+    // Shape [5 * hidden, target_feat_cap] bf16 for single-seq caches, or
+    // [5 * hidden, target_feat_cap, n_seqs] for batched prefill caches.
+    // target_feat_cap is typically << max_ctx (e.g. 4096) so the buffer stays
+    // small at 128K context. The graph writes to slot
+    // `(kv_start + i) % target_feat_cap` so positions beyond the cap wrap and
+    // overwrite older entries. Readers (draft) only need the last
+    // DRAFT_CTX_MAX positions, so wrap is invisible in practice. Fed into the
+    // draft graph's fc projection after a bf16→f32 cast (ggml_get_to_fp32_cuda).
     ggml_tensor * target_feat = nullptr;
     int target_feat_cap = 0;
 };
@@ -470,7 +471,8 @@ bool restore_target_cache_chain(const PrefixSnapshot * thick,
 // When prefill_only is true, rollback tensors (snapshots, intermediates) are
 // skipped — saving ~1.4 GB on 48 DeltaNet layers. Use migrate_prefill_cache()
 // to promote the cache to a full decode cache after prefill.
-// n_seqs>1 is currently allowed only for prefill-only, capture-free graphs.
+// n_seqs>1 is currently allowed only for prefill-only graphs without rollback,
+// tree parent ids, MoE-router capture, or last-token-only logits.
 bool create_target_cache(const TargetWeights & w,
                          int max_ctx,
                          int max_verify_tokens,
@@ -538,7 +540,7 @@ struct QwenGraphInputs {
     ggml_tensor * positions;      // [4 * n_tokens] i32 (M-RoPE needs 4 per token); shared across n_seqs
     ggml_tensor * attn_mask;      // optional [kv_len, n_tokens_padded] f32 (causal); nullptr for n_tokens==1
     int           n_tokens;       // number of new tokens in this forward
-    int           n_seqs = 1;     // batch dimension; n_seqs>1 is capture-free and same-position only for now
+    int           n_seqs = 1;     // batch dimension; n_seqs>1 is same-position only for now
     int           kv_start;       // position where the new tokens begin
     bool          capture_layers; // if true, write captured layer features into cache.target_feat
     bool          capture_delta_intermediate = false; // if true, populate out_delta_captures

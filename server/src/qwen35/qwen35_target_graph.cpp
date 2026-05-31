@@ -203,7 +203,9 @@ bool create_target_cache_partial(const TargetWeights & w,
         out.target_feat_cap = std::min(max_ctx, TARGET_FEAT_CAP_DEFAULT);
         if (allocate_target_feat) {
             const int fc_in = w.n_capture_layers * w.n_embd;
-            out.target_feat = ggml_new_tensor_2d(out.base_ctx, GGML_TYPE_BF16, fc_in, out.target_feat_cap);
+            out.target_feat = n_seqs == 1
+                ? ggml_new_tensor_2d(out.base_ctx, GGML_TYPE_BF16, fc_in, out.target_feat_cap)
+                : ggml_new_tensor_3d(out.base_ctx, GGML_TYPE_BF16, fc_in, out.target_feat_cap, n_seqs);
             ggml_set_name(out.target_feat, "target_feat");
         } else {
             out.target_feat = nullptr;
@@ -1099,10 +1101,6 @@ QwenGraphOutputs build_qwen35_graph(
             set_last_error("batched target graph does not support MoE-router capture");
             return {};
         }
-        if (in.capture_layers) {
-            set_last_error("batched target graph does not support target feature capture");
-            return {};
-        }
         if (in.last_token_logits_only) {
             set_last_error("batched target graph does not support last-token-only logits");
             return {};
@@ -1116,6 +1114,10 @@ QwenGraphOutputs build_qwen35_graph(
         if (!cache_has_n_seqs(cache.attn_k) || !cache_has_n_seqs(cache.attn_v) ||
             !cache_has_n_seqs(cache.ssm_state) || !cache_has_n_seqs(cache.conv_state)) {
             set_last_error("batched target graph requires cache tensors allocated with matching n_seqs");
+            return {};
+        }
+        if (in.capture_layers && cache.target_feat && cache.target_feat->ne[2] < n_seqs) {
+            set_last_error("batched target feature capture requires cache.target_feat allocated with matching n_seqs");
             return {};
         }
     }
@@ -1212,37 +1214,45 @@ QwenGraphOutputs build_qwen35_graph(
                 if (CAPTURE_LAYERS[k] == il) { capture_idx = k; break; }
             }
             if (capture_idx >= 0) {
-                const size_t elt        = ggml_element_size(cache.target_feat);
-                const size_t col_stride = cache.target_feat->nb[1];
-                const int    cap        = cache.target_feat_cap;
-                const int    slot_start = in.kv_start % cap;
-                const int    pre_n      = std::min(n_tokens, cap - slot_start);
-                const int    post_n    = n_tokens - pre_n;
+                const size_t elt         = ggml_element_size(cache.target_feat);
+                const size_t col_stride  = cache.target_feat->nb[1];
+                const size_t seq_stride  = cache.target_feat->nb[2];
+                const int    cap         = cache.target_feat_cap;
+                const int    slot_start  = in.kv_start % cap;
+                const int    pre_n       = std::min(n_tokens, cap - slot_start);
+                const int    post_n      = n_tokens - pre_n;
 
-                ggml_tensor * cur_2d = ggml_reshape_2d(ctx, cur, hidden, n_tokens);
+                ggml_tensor * cur_3d = ggml_reshape_3d(ctx, cur, hidden, n_tokens, n_seqs);
 
-                // First slice: [slot_start..slot_start+pre_n) in the ring.
-                {
-                    const size_t offset =
-                        (size_t)slot_start * col_stride +
-                        (size_t)capture_idx * hidden * elt;
-                    ggml_tensor * slot = ggml_view_2d(ctx, cache.target_feat,
-                        hidden, pre_n, col_stride, offset);
-                    ggml_tensor * src  = ggml_view_2d(ctx, cur_2d,
-                        hidden, pre_n, cur_2d->nb[1], 0);
-                    ggml_build_forward_expand(gf, ggml_cpy(ctx, src, slot));
-                }
+                for (int seq = 0; seq < n_seqs; seq++) {
+                    const size_t seq_offset     = (size_t)seq * seq_stride;
+                    const size_t src_seq_offset = (size_t)seq * cur_3d->nb[2];
 
-                // Second slice: wrap-around at [0..post_n) if needed.
-                if (post_n > 0) {
-                    const size_t offset =
-                        (size_t)capture_idx * hidden * elt;
-                    ggml_tensor * slot = ggml_view_2d(ctx, cache.target_feat,
-                        hidden, post_n, col_stride, offset);
-                    ggml_tensor * src  = ggml_view_2d(ctx, cur_2d,
-                        hidden, post_n, cur_2d->nb[1],
-                        (size_t)pre_n * cur_2d->nb[1]);
-                    ggml_build_forward_expand(gf, ggml_cpy(ctx, src, slot));
+                    // First slice: [slot_start..slot_start+pre_n) in the ring.
+                    {
+                        const size_t offset =
+                            seq_offset +
+                            (size_t)slot_start * col_stride +
+                            (size_t)capture_idx * hidden * elt;
+                        ggml_tensor * slot = ggml_view_2d(ctx, cache.target_feat,
+                            hidden, pre_n, col_stride, offset);
+                        ggml_tensor * src  = ggml_view_2d(ctx, cur_3d,
+                            hidden, pre_n, cur_3d->nb[1], src_seq_offset);
+                        ggml_build_forward_expand(gf, ggml_cpy(ctx, src, slot));
+                    }
+
+                    // Second slice: wrap-around at [0..post_n) if needed.
+                    if (post_n > 0) {
+                        const size_t offset =
+                            seq_offset +
+                            (size_t)capture_idx * hidden * elt;
+                        ggml_tensor * slot = ggml_view_2d(ctx, cache.target_feat,
+                            hidden, post_n, col_stride, offset);
+                        ggml_tensor * src  = ggml_view_2d(ctx, cur_3d,
+                            hidden, post_n, cur_3d->nb[1],
+                            src_seq_offset + (size_t)pre_n * cur_3d->nb[1]);
+                        ggml_build_forward_expand(gf, ggml_cpy(ctx, src, slot));
+                    }
                 }
             }
         }
