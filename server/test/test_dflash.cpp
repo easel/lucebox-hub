@@ -60,6 +60,7 @@ to_fp32_cuda_t ggml_get_to_fp32_cuda(ggml_type type);
 #include <cinttypes>
 #include <cmath>
 #include <cstdint>
+#include <memory>
 
 #ifdef _WIN32
 #define setenv(name, value, overwrite) _putenv_s(name, value)
@@ -270,6 +271,113 @@ static bool parse_daemon_request_prefix(std::string & line, int & request_id) {
     line.erase(0, end_pos);
     return true;
 }
+
+static bool parse_daemon_slot_prefix(std::string & line, int & slot_id) {
+    slot_id = 0;
+    bool has_prefix = false;
+    size_t pos = 0;
+    if (line.rfind("SLOT", 0) == 0 || line.rfind("slot", 0) == 0) {
+        if (line.size() > 4 && (line[4] == ' ' || line[4] == '\t')) {
+            has_prefix = true;
+            pos = 5;
+        } else if (line.size() > 5 && line[4] == '=') {
+            has_prefix = true;
+            pos = 5;
+        }
+    }
+    if (!has_prefix) return true;
+
+    while (pos < line.size() && (line[pos] == ' ' || line[pos] == '\t')) pos++;
+    if (pos >= line.size()) return false;
+
+    char * end = nullptr;
+    long parsed = std::strtol(line.c_str() + pos, &end, 10);
+    if (end == line.c_str() + pos || parsed < 0 || parsed > 1024) return false;
+    size_t end_pos = (size_t)(end - line.c_str());
+    if (end_pos >= line.size()) return false;
+    if (line[end_pos] != ' ' && line[end_pos] != '\t') return false;
+    while (end_pos < line.size() && (line[end_pos] == ' ' || line[end_pos] == '\t')) end_pos++;
+    if (end_pos >= line.size()) return false;
+    slot_id = (int)parsed;
+    line.erase(0, end_pos);
+    return true;
+}
+
+constexpr int PREFIX_CACHE_SLOTS = 8;
+
+struct DaemonSlotState {
+    TargetCache cache;
+    PrefixSnapshot prefix_snapshots[PREFIX_CACHE_SLOTS];
+    StepGraph sg;
+    StepGraph draft_sg;
+    StepGraph proj_sg;
+    DraftFeatureMirror feature_mirror;
+    bool first_iter = true;
+};
+
+static void swap_daemon_slot_state(
+    TargetCache & cache,
+    PrefixSnapshot (&prefix_snapshots)[PREFIX_CACHE_SLOTS],
+    StepGraph & sg,
+    StepGraph & draft_sg,
+    StepGraph & proj_sg,
+    DraftFeatureMirror & feature_mirror,
+    bool & first_iter,
+    DaemonSlotState & slot) {
+    using std::swap;
+    swap(cache, slot.cache);
+    for (int i = 0; i < PREFIX_CACHE_SLOTS; i++) {
+        swap(prefix_snapshots[i], slot.prefix_snapshots[i]);
+    }
+    swap(sg, slot.sg);
+    swap(draft_sg, slot.draft_sg);
+    swap(proj_sg, slot.proj_sg);
+    swap(feature_mirror, slot.feature_mirror);
+    swap(first_iter, slot.first_iter);
+}
+
+struct ActiveDaemonSlot {
+    TargetCache & cache;
+    PrefixSnapshot (&prefix_snapshots)[PREFIX_CACHE_SLOTS];
+    StepGraph & sg;
+    StepGraph & draft_sg;
+    StepGraph & proj_sg;
+    DraftFeatureMirror & feature_mirror;
+    bool & first_iter;
+    DaemonSlotState * slot = nullptr;
+
+    ActiveDaemonSlot(TargetCache & cache_,
+                     PrefixSnapshot (&prefix_snapshots_)[PREFIX_CACHE_SLOTS],
+                     StepGraph & sg_,
+                     StepGraph & draft_sg_,
+                     StepGraph & proj_sg_,
+                     DraftFeatureMirror & feature_mirror_,
+                     bool & first_iter_,
+                     DaemonSlotState * slot_)
+        : cache(cache_),
+          prefix_snapshots(prefix_snapshots_),
+          sg(sg_),
+          draft_sg(draft_sg_),
+          proj_sg(proj_sg_),
+          feature_mirror(feature_mirror_),
+          first_iter(first_iter_),
+          slot(slot_) {
+        if (slot) {
+            swap_daemon_slot_state(cache, prefix_snapshots, sg, draft_sg,
+                                   proj_sg, feature_mirror, first_iter, *slot);
+        }
+    }
+
+    ActiveDaemonSlot(const ActiveDaemonSlot &) = delete;
+    ActiveDaemonSlot & operator=(const ActiveDaemonSlot &) = delete;
+
+    ~ActiveDaemonSlot() {
+        if (slot) {
+            swap_daemon_slot_state(cache, prefix_snapshots, sg, draft_sg,
+                                   proj_sg, feature_mirror, first_iter, *slot);
+        }
+    }
+};
 
 // ─── Draft IPC — extracted to src/qwen35/draft_ipc.{h,cpp} ──
 #include "dflash_draft_ipc.h"
@@ -785,6 +893,7 @@ int main(int argc, char ** argv) {
     bool  draft_feature_mirror = false;
     bool  target_split_load_draft = false;
     bool  target_split_dflash = false;
+    int   target_cache_slots = 1;  // daemon-only: independent TargetCache states sharing weights
     int   target_gpu = 0;
     int   draft_gpu = 0;
     const char * draft_ipc_bin = nullptr;
@@ -855,6 +964,16 @@ int main(int argc, char ** argv) {
         else if (std::strcmp(argv[i], "--target-split-dflash") == 0) {
             target_split_dflash = true;
             target_split_load_draft = true;
+        }
+        else if (std::strncmp(argv[i], "--target-cache-slots=", 21) == 0) {
+            target_cache_slots = std::atoi(argv[i] + 21);
+        }
+        else if (std::strncmp(argv[i], "--cache-slots=", 14) == 0) {
+            target_cache_slots = std::atoi(argv[i] + 14);
+        }
+        else if (std::strcmp(argv[i], "--target-cache-slots") == 0 ||
+                 std::strcmp(argv[i], "--cache-slots") == 0) {
+            if (i + 1 < argc) target_cache_slots = std::atoi(argv[++i]);
         }
         else if (std::strncmp(argv[i], "--target-gpu=", 13) == 0) {
             target_gpu = std::max(0, std::atoi(argv[i] + 13));
@@ -979,6 +1098,7 @@ int main(int argc, char ** argv) {
     if (kv_env_is_tq3("DFLASH27B_KV_K") || kv_env_is_tq3("DFLASH27B_KV_V")) {
         g_kq_stride_pad = 256;
     }
+    target_cache_slots = daemon_mode ? std::max(1, std::min(target_cache_slots, 16)) : 1;
 
     if (!is_laguna && !daemon_mode && !test_window_mode && !profile_scaling && !time_breakdown && (!prompt_path || !out_path)) {
         std::fprintf(stderr, "Missing positional arguments for non-daemon mode.\n");
@@ -1090,11 +1210,12 @@ int main(int argc, char ** argv) {
                      "--draft-ipc-bin requires --target-split-dflash or --target-split-load-draft\n");
         return 2;
     }
-    std::printf("[cfg] seq_verify=%d fast_rollback=%d ddtree=%d budget=%d temp=%.2f chain_seed=%d fa_window=%d draft_swa=%d draft_ctx_max=%d draft_feature_mirror=%d peer_access=%d stream_tagged=%d target_gpu=%d draft_gpu=%d\n",
+    std::printf("[cfg] seq_verify=%d fast_rollback=%d ddtree=%d budget=%d temp=%.2f chain_seed=%d fa_window=%d draft_swa=%d draft_ctx_max=%d draft_feature_mirror=%d peer_access=%d target_cache_slots=%d stream_tagged=%d target_gpu=%d draft_gpu=%d\n",
                 (int)seq_verify, (int)fast_rollback, (int)ddtree_mode,
                 ddtree_budget, ddtree_temp, (int)ddtree_chain_seed, g_fa_window,
                 g_draft_swa_window, g_draft_ctx_max, (int)draft_feature_mirror,
-                (int)g_peer_access_opt_in, (int)stream_tagged, target_gpu, draft_gpu);
+                (int)g_peer_access_opt_in, target_cache_slots,
+                (int)stream_tagged, target_gpu, draft_gpu);
     if (draft_ipc_bin) {
         std::printf("[cfg] draft_ipc_bin=%s draft_ipc_gpu=%d draft_ipc_ring_cap=%d\n",
                     draft_ipc_bin, draft_ipc_gpu, draft_ipc_ring_cap);
@@ -2239,12 +2360,6 @@ int main(int argc, char ** argv) {
     const int vocab  = DFLASH27B_TARGET_VOCAB;
     const int mask_tok = DFLASH27B_DRAFT_MASK_TOKEN_ID;
 
-    if (daemon_mode) {
-        std::printf("[daemon] ready\n");
-        std::fflush(stdout);
-    }
-
-    constexpr int PREFIX_CACHE_SLOTS = 8;
     PrefixSnapshot prefix_snapshots[PREFIX_CACHE_SLOTS];   // default-constructed, ctx==nullptr
 
     StepGraph sg;
@@ -2258,6 +2373,51 @@ int main(int argc, char ** argv) {
     dflash::common::DrafterContext drafter_ctx;
     bool drafter_loaded = false;
 
+    std::vector<std::unique_ptr<DaemonSlotState>> daemon_extra_slots;
+
+    auto destroy_target_graphs_all_slots = [&]() {
+        step_graph_destroy(proj_sg);
+        step_graph_destroy(sg);
+        for (auto & slot : daemon_extra_slots) {
+            step_graph_destroy(slot->proj_sg);
+            step_graph_destroy(slot->sg);
+        }
+    };
+    auto destroy_draft_graphs_all_slots = [&]() {
+        step_graph_destroy(draft_sg);
+        for (auto & slot : daemon_extra_slots) {
+            step_graph_destroy(slot->draft_sg);
+        }
+    };
+
+    if (daemon_mode && target_cache_slots > 1) {
+        daemon_extra_slots.reserve((size_t)target_cache_slots - 1);
+        for (int sid = 1; sid < target_cache_slots; sid++) {
+            auto slot = std::make_unique<DaemonSlotState>();
+            if (!create_target_cache(w, max_ctx, max_verify_tokens, target_backend,
+                                     slot->cache, /*prefill_only=*/true)) {
+                std::fprintf(stderr, "cache slot %d: %s\n", sid, dflash27b_last_error());
+                for (auto & allocated : daemon_extra_slots) {
+                    free_target_cache(allocated->cache);
+                }
+                free_target_cache(cache);
+                free_draft_weights(dw);
+                free_target_weights(w);
+                if (split_gpus) ggml_backend_free(draft_backend);
+                ggml_backend_free(target_backend);
+                return 1;
+            }
+            daemon_extra_slots.push_back(std::move(slot));
+        }
+        std::printf("[daemon] target_cache_slots=%d (shared weights, serialized protocol)\n",
+                    target_cache_slots);
+    }
+
+    if (daemon_mode) {
+        std::printf("[daemon] ready\n");
+        std::fflush(stdout);
+    }
+
     while (true) {
         std::string prompt_file_str;
         bool restore_from_slot        = false;
@@ -2269,6 +2429,20 @@ int main(int argc, char ** argv) {
         // multi-snap "snap=A:1,B:2" is not implemented — use separate SNAPSHOT).
         int  snap_pos  = -1;
         int  snap_slot = -1;
+        int active_cache_slot = 0;
+        std::unique_ptr<ActiveDaemonSlot> active_daemon_slot;
+        auto activate_daemon_cache_slot = [&](int slot_id) -> bool {
+            if (slot_id < 0 || slot_id >= target_cache_slots) return false;
+            if (slot_id == active_cache_slot) return true;
+            active_daemon_slot.reset();
+            active_cache_slot = slot_id;
+            if (slot_id > 0) {
+                active_daemon_slot = std::make_unique<ActiveDaemonSlot>(
+                    cache, prefix_snapshots, sg, draft_sg, proj_sg, feature_mirror,
+                    daemon_first_iter, daemon_extra_slots[(size_t)slot_id - 1].get());
+            }
+            return true;
+        };
 
         if (daemon_mode) {
             std::string line;
@@ -2276,6 +2450,15 @@ int main(int argc, char ** argv) {
             current_stream_request_id = 0;
             if (!parse_daemon_request_prefix(line, current_stream_request_id)) {
                 std::fprintf(stderr, "[daemon] bad request prefix\n");
+                stream_emit(-1);
+                continue;
+            }
+            int daemon_cache_slot = 0;
+            if (!parse_daemon_slot_prefix(line, daemon_cache_slot)
+                || daemon_cache_slot < 0 || daemon_cache_slot >= target_cache_slots
+                || !activate_daemon_cache_slot(daemon_cache_slot)) {
+                std::fprintf(stderr, "[daemon] invalid target cache slot %d (slots=%d)\n",
+                             daemon_cache_slot, target_cache_slots);
                 stream_emit(-1);
                 continue;
             }
@@ -2295,12 +2478,13 @@ int main(int argc, char ** argv) {
                 bool want_draft  = (line == "park" || line == "park all" || line == "park draft");
                 bool want_target = (line == "park" || line == "park all" || line == "park target");
                 if (want_draft && !draft_parked) {
+                    destroy_draft_graphs_all_slots();
                     free_draft_weights(dw);
                     draft_parked = true;
                     std::printf("[park] draft released\n"); std::fflush(stdout);
                 }
                 if (want_target && !target_parked) {
-                    step_graph_destroy(proj_sg);
+                    destroy_target_graphs_all_slots();
                     free_target_weights(w);
                     target_parked = true;
                     std::printf("[park] target released\n"); std::fflush(stdout);
@@ -2391,12 +2575,13 @@ int main(int argc, char ** argv) {
                 bool restore_target = !target_parked && !no_park;
                 bool restore_draft  = !draft_parked && !no_park;
                 if (restore_target) {
-                    step_graph_destroy(proj_sg);
+                    destroy_target_graphs_all_slots();
                     free_target_weights(w);
                     target_parked = true;
                     std::printf("[compress] target parked\n"); std::fflush(stdout);
                 }
                 if (restore_draft) {
+                    destroy_draft_graphs_all_slots();
                     free_draft_weights(dw);
                     draft_parked = true;
                     std::printf("[compress] draft parked\n"); std::fflush(stdout);
@@ -4129,6 +4314,17 @@ int main(int argc, char ** argv) {
 
     } // end while(true)
 
+    for (auto & slot : daemon_extra_slots) {
+        draft_feature_mirror_free(slot->feature_mirror);
+        step_graph_destroy(slot->proj_sg);
+        step_graph_destroy(slot->draft_sg);
+        step_graph_destroy(slot->sg);
+        for (int i = 0; i < PREFIX_CACHE_SLOTS; i++) {
+            free_prefix_snapshot(slot->prefix_snapshots[i]);
+        }
+        free_target_cache(slot->cache);
+    }
+    daemon_extra_slots.clear();
     draft_feature_mirror_free(feature_mirror);
     step_graph_destroy(proj_sg);
     step_graph_destroy(draft_sg);
