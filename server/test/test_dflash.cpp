@@ -2501,6 +2501,41 @@ int main(int argc, char ** argv) {
             }
             return true;
         };
+        auto cache_for_daemon_slot = [&](int slot_id) -> TargetCache * {
+            if (slot_id == active_cache_slot) return &cache;
+            if (slot_id == 0 && active_cache_slot > 0) {
+                return &daemon_extra_slots[(size_t)active_cache_slot - 1]->cache;
+            }
+            if (slot_id > 0 && slot_id <= (int)daemon_extra_slots.size()) {
+                return &daemon_extra_slots[(size_t)slot_id - 1]->cache;
+            }
+            return nullptr;
+        };
+        auto print_scheduler_diagnostic = [&](const char * command) {
+            int running = 0;
+            int cancelled = 0;
+            int errored = 0;
+            for (const DaemonRequestState & req : daemon_requests) {
+                if (req.status == "running") running++;
+                else if (req.status == "cancelled") cancelled++;
+                else if (req.status == "error") errored++;
+            }
+            std::printf("[scheduler] %s diagnostic-only requests=%zu running=%d cancelled=%d error=%d active_slot=%d slots=",
+                        command, daemon_requests.size(), running, cancelled, errored,
+                        active_cache_slot);
+            for (int sid = 0; sid < target_cache_slots; sid++) {
+                TargetCache * slot_cache = cache_for_daemon_slot(sid);
+                std::printf("%s%d:%s:cur=%d:last=%d%s",
+                            sid == 0 ? "" : ",",
+                            sid,
+                            (slot_cache != nullptr && slot_cache->base_ctx != nullptr) ? "ready" : "empty",
+                            slot_cache != nullptr ? slot_cache->cur_pos : 0,
+                            slot_cache != nullptr ? slot_cache->last_tok : -1,
+                            sid == active_cache_slot ? ":active" : "");
+            }
+            std::printf("\n");
+            std::fflush(stdout);
+        };
 
         if (daemon_mode) {
             std::string line;
@@ -2521,19 +2556,9 @@ int main(int argc, char ** argv) {
                 continue;
             }
             if (line == "LIST_TARGET_CACHE_SLOTS" || line == "LIST_CACHE_SLOTS") {
-                auto cache_for_slot = [&](int slot_id) -> TargetCache * {
-                    if (slot_id == active_cache_slot) return &cache;
-                    if (slot_id == 0 && active_cache_slot > 0) {
-                        return &daemon_extra_slots[(size_t)active_cache_slot - 1]->cache;
-                    }
-                    if (slot_id > 0 && slot_id <= (int)daemon_extra_slots.size()) {
-                        return &daemon_extra_slots[(size_t)slot_id - 1]->cache;
-                    }
-                    return nullptr;
-                };
                 std::printf("[daemon] target_cache_slots=%d active=%d slots=", target_cache_slots, active_cache_slot);
                 for (int sid = 0; sid < target_cache_slots; sid++) {
-                    TargetCache * slot_cache = cache_for_slot(sid);
+                    TargetCache * slot_cache = cache_for_daemon_slot(sid);
                     std::printf("%s%d:%s:cur=%d:last=%d%s",
                                 sid == 0 ? "" : ",",
                                 sid,
@@ -2562,6 +2587,11 @@ int main(int argc, char ** argv) {
                 }
                 std::printf("\n");
                 std::fflush(stdout);
+                stream_emit(-1);
+                continue;
+            }
+            if (line == "SCHED_STEP" || line == "SCHED_DRAIN") {
+                print_scheduler_diagnostic(line.c_str());
                 stream_emit(-1);
                 continue;
             }
