@@ -1,4 +1,4 @@
-updated_at: 2026-05-31T16:18:01-04:00
+updated_at: 2026-05-31T16:41:23-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: f2b3c144
-  current_integration_head_before_metadata_commit: f2b3c144
+  easel_auto_integration_before_refresh: f8fad1af
+  current_integration_head_before_metadata_commit: f8fad1af
   base_before_run: auto-integration
 stack:
   included:
@@ -51,21 +51,21 @@ stack:
     - pr: 321
       head: 87fe7655
       status: partial-selective-port-promoted
-      worktree: /tmp/luce-auto-cron-20260531-1611/probe-pr321
+      worktree: /tmp/luce-auto-cron-20260531-163335/probe-pr321
       unmerged_files: 13
-      note: "promoted the next narrow PR321 layer-split runtime hardening slice: init_layer_split_runtime now uses a null-safe log prefix consistently and stamps each shard metadata entry with DevicePlacement::layer_split_backend(i), preserving same-backend behavior while carrying PR321's per-shard backend metadata needed by mixed-backend target-shard IPC. Live mixed-backend runtime/IPC execution remains intentionally unported."
-      delegation: "Codex tmux session codex-pr321-1611 inspected the conflicted PR321 merge and produced /tmp/luce-codex-pr321-1611.txt with a usable narrow-slice recommendation; the orchestrator manually promoted only the verified layer_split_runtime.h changes into the clean reconcile worktree."
-    - {pr: 325, head: b47fb3aa, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-1611/probe-pr325, unmerged_files: 14, note: remaining Laguna/mixed-backend disk-cache pieces still depend on PR321 runtime/IPC reconciliation}
-    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-1611/probe-pr305, unmerged_files: 36}
-    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-1611/probe-pr237, unmerged_files: 27}
-    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-1611/probe-pr221, unmerged_files: 25}
-    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-1611/probe-pr154, unmerged_files: 12}
-    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-1611/probe-pr153, unmerged_files: 10}
-    - {pr: 135, head: 561b0ac1, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-1611/probe-pr135, unmerged_files: 3}
+      note: "promoted the next narrow PR321 staging slice: BackendArgs::remote_target_shard now reaches Qwen35LayerSplitAdapterConfig, and a compile blocker from the previous PR321 runtime metadata slice was fixed by adding LayerSplitShardMeta::placement_backend. Live mixed-backend runtime/IPC execution remains intentionally unported."
+      delegation: "Hermes subagent reviewed PR321 and recommended config propagation as the smallest safe current-layout slice. Codex tmux session codex-pr321-config-163335 reviewed the promoted diff and reported no in-diff findings; it also caught the pre-existing missing LayerSplitShardMeta::placement_backend field, which this run fixed."
+    - {pr: 325, head: b47fb3aa, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-163335/probe-pr325, unmerged_files: 14, note: remaining Laguna/mixed-backend disk-cache pieces still depend on PR321 runtime/IPC reconciliation}
+    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-163335/probe-pr305, unmerged_files: 36}
+    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-163335/probe-pr237, unmerged_files: 27}
+    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-163335/probe-pr221, unmerged_files: 25}
+    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-163335/probe-pr154, unmerged_files: 12}
+    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-163335/probe-pr153, unmerged_files: 10}
+    - {pr: 135, head: 561b0ac1, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-163335/probe-pr135, unmerged_files: 3}
   pending: []
   blocked_needs_human:
     - {pr: 325, reason: partial selective ports now include same-backend Qwen35 disk snapshot export/adopt plus disk-cache first-request lookup/adopted-layout validation; remaining Laguna and mixed-backend disk-cache pieces depend on/overlap PR321 runtime and still have broad IPC/runtime/adapter conflicts}
-    - {pr: 321, reason: placement-config foundation, target-shard IPC control-plane staging, and layer-split runtime per-shard backend metadata/null-safe diagnostics were selectively ported; target-shard IPC daemon/client, runtime adapter wiring, state reset/snapshot/save/restore hardening, and mixed-backend execution still conflict broadly with current carried layer-split runtime and adapters}
+    - {pr: 321, reason: placement-config foundation, target-shard IPC control-plane staging, layer-split runtime per-shard backend metadata/null-safe diagnostics, Qwen35 config propagation for remote_target_shard, and the required LayerSplitShardMeta placement_backend field were selectively ported; target-shard IPC daemon/client, runtime adapter wiring, state reset/snapshot/save/restore hardening, and mixed-backend execution still conflict broadly with current carried layer-split runtime and adapters}
     - {pr: 305, reason: direct merge has large common-MoE/Qwen35MoE/Laguna conflicts and remaining value requires staged selective port}
     - {pr: 237, reason: old-layout MTP foundation needs architecture-aware selective port}
     - {pr: 154, reason: stacked/dependent old-layout MTP speculative-loop work}
@@ -87,11 +87,13 @@ stack:
     - explicit git fetch origin pull/<n>/head:refs/pr/<n> for all open PRs
     - git merge-base --is-ancestor refs/pr/<n> easel/auto-integration for all open non-draft PRs
     - direct merge probes for PRs 325, 321, 305, 237, 221, 154, 153, and 135 from refreshed integration head
-    - tmux Codex attempt for PR321 layer-split runtime hardening feasibility
+    - Hermes subagent review for the next PR321 selective-port slice
+    - tmux Codex review for PR321 config propagation and compile-safety
     - git diff --check for source and metadata refresh
+    - g++ -std=c++17 stub smoke for LayerSplitShardMeta::placement_backend
     - conflict-marker search in promoted files
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start and remained untouched; this source/metadata refresh was prepared in /tmp/luce-auto-cron-20260531-1611/reconcile.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start and remained untouched; this source/metadata refresh was prepared in /tmp/luce-auto-cron-20260531-163335/reconcile.
   - origin/main 8305b6c2 is already ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
-  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry includes 24 current non-draft heads, with 8 remaining non-ancestor/selective-port candidates before the promoted narrow PR321 layer-split runtime hardening slice.
-  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-1611/ because safe cleanup is left to a supervised pass.
+  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry includes 24 current non-draft heads, with 8 remaining non-ancestor/selective-port candidates before the promoted narrow PR321 config propagation and metadata-field fix slice.
+  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-163335/ because safe cleanup is left to a supervised pass.

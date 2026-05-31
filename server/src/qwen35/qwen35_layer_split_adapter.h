@@ -8,6 +8,7 @@
 #include "layer_split_types.h"
 #include "placement/placement_config.h"
 #include "placement/remote_draft_config.h"
+#include "placement/remote_target_shard_config.h"
 #include "qwen3/qwen3_drafter.h"
 #include "step_graph.h"
 #include "internal.h"
@@ -27,6 +28,7 @@ struct Qwen35LayerSplitAdapterConfig {
     DevicePlacement device;
     int draft_gpu = 0;
     RemoteDraftConfig remote_draft;
+    RemoteTargetShardConfig remote_target_shard;
 
     int fa_window = 0;  // 0 = full attention. qwen3.6 full-attn layers must see the whole context; a finite window drops the system prompt/tools -> breaks tool calls.
     int kq_stride_pad = 32;
