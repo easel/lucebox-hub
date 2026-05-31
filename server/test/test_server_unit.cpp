@@ -1971,15 +1971,48 @@ static void test_parse_target_device_list_same_backend() {
     TEST_ASSERT(placement.backend == PlacementBackend::Cuda);
     TEST_ASSERT(placement.gpu == 0);
     TEST_ASSERT(placement.is_layer_split());
+    TEST_ASSERT(!placement.is_mixed_layer_split());
+    TEST_ASSERT(placement.layer_split_backends.size() == 2);
+    TEST_ASSERT(placement.layer_split_backends[0] == PlacementBackend::Cuda);
+    TEST_ASSERT(placement.layer_split_backends[1] == PlacementBackend::Cuda);
     TEST_ASSERT(placement.layer_split_gpus.size() == 2);
     TEST_ASSERT(placement.layer_split_gpus[0] == 0);
     TEST_ASSERT(placement.layer_split_gpus[1] == 1);
     TEST_ASSERT(placement.layer_split_weights.empty());
 }
 
-static void test_parse_target_device_list_rejects_mixed_backend() {
+static void test_parse_target_device_list_mixed_backend() {
     DevicePlacement placement;
-    TEST_ASSERT(!parse_placement_device_list("cuda:0,hip:1", placement));
+    TEST_ASSERT(parse_placement_device_list("cuda:0,hip:1", placement));
+    TEST_ASSERT(placement.backend == PlacementBackend::Cuda);
+    TEST_ASSERT(placement.gpu == 0);
+    TEST_ASSERT(placement.is_layer_split());
+    TEST_ASSERT(placement.is_mixed_layer_split());
+    TEST_ASSERT(placement.layer_split_backends.size() == 2);
+    TEST_ASSERT(placement.layer_split_backends[0] == PlacementBackend::Cuda);
+    TEST_ASSERT(placement.layer_split_backends[1] == PlacementBackend::Hip);
+    TEST_ASSERT(placement.layer_split_backend(0) == PlacementBackend::Cuda);
+    TEST_ASSERT(placement.layer_split_backend(1) == PlacementBackend::Hip);
+    TEST_ASSERT(placement.layer_split_gpus.size() == 2);
+    TEST_ASSERT(placement.layer_split_gpus[0] == 0);
+    TEST_ASSERT(placement.layer_split_gpus[1] == 1);
+}
+
+static void test_parse_target_device_list_mixed_backend_multi_remote() {
+    DevicePlacement placement;
+    TEST_ASSERT(parse_placement_device_list("cuda:0,hip:0,hip:1", placement));
+    TEST_ASSERT(placement.backend == PlacementBackend::Cuda);
+    TEST_ASSERT(placement.gpu == 0);
+    TEST_ASSERT(placement.is_layer_split());
+    TEST_ASSERT(placement.is_mixed_layer_split());
+    TEST_ASSERT(placement.layer_split_backends.size() == 3);
+    TEST_ASSERT(placement.layer_split_backends[0] == PlacementBackend::Cuda);
+    TEST_ASSERT(placement.layer_split_backends[1] == PlacementBackend::Hip);
+    TEST_ASSERT(placement.layer_split_backends[2] == PlacementBackend::Hip);
+    TEST_ASSERT(placement.layer_split_gpus.size() == 3);
+    TEST_ASSERT(placement.layer_split_gpus[0] == 0);
+    TEST_ASSERT(placement.layer_split_gpus[1] == 0);
+    TEST_ASSERT(placement.layer_split_gpus[2] == 1);
 }
 
 static void test_parse_target_device_list_single_gpu_is_not_layer_split() {
@@ -1988,6 +2021,8 @@ static void test_parse_target_device_list_single_gpu_is_not_layer_split() {
     TEST_ASSERT(placement.backend == PlacementBackend::Hip);
     TEST_ASSERT(placement.gpu == 2);
     TEST_ASSERT(!placement.is_layer_split());
+    TEST_ASSERT(!placement.is_mixed_layer_split());
+    TEST_ASSERT(placement.layer_split_backends.empty());
     TEST_ASSERT(placement.layer_split_gpus.empty());
 }
 
@@ -4673,7 +4708,8 @@ int main() {
 
     std::fprintf(stderr, "\n── Placement config ──\n");
     RUN_TEST(test_parse_target_device_list_same_backend);
-    RUN_TEST(test_parse_target_device_list_rejects_mixed_backend);
+    RUN_TEST(test_parse_target_device_list_mixed_backend);
+    RUN_TEST(test_parse_target_device_list_mixed_backend_multi_remote);
     RUN_TEST(test_parse_target_device_list_single_gpu_is_not_layer_split);
     RUN_TEST(test_validate_layer_split_weights_shape);
     RUN_TEST(test_backend_precision_cuda_sm_policy);

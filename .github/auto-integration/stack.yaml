@@ -1,4 +1,4 @@
-updated_at: 2026-05-31T15:22:07-04:00
+updated_at: 2026-05-31T15:55:00-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: afeaf7ed
-  current_integration_head_before_metadata_commit: afeaf7ed
+  easel_auto_integration_before_refresh: 735e582e
+  current_integration_head_before_metadata_commit: 735e582e
   base_before_run: auto-integration
 stack:
   included:
@@ -48,24 +48,24 @@ stack:
     - {pr: 298, note: Gemma4 destructor-link fix}
     - {pr: 292, note: backend IPC payload-pipe support}
   attempted_this_run:
-    - pr: 325
-      head: b47fb3aa
+    - pr: 321
+      head: 87fe7655
       status: partial-selective-port-promoted
-      worktree: /tmp/luce-auto-cron-20260531-151947/pr325
-      unmerged_files: 13
-      note: promoted the next narrow disk-prefix-cache cleanup slice in server/src/server/disk_prefix_cache.cpp, allowing first-request lookup after layout discovery from disk and validating/deserializing the adopted snapshot layout before using it.
-      delegation: Codex tmux review was attempted in /tmp/luce-codex-pr325-disk-lookup-20260531-151947.txt; it hit the known Git LFS clean-filter issue and streamed targeted file excerpts without a final verdict before being stopped, so the orchestrator verified the patch manually against the PR diff.
-    - {pr: 321, head: 87fe7655, status: probed-conflict-not-integrated, worktree: /tmp/luce-auto-cron-20260531-151947/pr321, unmerged_files: 12, note: unique mixed-backend target-shard IPC hardening remains pending behind the broader runtime/IPC port}
-    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-151947/pr305, unmerged_files: 34}
-    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-151947/pr237, unmerged_files: 27}
-    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-151947/pr221, unmerged_files: 25}
-    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-151947/pr154, unmerged_files: 12}
-    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-151947/pr153, unmerged_files: 10}
-    - {pr: 135, head: 561b0ac1, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-151947/pr135, unmerged_files: 3}
+      worktree: /tmp/luce-auto-cron-20260531-153628/pr321
+      unmerged_files: 12
+      note: "promoted the narrow placement-config foundation from PR321: DevicePlacement now records per-shard layer_split_backends, parses mixed backend device lists such as cuda:0,hip:1, exposes is_mixed_layer_split()/layer_split_backend(), validates duplicate devices by backend+gpu, and updates unit coverage. The runtime/IPC target-shard daemon pieces remain pending."
+      delegation: "Codex tmux session codex-pr321-153628 inspected the conflicted merge and streamed conflict-marker/file excerpts but did not produce a concise final report or complete safe resolution before being stopped; the orchestrator manually promoted only the conflict-free placement slice and verified it with a standalone g++ smoke test."
+    - {pr: 325, head: b47fb3aa, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-153628/pr325, unmerged_files: 13, note: remaining Laguna/mixed-backend disk-cache pieces still depend on PR321 runtime/IPC reconciliation}
+    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-153628/pr305, unmerged_files: 34}
+    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-153628/pr237, unmerged_files: 27}
+    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-153628/pr221, unmerged_files: 25}
+    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-153628/pr154, unmerged_files: 12}
+    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-153628/pr153, unmerged_files: 10}
+    - {pr: 135, head: 561b0ac1, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-153628/pr135, unmerged_files: 3}
   pending: []
   blocked_needs_human:
     - {pr: 325, reason: partial selective ports now include same-backend Qwen35 disk snapshot export/adopt plus disk-cache first-request lookup/adopted-layout validation; remaining Laguna and mixed-backend disk-cache pieces depend on/overlap PR321 runtime and still have broad IPC/runtime/adapter conflicts}
-    - {pr: 321, reason: mixed-backend target layer-split runtime conflicts broadly with current carried layer-split runtime and adapters; delegated read-only attempts did not produce a complete port plan}
+    - {pr: 321, reason: placement-config foundation was selectively ported this run; target-shard IPC daemon/client, runtime adapter wiring, state reset/snapshot/save/restore hardening, and mixed-backend execution still conflict broadly with current carried layer-split runtime and adapters}
     - {pr: 305, reason: direct merge has large common-MoE/Qwen35MoE/Laguna conflicts and remaining value requires staged selective port}
     - {pr: 237, reason: old-layout MTP foundation needs architecture-aware selective port}
     - {pr: 154, reason: stacked/dependent old-layout MTP speculative-loop work}
@@ -80,18 +80,19 @@ stack:
     - git status --short; git branch --show-current; git remote -v
     - GH_CONFIG_DIR=/home/erik/.config/gh XDG_CONFIG_HOME=/home/erik/.config HOME=/home/erik gh auth status
     - HOME=/home/erik /home/erik/.local/bin/claude auth status --text
-    - HOME=/home/erik /home/linuxbrew/.linuxbrew/bin/codex --help
+    - HOME=/home/erik /home/linuxbrew/.linuxbrew/bin/codex --version
     - git fetch --prune origin
     - git fetch --prune easel
     - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...
     - explicit git fetch origin pull/<n>/head:refs/remotes/origin/pr/<n> for all non-draft PRs
     - git merge-base --is-ancestor origin/pr/<n> easel/auto-integration for all open non-draft PRs
     - direct merge probes for PRs 325, 321, 305, 237, 221, 154, 153, and 135 from refreshed integration head
-    - tmux Codex review attempt for the promoted PR325 disk-cache lookup/adopted-layout slice
+    - tmux Codex attempt for PR321 mixed-backend target-shard IPC control-plane feasibility
+    - standalone g++ placement_config smoke test for same-backend, mixed-backend, and malformed layer_split_backends validation
     - git diff --check for source and metadata refresh
     - conflict-marker search in promoted files
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start and remained untouched; this source/metadata refresh was prepared in /tmp/luce-auto-cron-20260531-151947/reconcile.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start and remained untouched; this source/metadata refresh was prepared in /tmp/luce-auto-cron-20260531-153628/reconcile.
   - origin/main 8305b6c2 is already ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
-  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry includes 24 current non-draft heads, with 8 remaining non-ancestor/selective-port candidates before the promoted narrow PR325 slice.
-  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-151947/ because safe cleanup is left to a supervised pass.
+  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry includes 24 current non-draft heads, with 8 remaining non-ancestor/selective-port candidates before the promoted narrow PR321 placement slice.
+  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-153628/ because safe cleanup is left to a supervised pass.
