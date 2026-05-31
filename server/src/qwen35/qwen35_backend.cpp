@@ -631,16 +631,16 @@ GenerateResult Qwen35Backend::generate_impl(const GenerateRequest & req,
     // Decode (speculative or AR)
     if (req.n_gen > 0) {
         auto t_decode_start = std::chrono::steady_clock::now();
-        // Pass the budget hook into spec-decode. When token count nears
-        // the budget edge, do_spec_decode breaks out and tails off via
-        // AR with the hook still active — force-close fires correctly
-        // without sacrificing spec-decode throughput for the bulk of
-        // generation. Most requests never hit the tail because the
-        // model closes </think> naturally well before the budget edge.
+        // AR decode fires if either: (a) the upper layer retried after an
+        // empty spec-decode (force_ar_decode, PR #314 from origin/main),
+        // or (b) the C2 gate says the per-request fa_window override is
+        // too wide for spec-decode safety (PFlash batch from easel).
+        // Otherwise spec decode. The budget hook flows into both paths;
+        // do_spec_decode breaks out and tails off via AR with the hook
+        // still active so force-close fires correctly without sacrificing
+        // spec-decode throughput for the bulk of generation.
         bool decode_ok = false;
         if (req.force_ar_decode || !fa_within_budget) {
-            // AR fallback: caller forced it, or fa_window override is too wide
-            // for spec decode.
             decode_ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
                                      req.budget_hook,
                                      &result.budget_forced_close,

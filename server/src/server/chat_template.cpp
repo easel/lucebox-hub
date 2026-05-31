@@ -468,10 +468,6 @@ PromptRenderResult render_chat_template_jinja(
         // Other architectures (Laguna, Gemma4, ...) do not use ChatML tokens
         // and must not be touched here.
         if (arch_hint == ChatFormat::QWEN3 && !enable_thinking) {
-            // Tolerate template variants that emit extra trailing whitespace
-            // after the assistant marker (single \n, double \n\n, trailing
-            // space). Strategy: trim trailing whitespace, check for the BARE
-            // assistant marker (no newline), then re-emit marker + prefill.
             static constexpr char kAssistantBare[]    = "<|im_start|>assistant";
             static constexpr char kAssistantPrefill[] = "<|im_start|>assistant\n<think>\n\n</think>\n\n";
             size_t trim_end = rendered.size();
