@@ -336,7 +336,8 @@ bool Qwen35TargetShardIpcClient::snapshot_kv() {
 #else
     FILE * cmd = process_.command_stream();
     const int stream_fd = process_.stream_fd();
-    if (!active_ || !cmd || stream_fd < 0) return false;
+    if (!active_) return true;
+    if (!cmd || stream_fd < 0) return false;
     std::fprintf(cmd, "snapshot\n");
     std::fflush(cmd);
     int32_t status = -1;
@@ -350,7 +351,8 @@ bool Qwen35TargetShardIpcClient::restore_kv() {
 #else
     FILE * cmd = process_.command_stream();
     const int stream_fd = process_.stream_fd();
-    if (!active_ || !cmd || stream_fd < 0) return false;
+    if (!active_) return true;
+    if (!cmd || stream_fd < 0) return false;
     std::fprintf(cmd, "restore\n");
     std::fflush(cmd);
     int32_t status = -1;
@@ -364,7 +366,8 @@ bool Qwen35TargetShardIpcClient::reset_request_state() {
 #else
     FILE * cmd = process_.command_stream();
     const int stream_fd = process_.stream_fd();
-    if (!active_ || !cmd || stream_fd < 0) return false;
+    if (!active_) return true;
+    if (!cmd || stream_fd < 0) return false;
     std::fprintf(cmd, "reset_request_state\n");
     std::fflush(cmd);
     int32_t status = -1;
@@ -379,7 +382,8 @@ bool Qwen35TargetShardIpcClient::snapshot_save(int slot) {
 #else
     FILE * cmd = process_.command_stream();
     const int stream_fd = process_.stream_fd();
-    if (!active_ || !cmd || stream_fd < 0 || slot < 0) return false;
+    if (!active_) return true;
+    if (!cmd || stream_fd < 0 || slot < 0) return false;
     std::fprintf(cmd, "prefix_snapshot_save %d\n", slot);
     std::fflush(cmd);
     int32_t status = -1;
@@ -408,7 +412,8 @@ bool Qwen35TargetShardIpcClient::snapshot_restore(int slot) {
 #else
     FILE * cmd = process_.command_stream();
     const int stream_fd = process_.stream_fd();
-    if (!active_ || !cmd || stream_fd < 0 || slot < 0) return false;
+    if (!active_) return true;
+    if (!cmd || stream_fd < 0 || slot < 0) return false;
     std::fprintf(cmd, "prefix_snapshot_restore %d\n", slot);
     std::fflush(cmd);
     int32_t status = -1;
