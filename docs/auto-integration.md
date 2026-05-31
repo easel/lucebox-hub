@@ -4,19 +4,20 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T07:47:02-04:00`
+Last refresh: `2026-05-31T07:49:19-04:00`
 Current base: `origin/main` `8305b6c2`
 Previous integration tip: `easel/auto-integration` `b5aea570`
-Current integration tip before push: `9ee753de`
+Current integration source tip before docs refresh: `8e9d8b4d`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack still contains 20 exact current open non-draft PR heads and carries selective salvage from three remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap for current Qwen35MoE dynamic expert placement, #237's common MTP interface/chain-runner/orchestrator foundation, and #135's capture-free `n_seqs` target-graph/cache plumbing for current qwen35 prefill-only probe work. There are currently 26 open non-draft PRs and 9 draft/excluded PRs. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305, #237, and #135 are now partially represented beyond their already-carried broad themes. This refresh found no new ready non-draft PR heads to add; fresh worktree probes were run for all remaining non-ancestors. Claude #237 port delegation exited without a useful report; tmux-driven Codex then implemented the minimal common-only #237 MTP foundation slice and reported it as intentionally excluding Qwen-specific MTP runtime wiring.
+The current stack contains 21 exact current open non-draft PR heads and carries selective salvage from three remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap for current Qwen35MoE dynamic expert placement, #237's common MTP interface/chain-runner/orchestrator foundation, and #135's capture-free `n_seqs` target-graph/cache plumbing for current qwen35 prefill-only probe work. There are currently 27 open non-draft PRs and 9 draft/excluded PRs. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305, #237, and #135 are now partially represented beyond their already-carried broad themes. This refresh found no ready non-draft PR heads missing at initial enumeration; fresh worktree probes were run for all remaining non-ancestors. After the first push, new non-draft PR #322 appeared, was fetched, conflict-resolved with the #237 MTP hook in `model_backend.h`, merged, verified, and included exactly. Claude #237 port delegation exited without a useful report; tmux-driven Codex then implemented the minimal common-only #237 MTP foundation slice and reported it as intentionally excluding Qwen-specific MTP runtime wiring.
 
 ## Included in the current non-draft stack
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
+| #322 | `status_html` | `7f8eb2e` | included | Adds real-time `/status` dashboard assets, SSE plumbing, server status registry, and inference observer callbacks; conflict with the #237 MTP hook in `model_backend.h` was resolved by preserving both callback types. |
 | #319 | `codex/pr314-restore-default` | `a079a4b1` | included | Adds default empty-spec-decode retry through backend wrapper methods so successful zero-token speculative paths retry once via AR decode while preserving timing/metadata. |
 | #316 | `fix/issue-233` | `d28eb1fb` | included | Captures daemon stderr in `DflashClient` error messages by redirecting child stderr to stdout for both Windows and POSIX subprocess launches. |
 | #315 | `codex/dflash-spec-tool-recovery` | `3ba401f0` | included | Recovers spec-decode agent stalls with env-gated tool-prefix floor injection, bounded residual stall/repetition guards, invalid draft-seed AR fallback, and qwen35 empty-output / C2 `fa_window` AR fallbacks. |
@@ -45,18 +46,19 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 This run performed:
 
 - `date -Is` -> `2026-05-31T07:34:53-04:00` during preflight.
-- `date -Is` -> `2026-05-31T07:47:02-04:00` for the manifest/source refresh.
+- `date -Is` -> `2026-05-31T07:49:19-04:00` for the manifest/source refresh.
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and `codex --version` (`codex-cli 0.130.0`).
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
-- Current open PR enumeration reported 26 non-draft PRs and 9 draft/excluded PRs before reconciliation; post-push recheck is recorded below.
+- Initial open PR enumeration reported 26 non-draft PRs and 9 draft/excluded PRs before reconciliation; post-push recheck found new non-draft PR #322, bringing the count to 27 non-draft PRs and 9 draft/excluded PRs.
 - Explicit fetch of all open non-draft PR heads succeeded.
 - Exact-head containment before reconciliation showed #319, #316, #315, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, #142, #137, #94, and #48 were ancestors of `easel/auto-integration`; #305, #237, #221, #154, #153, and #135 were non-ancestors by exact PR-head ancestry.
 - A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-073539`; `origin/main` was already up to date.
 - Fresh direct-merge probes on top of `b5aea570` reconfirmed current conflict/status counts for the remaining non-ancestor PRs: #305 (55 status entries), #237 (33), #221 (88), #154 (13), #153 (10), and #135 (3).
 - Tmux-driven Claude port delegation for #237 exited with an empty report and no file changes (`/tmp/luce-claude-pr237-luce-port-pr237-foundation-20260531-073539.txt`).
 - Tmux-driven Codex port delegation for #237 implemented a common-only current-layout MTP foundation in `/tmp/luce-port-pr237-foundation-20260531-073539`, then the verified commit was cherry-picked into the stack as `9ee753de`. The port adds `server/src/common/mtp_interface.h`, `mtp_chain_runner.{h,cpp}`, `mtp_orchestrator.{h,cpp}`, default `ModelBackend`/`DFlashTarget` hooks, CMake wiring, and `server/test/test_common_mtp_orchestrator.cpp`; it intentionally leaves Qwen35 MTP graph/loader/backend runtime wiring for a later slice.
-- Validation for this source/doc refresh: `git diff --check` passed in the #237 port worktree, a manual narrow non-CUDA host compile of the common MTP test with temporary `ggml` stubs passed, and `/tmp/test_common_mtp_orchestrator_manual` passed all 15 generic common MTP tests. Full CMake validation was not rerun because this local checkout still lacks populated `server/deps/llama.cpp` and the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+- Post-push re-enumeration found new non-draft PR #322. It was fetched as `origin/pr/322`, merged on top of the stack, and had one conflict in `server/src/common/model_backend.h` because both #237 and #322 add callback-related declarations near `TokenCallback`; the resolution keeps both `InferenceObserver` and `mtp::IMtpModule`.
+- Validation for this source/doc refresh: `git diff --check` passed in the #237 port worktree and after the #322 merge, a manual narrow non-CUDA host compile of the common MTP test with temporary `ggml` stubs passed before and after #322, and `/tmp/test_common_mtp_orchestrator_stack_post322` passed all 15 generic common MTP tests. Full CMake validation was not rerun because this local checkout still lacks populated `server/deps/llama.cpp` and the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -93,6 +95,7 @@ This run retained the updated stack worktree, conflicted probe worktrees, and ag
 - `/tmp/luce-claude-pr237-luce-port-pr237-foundation-20260531-073539.txt` (empty Claude port report/no changes)
 - `/tmp/luce-codex-pr237-luce-port-pr237-foundation-20260531-073539.txt` (usable port transcript)
 - `/tmp/test_common_mtp_orchestrator_manual` (manual narrow test binary built with temporary `ggml` stubs)
+- `/tmp/test_common_mtp_orchestrator_stack_post322` (manual narrow post-#322 test binary built with temporary `ggml` stubs)
 - `/tmp/luce-auto-cron-20260531-064912` and its probe/log set from the previous #135 selective-port refresh
 - `/tmp/luce-port-pr135-batched-probe-064912` (successful #135 selective-port worktree)
 - `/tmp/luce-claude-pr135-064912.txt` (max-turns with no useful read-only report)
