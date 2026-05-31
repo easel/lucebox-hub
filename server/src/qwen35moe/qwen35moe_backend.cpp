@@ -1284,6 +1284,20 @@ bool Qwen35MoeBackend::load_dynamic_placement(const char * hotness_path,
         }
     }
 
+    // Percentage-based budget cap (fraction of total expert bytes, for profiling/testing hybrid mode)
+    if (const char * pct_env = std::getenv("DFLASH_EXPERT_BUDGET_PCT")) {
+        int pct = std::atoi(pct_env);
+        if (pct > 0 && pct < 100) {
+            uint64_t pct_bytes = total_expert_bytes * (uint64_t)pct / 100ULL;
+            if (pct_bytes < expert_budget) {
+                std::printf("[qwen35moe] capping expert budget to %d%% = %.2f GiB (of %.2f GiB) (DFLASH_EXPERT_BUDGET_PCT)\n",
+                            pct, pct_bytes / 1024.0 / 1024.0 / 1024.0,
+                            total_expert_bytes / 1024.0 / 1024.0 / 1024.0);
+                expert_budget = pct_bytes;
+            }
+        }
+    }
+
     std::printf("[qwen35moe] dynamic placement: gpu_total=%.2f GiB, core=%.2f GiB, "
                 "kv_cache=%.2f GiB (ctx=%d), warm=%.0f MB, safety=%.0f MB, "
                 "expert_budget=%.2f GiB (of %.2f GiB total experts)\n",
