@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T09:47:10-04:00`
+Last refresh: `2026-05-31T09:49:39-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `067cc77f`
-Current integration source tip before this refresh: `067cc77f`
+Previous integration tip: `easel/auto-integration` `eb6d964f`
+Current integration source tip before this refresh: `eb6d964f`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 21 exact current open non-draft PR heads and carries selective salvage from three remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap for current Qwen35MoE dynamic expert placement, #237's common MTP interface/chain-runner/orchestrator foundation, and #135's capture-free `n_seqs` target-graph/cache plumbing, request-tagged daemon stream framing, and batched target-feature capture buffer plumbing for current qwen35 work. There are currently 27 open non-draft PRs and 9 draft/excluded PRs. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305, #237, and #135 are now partially represented beyond their already-carried broad themes. This refresh found no new ready non-draft PR heads or upstream base changes since the prior #135 target-feature capture integration. Fresh direct-merge probes were rerun for all remaining non-ancestors. Tmux-driven Claude attempted a no-edit #135 remaining-slice review but hit max-turns with no report and no file changes. Tmux-driven Codex completed the no-edit review and reconfirmed the next safe #135 order: multi-cache-slot scaffolding, then scheduler state/introspection, then diagnostic-only batch probing before live copyback/target-step mutation.
+The current stack contains 21 exact current open non-draft PR heads and carries selective salvage from three remaining non-ancestor PRs: #305's `DFLASH_EXPERT_BUDGET_PCT` cap for current Qwen35MoE dynamic expert placement, #237's common MTP interface/chain-runner/orchestrator foundation, and #135's capture-free `n_seqs` target-graph/cache plumbing, request-tagged daemon stream framing, and batched target-feature capture buffer plumbing for current qwen35 work. There are currently 27 open non-draft PRs and 8 draft/excluded PRs. The remaining 6 non-draft PRs are still old conflict/selective-port candidates by exact-head ancestry (#305, #237, #221, #154, #153, and #135), but #305, #237, and #135 are now partially represented beyond their already-carried broad themes. This refresh found #285 advanced after the first push, merged the new head cleanly, and carried its Forge grader updates. Fresh direct-merge probes were rerun for all remaining non-ancestors before the #285 advance. Tmux-driven Claude attempted a no-edit #135 remaining-slice review but hit max-turns with no report and no file changes. Tmux-driven Codex completed the no-edit review and reconfirmed the next safe #135 order: multi-cache-slot scaffolding, then scheduler state/introspection, then diagnostic-only batch probing before live copyback/target-step mutation.
 
 ## Included in the current non-draft stack
 
@@ -29,7 +29,7 @@ The current stack contains 21 exact current open non-draft PR heads and carries 
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support is carried exactly. |
 | #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, and unit coverage are carried exactly. |
 | #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
-| #285 | `feat/lucebox-docker` | `060492e4` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, GPU-power-throttle notes, luce-bench grader fixes, and think-vs-nothink baseline summary are carried exactly. |
+| #285 | `feat/lucebox-docker` | `deb5adba` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, GPU-power-throttle notes, luce-bench grader fixes, think-vs-nothink baseline summary, and Forge grader tests are carried exactly. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
 | #274 | `feat/pflash-drafter-ee7` | `8fc961b5` | included | Adaptive pFlash composition, effective-size admission/keep-ratio guard, and opt-in pFlash regime router are carried with current stack conflict resolutions preserved. |
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried exactly. |
@@ -72,6 +72,8 @@ This run performed:
 - Tmux-driven Claude no-edit review for #135 in `/tmp/luce-port-pr135-validate-20260531-094212` exited with `Error: Reached max turns (8)` and no file changes.
 - Tmux-driven Codex no-edit review for #135 in the same worktree completed and reported that the already-ported #135 pieces cover batched cache/graph foundation, unsafe-mode guards, batched `target_feat` storage/copy, and tagged stream framing. It identified missing high-value slices as multi target-cache slots, native request scheduler, batched command path, batch cache copyback/validation, and multiplexed completion semantics.
 - Validation for this docs-only refresh: `git diff --check` passed. Full CMake validation was not rerun because no source code changed in this refresh and the known missing `server/deps/llama.cpp` / CUDA compiler-id environment blockers remain.
+- Post-push re-enumeration found #285 had advanced from `060492e4` to `deb5adba` while this run was in progress; draft #320 was no longer open. A fresh worktree `/tmp/luce-auto-cron-20260531-0950-pr285` merged the new #285 head cleanly on top of `eb6d964f`, adding Forge grader scoring changes and `luce-bench/tests/test_forge_grader.py`.
+- Validation after the #285 fast-follow merge: `git diff --check` passed, host `python3 -m pytest luce-bench/tests/test_forge_grader.py` could not run because the host Python lacked pytest, and `uv run --project luce-bench --extra dev pytest luce-bench/tests/test_forge_grader.py` passed (`16 passed`).
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -91,11 +93,13 @@ This run performed:
 
 ## Draft / excluded
 
-Draft PRs remain outside the primary non-draft integration target except for dependency awareness: #321, #320, #312, #304, #291, #290, #275, #249, and #193. Draft #321 is a mixed-backend target layer-split runtime follow-up and should be watched if it becomes ready. Draft #320 is an easel branch for plain-text tool-call synthesis and is conflicting against main; watch it but exclude while draft. Draft #312's backend IPC payload transport is related to already-carried IPC payload work, but remains draft/excluded. Draft #304 may touch compaction behavior and should be watched if it becomes ready.
+Draft PRs remain outside the primary non-draft integration target except for dependency awareness: #321, #312, #304, #291, #290, #275, #249, and #193. Draft #321 is a mixed-backend target layer-split runtime follow-up and should be watched if it becomes ready. Draft #312's backend IPC payload transport is related to already-carried IPC payload work, but remains draft/excluded. Draft #304 may touch compaction behavior and should be watched if it becomes ready.
 
 ## Retained worktrees / logs
 
 This run retained the updated stack worktree, conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+
+- `/tmp/luce-auto-cron-20260531-0950-pr285` (fast-follow #285 advanced-head merge worktree)
 
 - `/tmp/luce-auto-cron-20260531-094212` (current docs-only refresh worktree)
 - `/tmp/luce-probe-20260531-094212-pr-305`
