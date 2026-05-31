@@ -470,12 +470,14 @@ bool restore_target_cache_chain(const PrefixSnapshot * thick,
 // When prefill_only is true, rollback tensors (snapshots, intermediates) are
 // skipped — saving ~1.4 GB on 48 DeltaNet layers. Use migrate_prefill_cache()
 // to promote the cache to a full decode cache after prefill.
+// n_seqs>1 is currently allowed only for prefill-only, capture-free graphs.
 bool create_target_cache(const TargetWeights & w,
                          int max_ctx,
                          int max_verify_tokens,
                          ggml_backend_t backend,
                          TargetCache & out,
-                         bool prefill_only = false);
+                         bool prefill_only = false,
+                         int n_seqs = 1);
 
 bool create_target_cache_partial(const TargetWeights & w,
                                  int max_ctx,
@@ -485,7 +487,8 @@ bool create_target_cache_partial(const TargetWeights & w,
                                  bool prefill_only,
                                  int layer_begin,
                                  int layer_end,
-                                 bool allocate_target_feat);
+                                 bool allocate_target_feat,
+                                 int n_seqs = 1);
 
 void free_target_cache(TargetCache & c);
 
@@ -531,10 +534,11 @@ struct DeltaNetCapture {
 };
 
 struct QwenGraphInputs {
-    ggml_tensor * inp_embed;      // [hidden, n_tokens, 1] f32 — pre-embedded by the caller
-    ggml_tensor * positions;      // [4 * n_tokens] i32 (M-RoPE needs 4 per token)
+    ggml_tensor * inp_embed;      // [hidden, n_tokens, n_seqs] f32 — pre-embedded by the caller
+    ggml_tensor * positions;      // [4 * n_tokens] i32 (M-RoPE needs 4 per token); shared across n_seqs
     ggml_tensor * attn_mask;      // optional [kv_len, n_tokens_padded] f32 (causal); nullptr for n_tokens==1
     int           n_tokens;       // number of new tokens in this forward
+    int           n_seqs = 1;     // batch dimension; n_seqs>1 is capture-free and same-position only for now
     int           kv_start;       // position where the new tokens begin
     bool          capture_layers; // if true, write captured layer features into cache.target_feat
     bool          capture_delta_intermediate = false; // if true, populate out_delta_captures
@@ -545,7 +549,7 @@ struct QwenGraphInputs {
 };
 
 struct QwenGraphOutputs {
-    ggml_tensor * logits;      // [vocab, n_tokens] f32
+    ggml_tensor * logits;      // [vocab, n_tokens * n_seqs] f32
     // One entry per delta-net layer (48 for qwen35-27b). Only populated when
     // QwenGraphInputs::capture_delta_intermediate is true. Tensors are graph
     // views marked as ggml_set_output() so their data persists after
