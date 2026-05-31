@@ -202,7 +202,6 @@ bool Gemma4Backend::unpark(const std::string & what) {
 
 int Gemma4Backend::do_prefill(const std::vector<int32_t> & tokens,
                                const DaemonIO & io, int kv_offset) {
-    (void)io;
     const int n = (int)tokens.size();
     const int hidden = w_.n_embd;
     const int chunk = cfg_.chunk;
@@ -212,6 +211,7 @@ int Gemma4Backend::do_prefill(const std::vector<int32_t> & tokens,
 
     int pos = 0;
     while (pos < n) {
+        if (io.should_cancel()) return -1;
         int len = std::min(chunk, n - pos);
 
         // Limit chunk to avoid ring-buffer wrap for SWA layers
@@ -233,6 +233,7 @@ int Gemma4Backend::do_prefill(const std::vector<int32_t> & tokens,
             std::fprintf(stderr, "[gemma4] prefill step failed at pos=%d\n", kv_pos);
             return -1;
         }
+        if (io.should_cancel()) return -1;
 
         pos += len;
         cache_.cur_pos = kv_offset + pos;
@@ -368,7 +369,7 @@ bool Gemma4Backend::do_decode(int committed, int n_gen,
         io.emit(next);
         committed++;
         cache_.cur_pos = committed;
-        if (io.cancelled) break;
+        if (io.should_cancel()) break;
 
         // Check EOS
         if (next == w_.eos_id || next == w_.eos_chat_id) break;
@@ -586,7 +587,7 @@ bool Gemma4Backend::do_spec_decode(int committed, int n_gen,
             out_tokens.push_back(tok);
             io.emit(tok);
             emitted++;
-            if (io.cancelled) break;
+            if (io.should_cancel()) break;
             if (tok == w_.eos_id || tok == w_.eos_chat_id) {
                 hit_eos = true; break;
             }
@@ -596,7 +597,7 @@ bool Gemma4Backend::do_spec_decode(int committed, int n_gen,
         n_generated += emitted;
         n_accept_sum += std::min(accept_n, emitted);
         n_draft_steps++;
-        if (io.cancelled) break;
+        if (io.should_cancel()) break;
         if (hit_eos) break;
     }
 
@@ -640,7 +641,15 @@ GenerateResult Gemma4Backend::generate(const GenerateRequest & req,
     result.prefill_s = std::chrono::duration<double>(
         std::chrono::steady_clock::now() - t_prefill_start).count();
     if (committed < 0) {
+        if (out_io.should_cancel()) {
+            result.ok = true;
+            return result;
+        }
         result.error = "prefill";
+        return result;
+    }
+    if (out_io.should_cancel()) {
+        result.ok = true;
         return result;
     }
 
@@ -657,12 +666,14 @@ GenerateResult Gemma4Backend::generate(const GenerateRequest & req,
     auto t_decode_start = std::chrono::steady_clock::now();
     if (req.n_gen > 0) {
         // Try speculative decode if draft is available and temp==0
-        const bool can_spec = dflash_target_
+        const bool can_spec = !req.force_ar_decode
+            && dflash_target_
             && !draft_parked_
             && feature_mirror_.target_feat
             && !sampler_.needs_logit_processing();
 
         if (can_spec) {
+            result.spec_decode_ran = true;
             if (!do_spec_decode(committed, req.n_gen, result.tokens, out_io,
                                 &req.budget_hook,
                                 &result.budget_forced_close)) {
@@ -701,7 +712,7 @@ GenerateResult Gemma4Backend::generate(const GenerateRequest & req,
             }
             result.tokens.push_back(first);
             out_io.emit(first);
-            if (out_io.cancelled) {
+            if (out_io.should_cancel()) {
                 out_io.emit(-1);
                 result.ok = true;
                 return result;
@@ -802,6 +813,10 @@ GenerateResult Gemma4Backend::restore_and_generate(int slot,
         std::vector<int32_t> delta(req.prompt.begin() + snap_pos, req.prompt.end());
         committed = do_prefill(delta, out_io, /*kv_offset=*/snap_pos);
         if (committed < 0) {
+            if (out_io.should_cancel()) {
+                result.ok = true;
+                return result;
+            }
             result.error = "prefill";
             return result;
         }
@@ -813,6 +828,10 @@ GenerateResult Gemma4Backend::restore_and_generate(int slot,
     // else: prompt_len == snap_pos → no delta, committed stays at snap_pos
     result.prefill_s = std::chrono::duration<double>(
         std::chrono::steady_clock::now() - t_prefill_start).count();
+    if (out_io.should_cancel()) {
+        result.ok = true;
+        return result;
+    }
 
     // Inline snapshot at snap_pos for prefix cache (new snap from this request)
     if (req.snap_slot >= 0 && req.snap_pos > 0 && req.snap_pos <= committed) {
@@ -835,12 +854,14 @@ GenerateResult Gemma4Backend::restore_and_generate(int slot,
     // Generate
     auto t_decode_start = std::chrono::steady_clock::now();
     if (req.n_gen > 0) {
-        const bool can_spec = dflash_target_
+        const bool can_spec = !req.force_ar_decode
+            && dflash_target_
             && !draft_parked_
             && feature_mirror_.target_feat
             && sampler_.temp == 0.0f;
 
         if (can_spec) {
+            result.spec_decode_ran = true;
             if (!do_spec_decode(committed, req.n_gen, result.tokens, out_io,
                                 &req.budget_hook,
                                 &result.budget_forced_close)) {
@@ -879,7 +900,7 @@ GenerateResult Gemma4Backend::restore_and_generate(int slot,
             }
             result.tokens.push_back(first);
             out_io.emit(first);
-            if (out_io.cancelled) {
+            if (out_io.should_cancel()) {
                 out_io.emit(-1);
                 result.ok = true;
                 return result;
