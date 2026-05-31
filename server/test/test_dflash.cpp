@@ -403,6 +403,195 @@ struct ActiveDaemonSlot {
     }
 };
 
+struct SchedulerBucketSelftestCache {
+    int cur_pos = 0;
+    int last_tok = -1;
+};
+
+struct SchedulerBucketSelftestCandidate {
+    int request_id = 0;
+    int slot_id = 0;
+    int epoch = 0;
+    int n_gen = 0;
+    int remaining = 0;
+    SchedulerBucketSelftestCache * cache = nullptr;
+};
+
+struct SchedulerBucketSelftestSelection {
+    std::vector<SchedulerBucketSelftestCandidate> batch;
+    int kv_start = -1;
+    int considered = 0;
+    int eligible = 0;
+    int ineligible = 0;
+    int buckets = 0;
+    int singleton_buckets = 0;
+    int front_kv_start = -1;
+    int front_bucket_size = 0;
+    int blocked_by_front_singleton = 0;
+    int last_selected_slot_id = -1;
+    bool tail_only = false;
+};
+
+static SchedulerBucketSelftestSelection select_scheduler_bucket_selftest(
+    const std::vector<SchedulerBucketSelftestCandidate> & candidates,
+    int max_batch,
+    bool tail_only) {
+    SchedulerBucketSelftestSelection out{};
+    out.tail_only = tail_only;
+    out.considered = (int)candidates.size();
+    if (max_batch < 2 || candidates.empty()) return out;
+
+    std::unordered_map<int, std::vector<size_t>> by_pos;
+    std::vector<int> pos_order;
+    for (size_t i = 0; i < candidates.size(); i++) {
+        const SchedulerBucketSelftestCandidate & candidate = candidates[i];
+        SchedulerBucketSelftestCache * c = candidate.cache;
+        if (!c || c->cur_pos <= 0 || c->last_tok < 0
+            || candidate.remaining <= 0
+            || (tail_only && candidate.remaining != 1)) {
+            out.ineligible++;
+            continue;
+        }
+        out.eligible++;
+        const int pos = c->cur_pos;
+        auto it = by_pos.find(pos);
+        if (it == by_pos.end()) {
+            pos_order.push_back(pos);
+            it = by_pos.emplace(pos, std::vector<size_t>{}).first;
+        }
+        if (out.front_kv_start < 0) out.front_kv_start = pos;
+        it->second.push_back(i);
+    }
+
+    out.buckets = (int)pos_order.size();
+    for (int pos : pos_order) {
+        const int bucket_size = (int)by_pos[pos].size();
+        if (bucket_size == 1) out.singleton_buckets++;
+        if (pos == out.front_kv_start) out.front_bucket_size = bucket_size;
+    }
+
+    if (out.front_kv_start < 0) return out;
+    if (out.front_bucket_size < 2) {
+        out.blocked_by_front_singleton = out.front_bucket_size == 1 ? 1 : 0;
+        return out;
+    }
+
+    const std::vector<size_t> & selected = by_pos[out.front_kv_start];
+    const int n = std::min(max_batch, (int)selected.size());
+    if (n < 2) return out;
+    out.kv_start = out.front_kv_start;
+    out.batch.reserve((size_t)n);
+    for (int i = 0; i < n; i++) {
+        const SchedulerBucketSelftestCandidate & candidate = candidates[selected[(size_t)i]];
+        out.batch.push_back(candidate);
+        out.last_selected_slot_id = candidate.slot_id;
+    }
+    return out;
+}
+
+static size_t next_scheduler_bucket_selftest_cursor(
+    const SchedulerBucketSelftestSelection & selection,
+    size_t n_slots,
+    size_t current_cursor) {
+    if (n_slots == 0 || selection.last_selected_slot_id < 0) {
+        return current_cursor;
+    }
+    return ((size_t)selection.last_selected_slot_id + 1) % n_slots;
+}
+
+static int run_scheduler_bucket_selftest() {
+    struct CandidateSet {
+        std::vector<SchedulerBucketSelftestCache> caches;
+        std::vector<SchedulerBucketSelftestCandidate> candidates;
+    };
+    auto make_candidates = [](
+        const std::vector<int> & positions,
+        const std::vector<int> & last_tokens,
+        const std::vector<int> & remaining) {
+        CandidateSet data;
+        data.caches.resize(positions.size());
+        data.candidates.reserve(positions.size());
+        for (size_t i = 0; i < positions.size(); i++) {
+            data.caches[i].cur_pos = positions[i];
+            data.caches[i].last_tok = last_tokens[i];
+            data.candidates.push_back(SchedulerBucketSelftestCandidate{
+                (int)i + 1,
+                (int)i,
+                1,
+                1,
+                remaining[i],
+                &data.caches[i]});
+        }
+        return data;
+    };
+    auto require_true = [](bool ok, const char * label) {
+        if (!ok) std::fprintf(stderr, "[scheduler-test] failed: %s\n", label);
+        return ok;
+    };
+
+    {
+        auto data = make_candidates({17, 17, 10}, {1, 2, 3}, {4, 4, 4});
+        SchedulerBucketSelftestSelection sel =
+            select_scheduler_bucket_selftest(data.candidates, 2, false);
+        if (!require_true(sel.batch.size() == 2
+                          && sel.kv_start == 17
+                          && sel.buckets == 2
+                          && sel.singleton_buckets == 1,
+                          "front aligned bucket selected")) return 1;
+    }
+    {
+        auto data = make_candidates({10, 17}, {1, 2}, {4, 4});
+        SchedulerBucketSelftestSelection sel =
+            select_scheduler_bucket_selftest(data.candidates, 2, false);
+        if (!require_true(sel.batch.empty()
+                          && sel.blocked_by_front_singleton == 1,
+                          "singleton front falls back")) return 1;
+    }
+    {
+        auto data = make_candidates({20, 20, 20}, {1, 2, 3}, {2, 1, 1});
+        SchedulerBucketSelftestSelection sel =
+            select_scheduler_bucket_selftest(data.candidates, 2, true);
+        if (!require_true(sel.batch.size() == 2
+                          && sel.eligible == 2
+                          && sel.ineligible == 1
+                          && sel.kv_start == 20,
+                          "tail_only filters remaining != 1")) return 1;
+    }
+    {
+        auto data = make_candidates({0, 18, 18}, {-1, 7, 8}, {1, 1, 1});
+        SchedulerBucketSelftestSelection sel =
+            select_scheduler_bucket_selftest(data.candidates, 2, false);
+        if (!require_true(sel.batch.size() == 2
+                          && sel.eligible == 2
+                          && sel.ineligible == 1,
+                          "invalid cur_pos/last_tok filtered")) return 1;
+    }
+    {
+        auto data = make_candidates({10, 17, 17}, {1, 2, 3}, {4, 4, 4});
+        SchedulerBucketSelftestSelection sel =
+            select_scheduler_bucket_selftest(data.candidates, 2, false);
+        if (!require_true(sel.batch.empty()
+                          && sel.front_kv_start == 10
+                          && sel.front_bucket_size == 1
+                          && sel.blocked_by_front_singleton == 1,
+                          "fairness blocks tail bucket behind singleton")) return 1;
+    }
+    {
+        auto data = make_candidates({17, 17, 17}, {1, 2, 3}, {4, 4, 4});
+        SchedulerBucketSelftestSelection sel =
+            select_scheduler_bucket_selftest(data.candidates, 2, false);
+        size_t next = next_scheduler_bucket_selftest_cursor(sel, 3, 0);
+        if (!require_true(sel.batch.size() == 2
+                          && sel.last_selected_slot_id == 1
+                          && next == 2,
+                          "cursor advances after last selected slot")) return 1;
+    }
+
+    std::printf("[scheduler-test] aligned bucket selftest ok\n");
+    std::fflush(stdout);
+    return 0;
+}
+
 // ─── Draft IPC — extracted to src/qwen35/draft_ipc.{h,cpp} ──
 #include "dflash_draft_ipc.h"
 using dflash::common::DFlashDraftIpcClient;
@@ -840,11 +1029,15 @@ int main(int argc, char ** argv) {
                                            ipc_draft_gpu,
                                            ipc_stream_fd);
     }
+    if (argc == 2 && std::strcmp(argv[1], "--test-scheduler-buckets") == 0) {
+        return run_scheduler_bucket_selftest();
+    }
     if (argc < 3) {
         std::fprintf(stderr,
             "usage: %s <target.gguf> <draft.safetensors> [<prompt_ids.bin> <n_gen> <out_ids.bin>] [--daemon] [--stream-tagged] [-ctk <type>] [-ctv <type>] ...\n"
-            "       %s --draft-ipc-daemon <draft.safetensors|draft.gguf> --ring-cap=N --stream-fd=FD [--draft-gpu=N]\n",
-            argv[0], argv[0]);
+            "       %s --draft-ipc-daemon <draft.safetensors|draft.gguf> --ring-cap=N --stream-fd=FD [--draft-gpu=N]\n"
+            "       %s --test-scheduler-buckets\n",
+            argv[0], argv[0], argv[0]);
         return 2;
     }
     // TurboQuant FA kernel requires kv_len aligned to FATTN_KQ_STRIDE=256.
