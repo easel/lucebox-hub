@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T04:15:55-04:00`
+Last refresh: `2026-05-31T04:42:56-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `bf151ce8`
-Current integration tip before push: `bf151ce8`
+Previous integration tip: `easel/auto-integration` `01ce03d2`
+Current integration tip before push: `01ce03d2`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against `easel/auto-integration`.
 
-A post-push re-enumeration caught that ready PR #274 advanced during this run (`8c1f37db` -> `8fc961b5`). The run fetched the new head, merged it on top of the just-pushed stack in the existing reconciliation worktree, resolved three conflicts by preserving the current pFlash curve/bandit/SWA behavior while adding #274's new opt-in pFlash regime router, verified the new standalone router test, and pushed a second update. The final stack now contains 21 of 27 current non-draft contributor PR heads exactly; the same 5 old conflict/selective-port candidates plus one suggested-close branch remain non-ancestors (#305, #237, #221, #154, #153, and #135).
+No ready PR head advanced since the prior pushed stack: the stack still contains 21 of 27 current non-draft contributor PR heads exactly; the same 5 old conflict/selective-port candidates plus one suggested-close branch remain non-ancestors (#305, #237, #221, #154, #153, and #135). `origin/main` was already included.
 
-Fresh worktree probes were still performed for the 6 pre-existing non-ancestor candidates. A fresh tmux-driven Claude attempt for #237 exited with `Error: Reached max turns (8)` and no useful report. A fresh tmux-driven Codex attempt for #237 produced a large 574 KiB inspection transcript and was interrupted before a concise final recommendation. These delegation failures are recorded as evidence, not conclusions. Manual probe results still support the prior classification: #237 is the best MTP-foundation salvage starting point; #153/#154 depend on a current-layout #237-equivalent; #221 is broader/older and should be mined only after #237; #305 and #135 remain high-risk selective ports.
+Fresh worktree probes were still performed for the 6 pre-existing non-ancestor candidates. A fresh tmux-driven Claude read-only attempt for #237 exited with `Error: Reached max turns (12)` and no useful report. A fresh tmux-driven Codex read-only attempt for #237 completed with a concise feasibility report after a large inspection transcript. Codex agreed that #237 should be ported in slices rather than direct-merged: build/file placement, factory/server CLI activation, common MTP abstraction, Qwen35 graph/target capture, Qwen35 backend runtime, and harness compatibility. Manual probe results still support the prior classification: #237 is the best MTP-foundation salvage starting point; #153/#154 depend on a current-layout #237-equivalent; #221 is broader/older and should be mined only after #237; #305 and #135 remain high-risk selective ports.
 
 ## Included in the current non-draft stack
 
@@ -47,21 +47,18 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-31T04:10:24-04:00` during preflight and `2026-05-31T04:15:55-04:00` before manifest refresh.
+- `date -Is` -> `2026-05-31T04:33:29-04:00` during preflight and `2026-05-31T04:42:56-04:00` before manifest refresh.
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
-- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and Codex version smoke check.
+- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and Codex help smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Current open PR enumeration reported 27 non-draft PRs and 7 draft/excluded PRs.
 - Explicit fetch of open non-draft PR heads succeeded for all current non-draft PRs.
-- Exact-head containment initially showed #317, #316, #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274@`8c1f37db`, #266, #152, #142, #137, #94, and #48 were ancestors of `easel/auto-integration`; #305, #237, #221, #154, #153, and #135 were non-ancestors.
-- Post-push PR re-enumeration found #274 had advanced to `8fc961b5`; that new head was fetched, merged, conflict-resolved, committed, pushed, and rechecked.
-- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-041107`; `origin/main` was already included.
-- Fresh direct-merge probes on top of `bf151ce8` reconfirmed current conflict counts for the pre-existing remaining non-ancestor PRs: #305 (29 files), #237 (24), #221 (23), #154 (12), #153 (10), and #135 (3).
-- #274 latest-head merge conflicted in `server/src/qwen3/qwen3_drafter.cpp`, `server/src/server/http_server.cpp`, and `server/src/server/server_main.cpp`; resolution combined #274's opt-in regime router with existing curve/bandit/upstream/SWA behavior.
-- `git cherry -v easel/auto-integration origin/pr/<n>` summaries before the #274 follow-up: #305 has 21 patch-equivalent and 10 patch-unique commits; #237 has 13 patch-unique commits; #221 has 12; #154 has 4; #153 has 1; #135 has 1.
-- Tmux-driven Claude read-only feasibility for #237 wrote `/tmp/luce-claude-20260531-041107-pr237-report.txt` but exited with max-turns before producing useful content.
-- Tmux-driven Codex read-only feasibility for #237 wrote `/tmp/luce-codex-20260531-041107-pr237-report.txt` (574 KiB) and pane capture `/tmp/luce-codex-20260531-041107-pr237-pane.txt`; it inspected conflict state but was interrupted before the requested concise summary.
-- Validation after resolving #274: `git diff --check` passed and standalone `g++ -std=gnu++17 -O2 -Wall -Wextra -Werror -I server/src/common -o /tmp/test_regime_router-20260531-041107 server/test/test_regime_router.cpp && /tmp/test_regime_router-20260531-041107` passed with 59 tests / 0 failures.
+- Exact-head containment showed #317, #316, #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, #142, #137, #94, and #48 were ancestors of `easel/auto-integration`; #305, #237, #221, #154, #153, and #135 were non-ancestors.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-043408`; `origin/main` was already included.
+- Fresh direct-merge probes on top of `01ce03d2` reconfirmed current conflict/status counts for the pre-existing remaining non-ancestor PRs: #305 (55 status entries), #237 (33), #221 (88), #154 (13), #153 (10), and #135 (3).
+- Tmux-driven Claude read-only feasibility for #237 wrote `/tmp/luce-claude-20260531-043408-pr237-report.txt` but exited with max-turns before producing useful content.
+- Tmux-driven Codex read-only feasibility for #237 wrote `/tmp/luce-codex-20260531-043408-pr237-report.txt` (739 KiB) and completed with a concise report recommending a sliced current-layout port.
+- Validation for this documentation-only refresh: `git diff --check -- docs/auto-integration.md` passed.
 - Final containment check confirmed `origin/main` and 21 included current PR heads are ancestors of `HEAD`; the remaining non-ancestor PRs are #305, #237, #221, #154, #153, and #135.
 
 ## Pending / blocked-needs-human / selective-port candidates
@@ -88,24 +85,23 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained the updated stack worktree, fresh conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260531-041107` (manifest refresh worktree)
-- `/tmp/luce-probe-20260531-041107-pr-305`
-- `/tmp/luce-probe-20260531-041107-pr-237`
-- `/tmp/luce-probe-20260531-041107-pr-221`
-- `/tmp/luce-probe-20260531-041107-pr-154`
-- `/tmp/luce-probe-20260531-041107-pr-153`
-- `/tmp/luce-probe-20260531-041107-pr-135`
-- `/tmp/luce-probe-20260531-041107-pr305-merge.log`
-- `/tmp/luce-probe-20260531-041107-pr237-merge.log`
-- `/tmp/luce-probe-20260531-041107-pr221-merge.log`
-- `/tmp/luce-probe-20260531-041107-pr154-merge.log`
-- `/tmp/luce-probe-20260531-041107-pr153-merge.log`
-- `/tmp/luce-probe-20260531-041107-pr135-merge.log`
-- `/tmp/luce-claude-20260531-041107-pr237-report.txt` (Claude max-turns failure)
-- `/tmp/luce-codex-20260531-041107-pr237-report.txt` (large Codex inspection transcript; interrupted without requested concise summary)
-- `/tmp/luce-pr274-merge-20260531-041107.log` (latest #274 merge conflict log)
+- `/tmp/luce-auto-cron-20260531-043408` (manifest refresh worktree)
+- `/tmp/luce-probe-20260531-043408-pr-305`
+- `/tmp/luce-probe-20260531-043408-pr-237`
+- `/tmp/luce-probe-20260531-043408-pr-221`
+- `/tmp/luce-probe-20260531-043408-pr-154`
+- `/tmp/luce-probe-20260531-043408-pr-153`
+- `/tmp/luce-probe-20260531-043408-pr-135`
+- `/tmp/luce-probe-20260531-043408-pr305-merge.log`
+- `/tmp/luce-probe-20260531-043408-pr237-merge.log`
+- `/tmp/luce-probe-20260531-043408-pr221-merge.log`
+- `/tmp/luce-probe-20260531-043408-pr154-merge.log`
+- `/tmp/luce-probe-20260531-043408-pr153-merge.log`
+- `/tmp/luce-probe-20260531-043408-pr135-merge.log`
+- `/tmp/luce-claude-20260531-043408-pr237-report.txt` (Claude max-turns failure)
+- `/tmp/luce-codex-20260531-043408-pr237-report.txt` (large Codex inspection transcript with concise final recommendation)
 
-Prior retained worktrees/logs for conflicted/superseded probes and earlier refreshes include `/tmp/luce-auto-cron-20260531-035529`, `/tmp/luce-probe-20260531-035529-pr-305`, `/tmp/luce-probe-20260531-035529-pr-237`, `/tmp/luce-probe-20260531-035529-pr-221`, `/tmp/luce-probe-20260531-035529-pr-154`, `/tmp/luce-probe-20260531-035529-pr-153`, `/tmp/luce-probe-20260531-035529-pr-135`, `/tmp/luce-claude-20260531-035529-pr237-report.txt`, `/tmp/luce-codex-20260531-035529-pr135-report.txt`, and earlier `/tmp/luce-auto-cron-*` / `/tmp/luce-probe-*` audit worktrees.
+Prior retained worktrees/logs for conflicted/superseded probes and earlier refreshes include `/tmp/luce-auto-cron-20260531-041107`, `/tmp/luce-probe-20260531-041107-pr-305`, `/tmp/luce-probe-20260531-041107-pr-237`, `/tmp/luce-probe-20260531-041107-pr-221`, `/tmp/luce-probe-20260531-041107-pr-154`, `/tmp/luce-probe-20260531-041107-pr-153`, `/tmp/luce-probe-20260531-041107-pr-135`, `/tmp/luce-claude-20260531-041107-pr237-report.txt`, `/tmp/luce-codex-20260531-041107-pr237-report.txt`, `/tmp/luce-pr274-merge-20260531-041107.log`, `/tmp/luce-auto-cron-20260531-035529`, `/tmp/luce-probe-20260531-035529-pr-305`, `/tmp/luce-probe-20260531-035529-pr-237`, `/tmp/luce-probe-20260531-035529-pr-221`, `/tmp/luce-probe-20260531-035529-pr-154`, `/tmp/luce-probe-20260531-035529-pr-153`, `/tmp/luce-probe-20260531-035529-pr-135`, `/tmp/luce-claude-20260531-035529-pr237-report.txt`, `/tmp/luce-codex-20260531-035529-pr135-report.txt`, and earlier `/tmp/luce-auto-cron-*` / `/tmp/luce-probe-*` audit worktrees.
 
 ## Notes
 
