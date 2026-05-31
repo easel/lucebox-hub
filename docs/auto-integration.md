@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T02:52:30-04:00`
+Last refresh: `2026-05-31T02:58:10-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `99566056`
-Current integration tip before push: `99566056`
+Previous integration tip: `easel/auto-integration` `2a2f80b9`
+Current integration tip before push: `2a2f80b9`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
-This run found `origin/main` unchanged and `easel/auto-integration` already at the previous manifest-only refresh. The open non-draft set still contains 27 PRs; 21 are included by exact head containment and 6 remain non-ancestor conflict/selective-port candidates. Fresh worktree probes reconfirmed the same conflict surfaces for #305, #237, #221, #154, #153, and #135. No PR head could be newly integrated as-is in this run, but a fresh tmux-driven Codex read-only audit produced a more concrete #135 salvage plan: port scheduler request/slot framing and aligned-bucket batching separately from batched target graph execution, preserving the current split `server/` helpers and explicitly gating early batched support away from tree mode, rollback capture, MoE routing, and unsupported cache shapes.
+This run found `origin/main` unchanged and `easel/auto-integration` initially at the previous manifest-only refresh. The open non-draft set still contains 27 PRs; after the first push, re-enumeration showed #285 had advanced from `4b4fd286` to `060492e4`, so the run fetched and cleanly merged that new documentation commit as well. The stack now includes 21 current non-draft PR heads by exact containment and 6 non-ancestor conflict/selective-port candidates remain (#305, #237, #221, #154, #153, and #135; #285 is newly refreshed). Fresh worktree probes reconfirmed the same conflict surfaces for #305, #237, #221, #154, #153, and #135. A fresh tmux-driven Codex read-only audit produced a more concrete #135 salvage plan: port scheduler request/slot framing and aligned-bucket batching separately from batched target graph execution, preserving the current split `server/` helpers and explicitly gating early batched support away from tree mode, rollback capture, MoE routing, and unsupported cache shapes.
 
 ## Included in the current non-draft stack
 
@@ -29,7 +29,7 @@ This run found `origin/main` unchanged and `easel/auto-integration` already at t
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support is carried exactly. |
 | #294 | `feat/server-passthrough-proxy` | `48f6962d` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, and unit coverage are carried exactly. |
 | #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
-| #285 | `feat/lucebox-docker` | `4b4fd286` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, Bragi GPU-power-throttle experiment notes, and luce-bench grader fixes are carried exactly. |
+| #285 | `feat/lucebox-docker` | `060492e4` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, Bragi GPU-power-throttle experiment notes, luce-bench grader fixes, and the Bragi think-vs-nothink baseline summary are carried exactly. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
 | #274 | `feat/pflash-drafter-ee7` | `8c1f37db` | included | Adaptive pFlash composition and effective-size admission/keep-ratio guard update are carried exactly. |
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried exactly. |
@@ -51,15 +51,16 @@ This run performed:
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Current open PR enumeration reported 27 non-draft PRs and 7 draft/excluded PRs.
 - Explicit fetch of open PR heads succeeded for all current non-draft PRs.
-- Exact-head containment before reconciliation showed #317, #316, #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, #142, #137, #94, and #48 were ancestors of `easel/auto-integration`; #305, #237, #221, #154, #153, and #135 were non-ancestors.
+- Exact-head containment before reconciliation initially showed #317, #316, #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285 at `4b4fd286`, #276, #274, #266, #152, #142, #137, #94, and #48 were ancestors of `easel/auto-integration`; #305, #237, #221, #154, #153, and #135 were non-ancestors.
 - A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-024115`; `origin/main` was already included.
 - Fresh direct-merge probes on top of `99566056` reconfirmed current conflict counts for all remaining non-ancestor PRs: #305 (29 files), #237 (24), #221 (23), #154 (12), #153 (10), and #135 (3).
 - Tmux-driven Claude read-only feasibility for #135 exited with `Error: Reached max turns (12)` and produced no useful report.
 - Tmux-driven Codex read-only feasibility for #135 completed and produced `/tmp/luce-codex-20260531-024115-pr135-report.txt`. It found the PR valuable but not safe for direct manual merge: #135 adds native daemon multi-request scheduling (`START`, `CONTINUE`, `CANCEL`, drain/peek/probe, request IDs, target cache slots, and `--stream-tagged` framing), aligned-bucket batching by `cur_pos`, batched target-step support through `n_seqs`, and scheduler validation hooks.
 - The Codex #135 audit recommended a current-layout selective port: keep current `server/src/internal.h` APIs, add only `QwenGraphInputs::n_seqs = 1` plus batched-cache comments/signatures, preserve `TargetLoadPlan`, partial load, `kv_k_rotated`, `capture_moe_router`, and `last_token_logits_only`, add batched cache allocation to qwen35 target graph without losing current scale/MoE/null-output behavior, add `build_target_batch_probe_step` in `server/src/qwen35/graph_builders.{h,cpp}`, and port only scheduler-specific daemon pieces into `server/test/test_dflash.cpp` rather than reimporting old local utilities.
 - The Codex #135 audit warned to gate initial batched graph support to dense, tree-free, rollback-free single-token target steps and reject `n_seqs > 1` with tree mode, rollback capture, MoE routing, or unsupported cache shapes until explicitly implemented; validation should include `test_dflash --test-scheduler-buckets`, a GPU daemon run with `--target-cache-slots >= 2 --stream-tagged`, `SCHED_BATCH_PROBE`, `SCHED_BATCH_TARGET_STEP`, and `DFLASH27B_SCHED_COPYBACK_VALIDATE=1`.
-- Containment check confirmed `origin/main` and 21 included PR heads are ancestors of `HEAD`; the remaining non-ancestor PRs are #305, #237, #221, #154, #153, and #135.
-- `git diff --check` on the manifest-only change passed.
+- Post-push re-enumeration/fetch detected #285 had advanced to `060492e4`; merging `origin/pr/285` into the stack was clean and added `docs/experiments/bragi-think-vs-nothink-baselines-2026-05-30.md`.
+- Containment check confirmed `origin/main` and 21 included current PR heads are ancestors of `HEAD`; the remaining non-ancestor PRs are #305, #237, #221, #154, #153, and #135.
+- `git diff --check` on the manifest/#285 documentation update passed.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
