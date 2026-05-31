@@ -272,6 +272,23 @@ static bool parse_daemon_request_prefix(std::string & line, int & request_id) {
     return true;
 }
 
+static bool parse_daemon_request_id_arg(const std::string & text, int & request_id) {
+    request_id = 0;
+    size_t pos = 0;
+    while (pos < text.size() && (text[pos] == ' ' || text[pos] == '\t')) pos++;
+    if (pos >= text.size()) return false;
+
+    char * end = nullptr;
+    long parsed = std::strtol(text.c_str() + pos, &end, 10);
+    if (end == text.c_str() + pos || parsed <= 0 || parsed > 0x3fffffff) return false;
+
+    size_t end_pos = (size_t)(end - text.c_str());
+    while (end_pos < text.size() && (text[end_pos] == ' ' || text[end_pos] == '\t')) end_pos++;
+    if (end_pos != text.size()) return false;
+    request_id = (int)parsed;
+    return true;
+}
+
 static bool parse_daemon_slot_prefix(std::string & line, int & slot_id) {
     slot_id = 0;
     bool has_prefix = false;
@@ -313,6 +330,13 @@ struct DaemonSlotState {
     StepGraph proj_sg;
     DraftFeatureMirror feature_mirror;
     bool first_iter = true;
+};
+
+struct DaemonRequestState {
+    int request_id = 0;
+    int cache_slot = -1;
+    std::string status;
+    std::string message;
 };
 
 static void swap_daemon_slot_state(
@@ -2374,6 +2398,7 @@ int main(int argc, char ** argv) {
     bool drafter_loaded = false;
 
     std::vector<std::unique_ptr<DaemonSlotState>> daemon_extra_slots;
+    std::vector<DaemonRequestState> daemon_requests;
 
     auto destroy_target_graphs_all_slots = [&]() {
         step_graph_destroy(proj_sg);
@@ -2429,8 +2454,41 @@ int main(int argc, char ** argv) {
         // multi-snap "snap=A:1,B:2" is not implemented — use separate SNAPSHOT).
         int  snap_pos  = -1;
         int  snap_slot = -1;
+        int  daemon_request_state_index = -1;
         int active_cache_slot = 0;
         std::unique_ptr<ActiveDaemonSlot> active_daemon_slot;
+        auto upsert_daemon_request = [&](int request_id,
+                                         int cache_slot,
+                                         const char * status,
+                                         const char * message) -> int {
+            if (request_id <= 0) return -1;
+            for (int i = (int)daemon_requests.size() - 1; i >= 0; i--) {
+                if (daemon_requests[(size_t)i].request_id == request_id) {
+                    DaemonRequestState & req = daemon_requests[(size_t)i];
+                    req.cache_slot = cache_slot;
+                    req.status = status ? status : "";
+                    req.message = message ? message : "";
+                    return i;
+                }
+            }
+            if (daemon_requests.size() >= 128) {
+                daemon_requests.erase(daemon_requests.begin());
+            }
+            DaemonRequestState req;
+            req.request_id = request_id;
+            req.cache_slot = cache_slot;
+            req.status = status ? status : "";
+            req.message = message ? message : "";
+            daemon_requests.push_back(std::move(req));
+            return (int)daemon_requests.size() - 1;
+        };
+        auto update_daemon_request_state = [&](const char * status, const char * message) {
+            if (daemon_request_state_index < 0
+                || daemon_request_state_index >= (int)daemon_requests.size()) return;
+            DaemonRequestState & req = daemon_requests[(size_t)daemon_request_state_index];
+            req.status = status ? status : "";
+            req.message = message ? message : "";
+        };
         auto activate_daemon_cache_slot = [&](int slot_id) -> bool {
             if (slot_id < 0 || slot_id >= target_cache_slots) return false;
             if (slot_id == active_cache_slot) return true;
@@ -2486,6 +2544,61 @@ int main(int argc, char ** argv) {
                 }
                 std::printf("\n");
                 std::fflush(stdout);
+                continue;
+            }
+            if (line == "LIST_REQUESTS") {
+                std::printf("[daemon] requests=");
+                if (daemon_requests.empty()) {
+                    std::printf("<none>");
+                }
+                for (size_t i = 0; i < daemon_requests.size(); i++) {
+                    const DaemonRequestState & req = daemon_requests[i];
+                    std::printf("%sreq=%d:slot=%d:status=%s:message=%s",
+                                i == 0 ? "" : ",",
+                                req.request_id,
+                                req.cache_slot,
+                                req.status.empty() ? "unknown" : req.status.c_str(),
+                                req.message.empty() ? "-" : req.message.c_str());
+                }
+                std::printf("\n");
+                std::fflush(stdout);
+                stream_emit(-1);
+                continue;
+            }
+            if (line == "CANCEL" || line.rfind("CANCEL ", 0) == 0) {
+                int cancel_request_id = current_stream_request_id;
+                if (line.rfind("CANCEL ", 0) == 0
+                    && !parse_daemon_request_id_arg(line.substr(7), cancel_request_id)) {
+                    std::fprintf(stderr, "[daemon] CANCEL bad request id\n");
+                    stream_emit(-1);
+                    continue;
+                }
+                if (cancel_request_id <= 0) {
+                    std::fprintf(stderr, "[daemon] CANCEL requires REQ <id> or CANCEL <id>\n");
+                    stream_emit(-1);
+                    continue;
+                }
+                int idx = -1;
+                for (int i = (int)daemon_requests.size() - 1; i >= 0; i--) {
+                    if (daemon_requests[(size_t)i].request_id == cancel_request_id) {
+                        idx = i;
+                        break;
+                    }
+                }
+                if (idx < 0) {
+                    idx = upsert_daemon_request(cancel_request_id, -1,
+                                                "cancelled", "cancelled-before-observed");
+                } else {
+                    DaemonRequestState & req = daemon_requests[(size_t)idx];
+                    req.status = "cancelled";
+                    req.message = "cancelled";
+                }
+                const DaemonRequestState & req = daemon_requests[(size_t)idx];
+                std::printf("[daemon] cancel req=%d slot=%d status=%s\n",
+                            req.request_id, req.cache_slot,
+                            req.status.empty() ? "unknown" : req.status.c_str());
+                std::fflush(stdout);
+                stream_emit(-1);
                 continue;
             }
             g_sampler = SamplerCfg{};
@@ -2842,6 +2955,14 @@ int main(int argc, char ** argv) {
                 }
             }
 
+            if (current_stream_request_id > 0) {
+                daemon_request_state_index =
+                    upsert_daemon_request(current_stream_request_id,
+                                          active_cache_slot,
+                                          "running",
+                                          "generation-started");
+            }
+
             // Reset cache state between requests. On the first request the
             // cache was promoted from prefill-only to full (with rollback
             // tensors) by migrate_prefill_cache. On subsequent requests we
@@ -2859,6 +2980,7 @@ int main(int argc, char ** argv) {
             if (restore_from_slot) {
                 if (!restore_target_cache(prefix_snapshots[restore_slot_id], cache)) {
                     std::fprintf(stderr, "[snap] restore failed: %s\n", dflash27b_last_error());
+                    update_daemon_request_state("error", "restore-failed");
                     stream_emit(-1);
                     continue;
                 }
@@ -2878,6 +3000,7 @@ int main(int argc, char ** argv) {
                                                  (int)thin_ptrs.size(),
                                                  cache)) {
                     std::fprintf(stderr, "[snap] RESTORE_CHAIN failed: %s\n", dflash27b_last_error());
+                    update_daemon_request_state("error", "restore-chain-failed");
                     stream_emit(-1);
                     continue;
                 }
@@ -2890,14 +3013,22 @@ int main(int argc, char ** argv) {
         auto prompt = read_int32_file(prompt_path);
         if (prompt.empty()) {
             std::fprintf(stderr, "empty prompt\n");
-            if (daemon_mode) { stream_emit(-1); continue; } else return 1;
+            if (daemon_mode) {
+                update_daemon_request_state("error", "empty-prompt");
+                stream_emit(-1);
+                continue;
+            } else return 1;
         }
         std::printf("[prompt] %zu tokens\n", prompt.size());
 
         if ((int)prompt.size() + n_gen + q_len > max_ctx) {
             std::fprintf(stderr, "prompt (%zu) + gen (%d) + block (%d) = %d exceeds max_ctx (%d)\n",
                          prompt.size(), n_gen, q_len, (int)prompt.size() + n_gen + q_len, max_ctx);
-            if (daemon_mode) { stream_emit(-1); continue; } else return 1;
+            if (daemon_mode) {
+                update_daemon_request_state("error", "max-ctx-exceeded");
+                stream_emit(-1);
+                continue;
+            } else return 1;
         }
 
         std::vector<float>   embed_buf(hidden);
@@ -3246,6 +3377,7 @@ int main(int argc, char ** argv) {
     // read loop without killing the process. No-op when daemon_mode=false.
     if (false) {
     _req_aborted_oom:
+        update_daemon_request_state("error", "request-aborted-oom");
         continue;
     }
     auto t_pf1 = std::chrono::steady_clock::now();
@@ -4332,6 +4464,7 @@ int main(int argc, char ** argv) {
         // for cross-request snapshot accounting.
         cache.cur_pos  = (int)out_all.size();
         cache.last_tok = last_tok;
+        update_daemon_request_state("done", "generation-complete");
         stream_emit(-1);
     } else {
         if (out_path) write_int32_file(out_path, out_all);
