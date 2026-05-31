@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T14:04:07-04:00`
+Last refresh: `2026-05-31T14:21:02-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `19a19e9b`
-Current integration source tip before this refresh: `19a19e9b`
+Previous integration tip: `easel/auto-integration` `07ed3396`
+Current integration source tip before this refresh: `07ed3396`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -181,6 +181,10 @@ This run performed:
 - Tmux-driven Codex read-only delegation for #325 in `/tmp/luce-port-pr325-20260531-135848` completed with a usable report at `/tmp/luce-codex-pr325-135848.raw.txt`; no source edits were made. Codex found #325 and #321 now share base `71b3e983`, #325 carries disk-cache commits `a043547f` and `b47fb3aa`, and #321 carries unique hardening commit `87fe7655`, so #325 is no longer a strict exact superset of #321. The smallest safe #325 slice remains same-backend Qwen35 layer-split disk-prefix-cache export/adopt via `LayerSplitBackend`/`Qwen35LayerSplitAdapter`, deferring mixed-backend IPC and Laguna.
 - Tmux-driven Claude read-only delegation for #325 in `/tmp/luce-auto-cron-20260531-135757` exited with `Error: Reached max turns (8)` and produced no useful report or file changes.
 - Validation for this source/manifest refresh: `git diff --check` passed before commit, and conflict-marker search found no merge markers in the promoted files. Full CMake validation was not rerun because this checkout still lacks populated `server/deps/llama.cpp` and the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+- `date -Is` -> `2026-05-31T14:21:02-04:00` during this docs-only refresh; primary checkout was clean on `auto-integration` at `07ed3396`, auth/tooling checks succeeded using real user credentials, and `origin` / `easel` were fetched separately.
+- Open PR enumeration still reported 32 non-draft PRs and 5 draft/excluded PRs. Exact-head containment showed newly/current already-carried non-draft PR heads #324, #322, #319, #316, #315, #291, #290, #137, #94, and #48 are ancestors of `auto-integration`; #325 and #321 remain non-ancestor conflict targets alongside #305, #237, #221, #154, #153, and #135.
+- Fresh direct-merge probes on top of `07ed3396` reconfirmed #321 conflicts (31 status entries / 11 unmerged files) and #325 conflicts (34 status entries / 14 unmerged files). Claude Code attempted #321 conflict resolution and exited with `Error: Reached max turns (12)` leaving conflict markers; a tmux Codex launch for #325 was blocked by unattended approval guards before useful work began. No source changes were promoted.
+- Validation for this docs-only refresh: YAML parse of `.github/auto-integration/stack.yaml` succeeded, `git diff --check HEAD~1..HEAD` passed after the manifest commit, and post-push `easel/auto-integration` matched local `auto-integration` at `2ddf8a66`. No build/CMake rerun was needed because this update changed only integration metadata/docs.
 ## Pending / blocked-needs-human / selective-port candidates
 
 | PR | Head branch | Head | Current status | Probe result / next useful action |
@@ -207,7 +211,10 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained the updated stack worktree, conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260531-135757` (current source/manifest refresh worktree; #290/#291 promoted here; #321/#325 and remaining non-ancestors probed)
+- `/tmp/luce-auto-cron-20260531-142102/reconcile` (current #321 conflicted probe; Claude attempted resolution and left conflicts)
+- `/tmp/luce-auto-cron-20260531-142102/pr325` (current #325 conflicted probe; direct merge conflicts retained)
+
+- `/tmp/luce-auto-cron-20260531-135757` (previous source/manifest refresh worktree; #290/#291 promoted here; #321/#325 and remaining non-ancestors probed)
 - `/tmp/luce-port-pr325-20260531-135848` (conflicted #325 probe for Codex read-only analysis; no source edits promoted)
 - `/tmp/luce-codex-pr325-135848.raw.txt` (usable Codex #325 feasibility report)
 - `/tmp/luce-claude-pr325-1359.txt` (Claude #325 read-only attempt; max-turns/no useful report)
