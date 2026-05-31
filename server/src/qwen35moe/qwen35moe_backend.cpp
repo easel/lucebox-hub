@@ -382,7 +382,7 @@ bool Qwen35MoeBackend::run_pipelined_decode_path(int committed, int n_gen,
         io.emit(next_tok);
         committed++;
         target_cache().cur_pos = committed;
-        if (io.cancelled) break;
+        if (io.should_cancel()) break;
         if (is_eos_tok(next_tok, target_weights())) break;
     }
 
@@ -493,6 +493,11 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
     const int n_expert_used = target_weights().n_expert_used;
     std::vector<float> embed_all((size_t)prompt_len * (size_t)hidden);
     for (int i = 0; i < prompt_len; ++i) {
+        if (out_io.should_cancel()) {
+            result.ok = true;
+            cleanup_graphs();
+            return result;
+        }
         int32_t tok = req.prompt[(size_t)i];
         if (!target_weights().embedder.embed(&tok, 1, embed_all.data() + (size_t)i * (size_t)hidden)) {
             result.error = "prefill_embed";
@@ -507,6 +512,11 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
         const auto & L = target_weights().layers[(size_t)il];
 
         for (int chunk_start = 0; chunk_start < prompt_len; chunk_start += prefill_chunk) {
+            if (out_io.should_cancel()) {
+                result.ok = true;
+                cleanup_graphs();
+                return result;
+            }
             const int chunk_len = std::min(prefill_chunk, prompt_len - chunk_start);
             const auto t0 = HybridClock::now();
 
@@ -556,6 +566,12 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
 
             // Compute batched pre-FFN
             auto st = ggml_backend_graph_compute(target_backend(), prefill_sg.gf);
+            if (out_io.should_cancel()) {
+                result.ok = true;
+                step_graph_destroy(prefill_sg);
+                cleanup_graphs();
+                return result;
+            }
             if (st != GGML_STATUS_SUCCESS) {
                 result.error = "prefill_compute";
                 step_graph_destroy(prefill_sg);
@@ -663,6 +679,11 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
     target_cache().cur_pos = committed;
     auto t_prefill_end = std::chrono::steady_clock::now();
     result.prefill_s = std::chrono::duration<double>(t_prefill_end - t_prefill_start).count();
+    if (out_io.should_cancel()) {
+        result.ok = true;
+        cleanup_graphs();
+        return result;
+    }
 
     // ── Hybrid Decode ──
     if (req.n_gen > 0) {
@@ -732,6 +753,11 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
             }
             result.tokens.push_back(first_tok);
             out_io.emit(first_tok);
+            if (out_io.should_cancel()) {
+                result.ok = true;
+                cleanup_graphs();
+                return result;
+            }
             if (!is_eos_tok(first_tok, target_weights())) {
                 committed++;
                 target_cache().cur_pos = committed;
@@ -749,11 +775,26 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
                                             sizeof(float) * (size_t)hidden);
 
                     PipelinedDecodeTelemetry tel;
+                    if (out_io.should_cancel()) {
+                        result.ok = true;
+                        cleanup_graphs();
+                        return result;
+                    }
                     if (!pipelined_decode_one_token(*pipe_state_, target_backend(), target_weights(),
                                                     target_cache(), *target_weights().moe_hybrid,
                                                     committed, cfg_.kq_stride_pad,
                                                     hybrid_telemetry_ ? &tel : nullptr)) {
+                        if (out_io.should_cancel()) {
+                            result.ok = true;
+                            cleanup_graphs();
+                            return result;
+                        }
                         result.error = "decode";
+                        cleanup_graphs();
+                        return result;
+                    }
+                    if (out_io.should_cancel()) {
+                        result.ok = true;
                         cleanup_graphs();
                         return result;
                     }
@@ -793,7 +834,7 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
                     out_io.emit(next_tok);
                     committed++;
                     target_cache().cur_pos = committed;
-                    if (out_io.cancelled) break;
+                    if (out_io.should_cancel()) break;
                     if (is_eos_tok(next_tok, target_weights())) break;
                 }
                 if (hybrid_telemetry_) {
@@ -1145,7 +1186,7 @@ bool Qwen35MoeBackend::do_hybrid_spec_decode(int committed, int n_gen,
             out_tokens.push_back(replay_tok[i]);
             io.emit(replay_tok[i]);
             emitted++;
-            if (io.cancelled) break;
+            if (io.should_cancel()) break;
             if (is_eos_tok(replay_tok[i], target_weights())) { hit_eos = true; break; }
         }
         committed += emitted;
@@ -1153,7 +1194,7 @@ bool Qwen35MoeBackend::do_hybrid_spec_decode(int committed, int n_gen,
         n_generated += emitted;
         n_accept_sum += std::min(accept_n, emitted);
         n_draft_steps++;
-        if (io.cancelled) break;
+        if (io.should_cancel()) break;
         if (hit_eos) break;
     }
 

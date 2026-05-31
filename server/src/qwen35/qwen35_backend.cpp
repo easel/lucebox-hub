@@ -624,7 +624,15 @@ GenerateResult Qwen35Backend::generate_impl(const GenerateRequest & req,
     auto t_prefill_start = std::chrono::steady_clock::now();
     const int committed = do_prefill(req.prompt, out_io, req.snap_pos, req.snap_slot);
     if (committed < 0) {
+        if (out_io.should_cancel()) {
+            result.ok = true;
+            return result;
+        }
         result.error = "prefill";
+        return result;
+    }
+    if (out_io.should_cancel()) {
+        result.ok = true;
         return result;
     }
     auto t_prefill_end = std::chrono::steady_clock::now();
@@ -736,6 +744,10 @@ GenerateResult Qwen35Backend::restore_and_generate_impl(int slot,
         std::vector<int32_t> delta = restore_prompt_delta(req.prompt, snap_pos);
         committed = do_prefill(delta, out_io, req.snap_pos, req.snap_slot, /*kv_offset=*/snap_pos);
         if (committed < 0) {
+            if (out_io.should_cancel()) {
+                result.ok = true;
+                return result;
+            }
             result.error = "prefill";
             return result;
         }
@@ -745,6 +757,10 @@ GenerateResult Qwen35Backend::restore_and_generate_impl(int slot,
         // Cached more than the request — should never happen in practice.
         result.error = "snapshot_longer_than_prompt";
         out_io.emit(-1);
+        return result;
+    }
+    if (out_io.should_cancel()) {
+        result.ok = true;
         return result;
     }
 
@@ -801,8 +817,6 @@ int Qwen35Backend::do_prefill(const std::vector<int32_t> & tokens,
                                const DaemonIO & io,
                                int snap_pos, int snap_slot,
                                int kv_offset) {
-    (void)io;
-
     const int hidden = w_.n_embd;
     const int vocab  = w_.n_vocab;
     int prefill_ubatch = 512;
@@ -827,6 +841,8 @@ int Qwen35Backend::do_prefill(const std::vector<int32_t> & tokens,
     std::vector<float> embed_buf((size_t)hidden * prefill_ubatch);
     int committed = kv_offset;
     for (int start = 0; start < prompt_len;) {
+        if (io.should_cancel()) return -1;
+
         const int kv_pos = kv_offset + start;
 
         int n_tokens = std::min(prefill_ubatch, prompt_len - start);
@@ -904,6 +920,7 @@ int Qwen35Backend::do_prefill(const std::vector<int32_t> & tokens,
 
         // Compute
         auto st = ggml_backend_graph_compute(target_backend_, sg_.gf);
+        if (io.should_cancel()) return -1;
         if (st != GGML_STATUS_SUCCESS) {
             std::fprintf(stderr, "prefill compute @%d failed\n", kv_pos);
             return -1;
@@ -1126,7 +1143,7 @@ bool Qwen35Backend::do_ar_decode(int committed, int n_gen,
         io.emit(next_tok);
         committed++;
         cache_.cur_pos = committed;
-        if (io.cancelled) break;
+        if (io.should_cancel()) break;
 
         if (IS_EOS_TOK(next_tok, w_)) break;
 
@@ -1308,6 +1325,7 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
     auto t_dec0 = std::chrono::steady_clock::now();
 
     while (n_generated < n_gen) {
+        if (io.should_cancel()) break;
         const int need_commit_budget = n_gen - n_generated;
 
         // Budget tail-off: when remaining budget is within the spec-decode
@@ -1394,12 +1412,14 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
             draft_feature_mirror_can_view(feature_mirror_, committed, draft_ctx, mirror_slot0);
 
         if (use_remote_draft) {
+            if (io.should_cancel()) break;
             local_hidden.clear();
             if (!remote_draft_.propose(committed, draft_ctx, noise_embed, local_hidden)) {
                 std::fprintf(stderr, "spec-decode: remote draft propose failed\n");
                 step_graph_destroy(draft_sg);
                 return false;
             }
+            if (io.should_cancel()) break;
         } else {
             if (!build_draft_step(draft_sg, dw_, /*lm_head=*/nullptr, draft_backend_,
                                   draft_ctx, use_mirror_view ? &feature_mirror_ : nullptr,
@@ -1427,6 +1447,7 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
                                     sizeof(int32_t) * pos_k.size());
 
             auto st = ggml_backend_graph_compute(draft_backend_, draft_sg.gf);
+            if (io.should_cancel()) break;
             if (st != GGML_STATUS_SUCCESS) {
                 std::fprintf(stderr, "spec-decode: draft compute failed\n");
                 step_graph_destroy(draft_sg);
@@ -1468,6 +1489,7 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
             step_graph_destroy(draft_sg);
             return false;
         }
+        if (io.should_cancel()) break;
 
         int verify_last_tok = -1;
         if (!target->verify_batch(draft_tok, committed, verify_last_tok, &target_tok)) {
@@ -1500,6 +1522,7 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
             step_graph_destroy(draft_sg);
             return false;
         }
+        if (io.should_cancel()) break;
 
         std::vector<int32_t> replay_tok((size_t)commit_n);
         for (int i = 0; i < commit_n; i++) {
@@ -1563,7 +1586,7 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
             out_tokens.push_back(replay_tok[i]);
             io.emit(replay_tok[i]);
             emitted++;
-            if (io.cancelled) break;
+            if (io.should_cancel()) break;
             if (IS_EOS_TOK(replay_tok[i], w_)) { hit_eos = true; break; }
         }
         int injected = 0;
@@ -1616,7 +1639,7 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
             io.observer("verify", replay_tok);
         }
 
-        if (io.cancelled) break;
+        if (io.should_cancel()) break;
         if (floor_to_ar) {
             step_graph_destroy(draft_sg);
             cache_.last_tok = out_tokens.empty() ? last_tok : out_tokens.back();
