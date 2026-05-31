@@ -20,6 +20,7 @@
 #include "prefix_cache.h"
 #include "disk_prefix_cache.h"
 #include "api_types.h"
+#include "placement/draft_residency.h"
 #include "placement/remote_draft_config.h"
 #include "common/pflash_drafter_ipc.h"
 #include "model_card.h"
@@ -159,7 +160,8 @@ struct ServerConfig {
     // Piecewise keep-ratio curve: (token_threshold, keep_ratio) sorted ascending.
     // If empty, uses pflash_keep_ratio as flat value.
     std::vector<std::pair<int, float>> pflash_curve;
-    bool        lazy_draft      = false;   // park decode draft when idle to save VRAM
+    bool        lazy_draft      = false;   // legacy alias for request-scoped draft residency
+    DraftResidencyPolicy draft_residency = DraftResidencyPolicy::Auto;
 
     // TYPE-gate compression router (v2).
     // Default: disabled (exact no-op, correct-by-construction).
