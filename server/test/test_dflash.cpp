@@ -2729,6 +2729,65 @@ int main(int argc, char ** argv) {
             std::printf("\n");
             std::fflush(stdout);
         };
+        auto print_scheduler_batch_peek = [&](int max_batch) {
+            std::vector<SchedulerBucketSelftestCache> peek_caches;
+            std::vector<SchedulerBucketSelftestCandidate> candidates;
+            peek_caches.reserve(daemon_requests.size());
+            candidates.reserve(daemon_requests.size());
+            for (const DaemonRequestState & req : daemon_requests) {
+                if (req.status == "cancelled" || req.status == "error") continue;
+                if (req.cache_slot < 0 || req.cache_slot >= target_cache_slots) continue;
+                TargetCache * slot_cache = cache_for_daemon_slot(req.cache_slot);
+                if (slot_cache == nullptr) continue;
+                peek_caches.push_back(SchedulerBucketSelftestCache{
+                    slot_cache->cur_pos,
+                    slot_cache->last_tok,
+                });
+                candidates.push_back(SchedulerBucketSelftestCandidate{
+                    req.request_id,
+                    req.cache_slot,
+                    1,
+                    1,
+                    1,
+                    &peek_caches.back(),
+                });
+            }
+
+            SchedulerBucketSelftestSelection sel =
+                select_scheduler_bucket_selftest(candidates, max_batch, false);
+            if (sel.batch.empty()) {
+                std::printf("[scheduler] aligned_bucket_miss diagnostic-only considered=%d eligible=%d ineligible=%d buckets=%d singleton_buckets=%d front_kv=%d front_size=%d blocked_singleton=%d max_batch=%d\n",
+                            sel.considered, sel.eligible, sel.ineligible,
+                            sel.buckets, sel.singleton_buckets,
+                            sel.front_kv_start, sel.front_bucket_size,
+                            sel.blocked_by_front_singleton, max_batch);
+            } else {
+                std::printf("[scheduler] aligned_bucket_ready diagnostic-only count=%zu kv_start=%d considered=%d eligible=%d buckets=%d max_batch=%d\n",
+                            sel.batch.size(), sel.kv_start, sel.considered,
+                            sel.eligible, sel.buckets, max_batch);
+                std::printf("[scheduler] batch_ready ");
+                for (size_t i = 0; i < sel.batch.size(); i++) {
+                    const SchedulerBucketSelftestCandidate & c = sel.batch[i];
+                    const DaemonRequestState * req_state = nullptr;
+                    for (const DaemonRequestState & req : daemon_requests) {
+                        if (req.request_id == c.request_id
+                            && req.cache_slot == c.slot_id) {
+                            req_state = &req;
+                            break;
+                        }
+                    }
+                    std::printf("%sreq=%d:slot=%d:status=%s:cur=%d:last=%d",
+                                i == 0 ? "" : ",",
+                                c.request_id,
+                                c.slot_id,
+                                (req_state && !req_state->status.empty()) ? req_state->status.c_str() : "unknown",
+                                c.cache ? c.cache->cur_pos : 0,
+                                c.cache ? c.cache->last_tok : -1);
+                }
+                std::printf("\n");
+            }
+            std::fflush(stdout);
+        };
 
         if (daemon_mode) {
             std::string line;
@@ -2785,6 +2844,24 @@ int main(int argc, char ** argv) {
             }
             if (line == "SCHED_STEP" || line == "SCHED_DRAIN") {
                 print_scheduler_diagnostic(line.c_str());
+                stream_emit(-1);
+                continue;
+            }
+            if (line == "SCHED_BATCH_PEEK" || line.rfind("SCHED_BATCH_PEEK ", 0) == 0) {
+                int max_batch = target_cache_slots;
+                if (line.rfind("SCHED_BATCH_PEEK ", 0) == 0) {
+                    std::string arg = line.substr(std::strlen("SCHED_BATCH_PEEK "));
+                    char * endp = nullptr;
+                    long parsed = std::strtol(arg.c_str(), &endp, 10);
+                    while (endp != nullptr && *endp != '\0' && std::isspace((unsigned char)*endp)) endp++;
+                    if (endp == arg.c_str() || (endp != nullptr && *endp != '\0') || parsed <= 0 || parsed > INT32_MAX) {
+                        std::fprintf(stderr, "[daemon] SCHED_BATCH_PEEK bad max_batch\n");
+                        stream_emit(-1);
+                        continue;
+                    }
+                    max_batch = (int)parsed;
+                }
+                print_scheduler_batch_peek(max_batch);
                 stream_emit(-1);
                 continue;
             }
