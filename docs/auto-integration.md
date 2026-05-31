@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T22:38:33-04:00`
+Last refresh: `2026-05-30T23:34:00-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `b58e8f8d`
-Current integration tip before push: `cdf63178`
+Previous integration tip: `easel/auto-integration` `a136ca5a`
+Current integration tip before push: `00dd2c68`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
-This refresh integrated the two new non-draft contributor PR heads that were not ancestors of the previous stack: #317 and #316. The open non-draft set now contains 27 PRs; 18 are included by exact head containment and 9 remain non-ancestor conflict/selective-port or superseded candidates. Fresh direct-merge probes for all 9 non-ancestor PRs still conflict in the same broad classes recorded below.
+This refresh integrated the updated non-draft contributor PR head that was not an ancestor of the previous stack: #315. The open non-draft set still contains 27 PRs; 18 are included by exact head containment and 9 remain non-ancestor conflict/selective-port or superseded candidates. Fresh direct-merge probes for all 9 non-ancestor PRs still conflict in the same broad classes recorded below.
 
 ## Included in the current non-draft stack
 
@@ -19,7 +19,7 @@ This refresh integrated the two new non-draft contributor PR heads that were not
 |---:|---|---:|---|---|
 | #317 | `docs/issue-102` | `7d3f873f` | included | Documents multi-GPU flags/env vars for PFlash/DFlash. The stack already had patch-equivalent README content, so the merge was resolved by retaining current README layout while making the PR head an exact ancestor. |
 | #316 | `fix/issue-233` | `d28eb1fb` | included | Captures daemon stderr in `DflashClient` error messages by redirecting child stderr to stdout for both Windows and POSIX subprocess launches. |
-| #315 | `codex/dflash-spec-tool-recovery` | `6c8db53f` | included | Recovers spec-decode agent stalls with env-gated tool-prefix floor injection while preserving existing qwen35 empty-output AR fallback and the C2 `fa_window` AR fallback. |
+| #315 | `codex/dflash-spec-tool-recovery` | `3ba401f0` | included | Recovers spec-decode agent stalls with env-gated tool-prefix floor injection, bounded residual stall/repetition guards, invalid draft-seed AR fallback, and the existing qwen35 empty-output / C2 `fa_window` AR fallbacks. |
 | #314 | `fix/specdecode-empty-ar-fallback` | `38f92c48` | included | Qwen35 falls back to AR decode when spec-decode succeeds but produces an empty token vector. |
 | #310 | `feat-backend-activation-precision-policy-after-306` | `bf9f4b57` | included | Backend activation precision policy / graph tensor precision helpers are carried exactly. |
 | #309 | `experiment-dflash-feature-dtype` | `ea6ac481` | included | Feature mirror dtype policy is carried exactly. |
@@ -42,18 +42,17 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T22:34:47-04:00` during preflight.
+- `date -Is` -> `2026-05-30T23:20:48-04:00` during preflight.
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
 - Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless `codex --help` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Current open PR enumeration reported 27 non-draft PRs and 7 draft/excluded PRs.
 - Explicit fetch of open PR heads succeeded for all current non-draft PRs.
-- Exact-head containment before reconciliation showed #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of the stack; #317, #316, #305, #237, #221, #154, #153, #137, #135, #94, and #48 were non-ancestors.
-- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-223525`; `origin/main` was already included.
-- #317 was attempted and merged with a README conflict resolved by retaining the current stack layout because the PR's multi-GPU table content was already present.
-- #316 merged cleanly after #317 and added `stderr=subprocess.STDOUT` to `optimizations/pflash/pflash/dflash_client.py`.
-- Fresh direct-merge probes were created for all 9 remaining non-ancestor non-draft PRs from stack commit `cdf63178`; all still conflicted: #305 (29 conflicted files), #237 (24), #221 (23), #154 (12), #153 (10), #137 (1 old `dflash/CMakeLists.txt`), #135 (3), #94 (3), and #48 (1 old `dflash/CMakeLists.txt`).
-- Verification for this updated stack: `git diff --check` passed; `python3 -m py_compile optimizations/pflash/pflash/dflash_client.py` passed; containment check confirmed `origin/main` and all 18 included PR heads are ancestors of `HEAD`.
+- Exact-head containment before reconciliation showed #317, #316, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of the stack; #315, #305, #237, #221, #154, #153, #137, #135, #94, and #48 were non-ancestors.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-232125`; `origin/main` was already included.
+- #315 was attempted and merged with one conflict in `server/src/server/http_server.cpp`; the resolution retained the current stack's keep-ratio admission gate and added #315's env-gated stall-recovery helpers before it. The PR's clean qwen35 backend update was also carried.
+- Fresh direct-merge probes were created for all 9 remaining non-ancestor non-draft PRs from stack commit `00dd2c68`; all still conflicted: #305 (29+ conflicted files), #237 (24), #221 (broad old `dflash/` + current MTP conflicts), #154 (12), #153 (10), #137 (1 old `dflash/CMakeLists.txt`), #135 (3), #94 (3), and #48 (1 old `dflash/CMakeLists.txt`).
+- Verification for this updated stack: `git diff --check` passed; targeted compile syntax was checked with `g++ -std=c++17 -fsyntax-only -Iserver/src -Ithird_party/json/single_include server/src/server/http_server.cpp` and `g++ -std=c++17 -fsyntax-only -Iserver/src server/src/qwen35/qwen35_backend.cpp` but both are not standalone-translation-unit clean in this repo layout (existing missing external headers / generated types), so they are recorded as local harness limitations rather than project failures; containment check confirmed `origin/main` and all 18 included PR heads are ancestors of `HEAD`.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
