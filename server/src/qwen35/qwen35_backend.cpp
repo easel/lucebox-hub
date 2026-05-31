@@ -77,6 +77,15 @@ static int env_int_or_default(const char * name, int fallback) {
     ( ((w).eos_chat_id >= 0 && (tok) == (w).eos_chat_id)                  \
    || ((w).eos_id      >= 0 && (tok) == (w).eos_id     ) )
 
+static bool qwen35_empty_visible_output(const std::vector<int32_t> & tokens,
+                                        const TargetWeights & w) {
+    if (tokens.empty()) return false;
+    for (int32_t tok : tokens) {
+        if (!IS_EOS_TOK(tok, w)) return false;
+    }
+    return true;
+}
+
 // ── Construction / destruction ──────────────────────────────────────────
 
 Qwen35Backend::Qwen35Backend(const Qwen35Config & cfg) : cfg_(cfg) {}
@@ -656,6 +665,10 @@ GenerateResult Qwen35Backend::generate_impl(const GenerateRequest & req,
                                        &req.budget_hook,
                                        &result.budget_forced_close,
                                        &result.degenerate_decode_close);
+            if (decode_ok) {
+                result.empty_visible_output =
+                    qwen35_empty_visible_output(result.tokens, w_);
+            }
         }
         if (!decode_ok) {
             result.error = "decode";
@@ -761,6 +774,10 @@ GenerateResult Qwen35Backend::restore_and_generate_impl(int slot,
                                        &req.budget_hook,
                                        &result.budget_forced_close,
                                        &result.degenerate_decode_close);
+            if (decode_ok) {
+                result.empty_visible_output =
+                    qwen35_empty_visible_output(result.tokens, w_);
+            }
         }
         if (!decode_ok) {
             result.error = "decode";
