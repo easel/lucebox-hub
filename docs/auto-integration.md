@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-30T22:05:17-04:00`
+Last refresh: `2026-05-30T22:21:48-04:00`
 Current base: `origin/main` `c95dfcab`
-Previous integration tip: `easel/auto-integration` `e5b2bd39`
-Current integration tip before push: `2a433929`
+Previous integration tip: `easel/auto-integration` `fa9c9797`
+Current integration tip before push: `fa9c9797`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth with the real user credential home, fetched `origin` and `easel` separately, fetched current PR heads, and rechecked exact PR-head containment against the current stack.
 
-This refresh integrated the advanced #285 head (`4b4fd286`) on top of the existing stack. `origin/main` was already included. The open non-draft set contains 25 PRs; after this refresh 16 are included by exact head containment and 9 remain non-ancestor conflict/selective-port or superseded candidates. Fresh direct-merge probes for all 9 non-ancestor PRs still conflict in the same broad classes recorded below.
+This refresh found no new non-draft PR heads beyond the already-pushed stack. `origin/main` was already included. The open non-draft set contains 25 PRs; 16 are included by exact head containment and 9 remain non-ancestor conflict/selective-port or superseded candidates. Fresh direct-merge probes for all 9 non-ancestor PRs still conflict in the same broad classes recorded below.
 
 ## Included in the current non-draft stack
 
@@ -40,18 +40,17 @@ Closed or upstreamed PRs still represented by the stack/base include #313 (close
 
 This run performed:
 
-- `date -Is` -> `2026-05-30T22:05:17-04:00` during preflight.
+- `date -Is` -> `2026-05-30T22:20:18-04:00` during preflight.
 - Primary checkout preflight: `git status --short` was clean on `auto-integration`; remotes were `origin=https://github.com/Luce-Org/lucebox-hub` and `easel=https://github.com/easel/lucebox-hub`.
-- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless `codex --version` smoke check (`codex-cli 0.130.0`).
+- Auth/tooling checks with real user credentials succeeded: `gh auth status`, `claude auth status --text`, and a harmless `codex --help` smoke check.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully.
 - Current open PR enumeration reported 25 non-draft PRs and 7 draft/excluded PRs.
 - Explicit fetch of open PR heads succeeded for all current non-draft PRs.
-- Exact-head containment before reconciliation showed #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #276, #274, #266, #152, and #142 were ancestors of the stack; #285 had advanced to `4b4fd286` and was no longer an exact ancestor; #305, #237, #221, #154, #153, #137, #135, #94, and #48 were also non-ancestors.
-- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-220557`; `origin/main` was already included (`git merge --no-edit origin/main` returned cleanly).
-- #285 merged cleanly into the reconcile worktree as merge commit `2a433929`, adding the latest luce-bench grader fixes and tests from commits `52b9da41`, `1d15ced9`, `20554ff1`, and `4b4fd286`.
-- Fresh direct-merge probes were created for all 9 remaining non-ancestor non-draft PRs from stack commit `2a433929`; all still conflicted: #305 (29 conflicted files), #237 (24), #221 (23), #154 (12), #153 (10), #137 (1 old `dflash/CMakeLists.txt`), #135 (3), #94 (3), and #48 (1 old `dflash/CMakeLists.txt`).
-- Verification for the changed stack: `git diff --check` passed; targeted luce-bench tests passed with `uv run --extra dev pytest tests/test_agent_grader.py tests/test_agent_recorded.py tests/test_humaneval_grader.py` -> `38 passed in 0.17s`.
-- A direct `python3 -m pytest ...` attempt failed because the Homebrew Python 3.14 environment has no `pytest`; the `uv` project-managed test command above was the successful authoritative targeted run.
+- Exact-head containment before reconciliation showed #315, #314, #310, #309, #308, #306, #297, #295, #294, #289, #285, #276, #274, #266, #152, and #142 were ancestors of the stack; #305, #237, #221, #154, #153, #137, #135, #94, and #48 were non-ancestors.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260530-222119`; `origin/main` was already included.
+- No contributor PR head merged this run because all ready PR heads were either already exact ancestors or remained conflicting/superseded candidates.
+- Fresh direct-merge probes were created for all 9 remaining non-ancestor non-draft PRs from stack commit `fa9c9797`; all still conflicted: #305 (29 conflicted files), #237 (24), #221 (23), #154 (12), #153 (10), #137 (1 old `dflash/CMakeLists.txt`), #135 (3), #94 (3), and #48 (1 old `dflash/CMakeLists.txt`).
+- Verification for the unchanged code stack: `git diff --check` passed. No targeted runtime tests were rerun because this run made only a manifest refresh after confirming no code/PR-head delta since the previous verified push.
 
 ## Pending / blocked-needs-human / selective-port candidates
 
@@ -80,11 +79,11 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 
 This run retained the updated stack worktree and fresh conflicted probe logs for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
 
-- `/tmp/luce-auto-cron-20260530-220557`
-- Fresh conflicted probe worktrees: `/tmp/luce-probe-20260530-220557-pr-305`, `/tmp/luce-probe-20260530-220557-pr-237`, `/tmp/luce-probe-20260530-220557-pr-221`, `/tmp/luce-probe-20260530-220557-pr-154`, `/tmp/luce-probe-20260530-220557-pr-153`, `/tmp/luce-probe-20260530-220557-pr-137`, `/tmp/luce-probe-20260530-220557-pr-135`, `/tmp/luce-probe-20260530-220557-pr-94`, and `/tmp/luce-probe-20260530-220557-pr-48`.
-- Fresh logs under `/tmp/luce-auto-cron-20260530-220557-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
+- `/tmp/luce-auto-cron-20260530-222119`
+- Fresh conflicted probe worktrees: `/tmp/luce-probe-20260530-222119-pr-305`, `/tmp/luce-probe-20260530-222119-pr-237`, `/tmp/luce-probe-20260530-222119-pr-221`, `/tmp/luce-probe-20260530-222119-pr-154`, `/tmp/luce-probe-20260530-222119-pr-153`, `/tmp/luce-probe-20260530-222119-pr-137`, `/tmp/luce-probe-20260530-222119-pr-135`, `/tmp/luce-probe-20260530-222119-pr-94`, and `/tmp/luce-probe-20260530-222119-pr-48`.
+- Fresh logs under `/tmp/luce-auto-cron-20260530-222119-logs/`, including `merge-*.log`, `status-*.txt`, and `conflicts-*.txt`.
 
-Prior retained worktrees/logs for conflicted/superseded probes and earlier refreshes include `/tmp/luce-auto-cron-20260530-215157`, `/tmp/luce-auto-cron-20260530-212604`, `/tmp/luce-auto-cron-20260530-210747`, `/tmp/luce-auto-cron-20260530-204620`, `/tmp/luce-auto-cron-20260530-203020`, `/tmp/luce-auto-cron-20260530-201608`, `/tmp/luce-auto-cron-20260530-200216`, `/tmp/luce-auto-cron-20260530-194121`, `/tmp/luce-auto-cron-20260530-192047`, `/tmp/luce-auto-cron-20260530-184231`, `/tmp/luce-auto-cron-20260530-181103`, `/tmp/luce-auto-cron-20260530-175155`, `/tmp/luce-auto-cron-20260530-173141`, `/tmp/luce-auto-cron-20260530-171420`, `/tmp/luce-auto-cron-20260530-165724`, `/tmp/luce-auto-cron-20260530-164341`, `/tmp/luce-auto-cron-20260530-162504`, `/tmp/luce-auto-cron-20260530-161133`, `/tmp/luce-auto-cron-20260530-155251`, `/tmp/luce-auto-cron-20260530-153049`, `/tmp/luce-auto-cron-20260530-154010`, their corresponding probe worktrees, and logs.
+Prior retained worktrees/logs for conflicted/superseded probes and earlier refreshes include `/tmp/luce-auto-cron-20260530-220557`, `/tmp/luce-auto-cron-20260530-215157`, `/tmp/luce-auto-cron-20260530-212604`, `/tmp/luce-auto-cron-20260530-210747`, `/tmp/luce-auto-cron-20260530-204620`, `/tmp/luce-auto-cron-20260530-203020`, `/tmp/luce-auto-cron-20260530-201608`, `/tmp/luce-auto-cron-20260530-200216`, `/tmp/luce-auto-cron-20260530-194121`, `/tmp/luce-auto-cron-20260530-192047`, `/tmp/luce-auto-cron-20260530-184231`, `/tmp/luce-auto-cron-20260530-181103`, `/tmp/luce-auto-cron-20260530-175155`, `/tmp/luce-auto-cron-20260530-173141`, `/tmp/luce-auto-cron-20260530-171420`, `/tmp/luce-auto-cron-20260530-165724`, `/tmp/luce-auto-cron-20260530-164341`, `/tmp/luce-auto-cron-20260530-162504`, `/tmp/luce-auto-cron-20260530-161133`, `/tmp/luce-auto-cron-20260530-155251`, `/tmp/luce-auto-cron-20260530-153049`, `/tmp/luce-auto-cron-20260530-154010`, their corresponding probe worktrees, and logs.
 
 ## Notes
 
