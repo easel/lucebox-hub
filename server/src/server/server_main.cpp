@@ -173,6 +173,13 @@ static bool validate_server_placement(const BackendArgs & bargs,
             "--draft-ipc-bin\n");
         return false;
     }
+    if (!bargs.remote_target_shard.enabled() &&
+        bargs.remote_target_shard.has_aux_options()) {
+        std::fprintf(stderr,
+            "[server] --target-shard-ipc-work-dir requires "
+            "--target-shard-ipc-bin\n");
+        return false;
+    }
     if (draft_placement_used && target != draft) {
         if (!bargs.remote_draft.enabled()) {
             std::fprintf(stderr,
@@ -252,6 +259,8 @@ static void print_usage(const char * prog) {
         "  --draft-swa <N>                Draft sliding-window attention size (0=off; e.g.\n"
         "                                 2048 for unsloth Qwen3.6 targets, per server/README.md.\n"
         "                                 Env: DFLASH27B_DRAFT_SWA)\n"
+        "  --target-shard-ipc-bin <path>  Remote target shard IPC daemon for mixed target split\n"
+        "  --target-shard-ipc-work-dir <path>  Remote target shard IPC scratch directory\n"
         "  --target-devices <list>        Reserved layer-split devices, e.g. cuda:0,cuda:1\n"
         "  --target-layer-split <weights>  Reserved layer-split weights\n"
         "  --peer-access        Enable peer access for multi-GPU placement\n"
@@ -401,6 +410,10 @@ int main(int argc, char ** argv) {
                 std::fprintf(stderr, "[server] bad --draft-ipc-ring-cap value\n");
                 return 2;
             }
+        } else if (std::strcmp(argv[i], "--target-shard-ipc-bin") == 0 && i + 1 < argc) {
+            bargs.remote_target_shard.ipc_bin = argv[++i];
+        } else if (std::strcmp(argv[i], "--target-shard-ipc-work-dir") == 0 && i + 1 < argc) {
+            bargs.remote_target_shard.work_dir = argv[++i];
         } else if (std::strcmp(argv[i], "--target-devices") == 0 && i + 1 < argc) {
             if (target_device_seen) {
                 std::fprintf(stderr, "[server] --target-devices conflicts with --target-device\n");
@@ -883,11 +896,20 @@ int main(int argc, char ** argv) {
                  placement_device_name(bargs.device).c_str());
     if (bargs.device.is_layer_split()) {
         std::fprintf(stderr, "[server] │  target_shards   =");
-        for (int gpu : bargs.device.layer_split_gpus) {
+        for (size_t i = 0; i < bargs.device.layer_split_gpus.size(); ++i) {
             std::fprintf(stderr, " %s:%d",
-                         placement_backend_name(bargs.device.backend), gpu);
+                         placement_backend_name(bargs.device.layer_split_backend(i)),
+                         bargs.device.layer_split_gpus[i]);
         }
         std::fprintf(stderr, "\n");
+        if (bargs.remote_target_shard.enabled()) {
+            std::fprintf(stderr, "[server] │  target_shard_ipc= %s\n",
+                         bargs.remote_target_shard.ipc_bin.c_str());
+            if (!bargs.remote_target_shard.work_dir.empty()) {
+                std::fprintf(stderr, "[server] │  target_shard_dir= %s\n",
+                             bargs.remote_target_shard.work_dir.c_str());
+            }
+        }
     }
     std::fprintf(stderr, "[server] │  draft_device    = %s\n",
                  placement_device_name(bargs.draft_device).c_str());
