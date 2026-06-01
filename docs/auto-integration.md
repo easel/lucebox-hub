@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T06:49:08-04:00`
+Last refresh: `2026-06-01T07:09:23-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `2751938f`
-Current integration source tip before this refresh: `2751938f`
+Previous integration tip: `easel/auto-integration` `3a1feb85`
+Current integration source tip before this refresh: `3a1feb85`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -50,6 +50,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T07:05:14-04:00` / `2026-06-01T07:09:23-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `3a1feb85`, and reconcile tip `3a1feb85`; `origin/main` was already represented.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 27 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
+- Fresh worktree direct-merge probes were run for #305, #237, #221, #154, #153, and #135 under `/tmp/luce-auto-cron-20260601-0706/`. Conflict counts remain #305 (61 status / 38 unmerged), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Codex session `luce153154-codex-0706` in `/tmp/luce-auto-cron-20260601-0706/probe-pr-154` wrote transcript `/tmp/luce-codex-pr153154-0706.txt` but was stopped as stuck after emitting a large conflicted-file inspection rather than a final feasibility report. The transcript and current-stack search confirmed the stack still lacks PR153/154's `TargetMtpLayer` / `QwenMtpGraphInputs` / `nextn_predict_layers` native MTP runtime types, but their direct port remains coupled to the broader PR237 common MTP foundation and current Qwen35 target graph/loader reconciliation; no narrow source slice was promoted this run.
+- Validation for this manifest-only refresh: `git diff --check` passed. Full CMake validation was not rerun because no source code changed and this checkout still lacks populated `server/deps/llama.cpp` plus the known CUDA compiler-id `sm_52` environment blocker.
 
 - `date -Is` -> `2026-06-01T06:49:08-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `2751938f`, and reconcile tip `2751938f`; `origin/main` was already represented.
 - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 27 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates are #305, #237, #221, #154, #153, and #135.
