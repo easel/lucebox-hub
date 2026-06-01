@@ -359,9 +359,28 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 - Hermes subagent review for #135 reconfirmed diagnostic-only `SCHED_BATCH_PROBE` as the next safe scheduler slice after `SCHED_BATCH_PEEK`, but only if adapted to current request/cache-slot scaffolding with no live cache copyback or request-state mutation. No source changes were promoted this run.
 - Validation for this metadata-only refresh: YAML parse of `.github/auto-integration/stack.yaml` passed; `git diff --check` passed for metadata changes. No build/CMake validation was rerun because no source code changed and this checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
 
+- `date -Is` -> `2026-05-31T22:13:07-04:00` during this source refresh; primary checkout was clean on `auto-integration` at `d7d40800`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`).
+- `git fetch --prune origin`, `git fetch --prune easel`, and explicit PR-ref fetches completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `d7d40800`; `origin/main` was already represented in the stack.
+- Open PR enumeration again reported 32 non-draft PRs and 5 draft/excluded PRs. Exact-head containment showed 24 current open non-draft PR heads included and 8 non-ancestor/selective-port candidates before this run's source slice: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-2204/reconcile`; direct merge of `origin/main` was already up to date. Fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 15 unmerged paths), #321 (23 / 14), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- This run promoted the next #321 prerequisite source slice in `server/src/qwen35/layer_split_forward.{h,cpp}`: an additive, currently inert `run_qwen35_layer_split_forward_from_activation` helper that can continue Qwen35 target layer-split projection from an already-materialized activation buffer while preserving the current stack's typed `ActivationPair` / activation-precision plumbing. Daemon dispatch and mixed-backend runtime adapter wiring remain intentionally deferred.
+- Tmux-driven Codex read-only review in session `codex-pr321-forward-2204` wrote `/tmp/luce-auto-cron-20260531-2204/codex-pr321-forward-review.txt`; it said the slice was low immediate risk while inert but not merge-ready once wired unless activation metadata validation, ownership semantics, and F32 capture requirements were explicit. The promoted diff adds those guards and documents that the helper may replace the caller's `ActivationPair` on shard-backend transitions.
+- Validation for this source/metadata refresh: `git diff --check` passed; conflict-marker search found no merge markers in promoted qwen35 source or metadata files; YAML parse of `.github/auto-integration/stack.yaml` passed. A lightweight qwen35 header smoke compile still stops at the known missing local dependency `server/src/internal.h:22:10: fatal error: ggml.h: No such file or directory`; full CMake validation was not rerun because this checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+
 ## Retained worktrees / logs
 
 This run retained the updated stack worktree, conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+
+- `/tmp/luce-auto-cron-20260531-2204/reconcile` (current source/metadata refresh worktree; #321 forward-from-existing-activation foundation promoted here)
+- `/tmp/luce-auto-cron-20260531-2204/probe-pr-325`
+- `/tmp/luce-auto-cron-20260531-2204/probe-pr-321`
+- `/tmp/luce-auto-cron-20260531-2204/probe-pr-305`
+- `/tmp/luce-auto-cron-20260531-2204/probe-pr-237`
+- `/tmp/luce-auto-cron-20260531-2204/probe-pr-221`
+- `/tmp/luce-auto-cron-20260531-2204/probe-pr-154`
+- `/tmp/luce-auto-cron-20260531-2204/probe-pr-153`
+- `/tmp/luce-auto-cron-20260531-2204/probe-pr-135`
+- `/tmp/luce-auto-cron-20260531-2204/codex-pr321-forward-review.txt` (tmux Codex read-only review of promoted source slice)
 
 - `/tmp/luce-auto-cron-20260531-2144/reconcile` (metadata/probe refresh worktree; no source changes promoted)
 - `/tmp/luce-auto-cron-20260531-2144/probe-pr-325`

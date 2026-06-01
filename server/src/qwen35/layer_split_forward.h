@@ -9,6 +9,7 @@
 #include "layer_split_types.h"
 #include "dflash_draft_ipc.h"
 #include "dflash_feature_ring.h"
+#include "qwen35_target_shard_ipc.h"
 #include "step_graph.h"
 
 #include "ggml.h"
@@ -61,6 +62,26 @@ bool run_qwen35_layer_split_forward(
         std::vector<float> * logits_out = nullptr,
         DFlashDraftIpcClient * remote_draft = nullptr,
         ggml_type activation_type = GGML_TYPE_F32);
+
+// Continue a target layer-split forward pass from an already-materialized
+// activation buffer. This is an inert foundation for target-shard IPC: callers
+// can project an activation into the remaining local shards without changing the
+// existing token-embedding entry point above. The function takes ownership of
+// `acts` for the duration of the forward and may replace it when crossing shard
+// backends; callers should treat `acts` as the returned activation pair and free
+// it normally after the call.
+bool run_qwen35_layer_split_forward_from_activation(
+        std::vector<Qwen35LayerSplitShard> & shards,
+        ActivationPair & acts,
+        int base_pos,
+        int n_tokens_total,
+        int ubatch,
+        int & last_tok,
+        int kq_stride_pad,
+        int fa_window,
+        std::vector<int32_t> * argmax_out = nullptr,
+        std::vector<float> * logits_out = nullptr,
+        std::vector<Qwen35TargetCaptureSlice> * captures_out = nullptr);
 
 // Free all shards (weights, cache, backend).
 void free_qwen35_layer_split_shards(std::vector<Qwen35LayerSplitShard> & shards);

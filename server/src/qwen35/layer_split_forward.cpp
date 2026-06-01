@@ -6,6 +6,7 @@
 #include "graph_builders.h"
 #include "dflash_feature_ring.h"
 #include "dflash_capture.h"
+#include "qwen35_target_shard_ipc.h"
 #include "attn_masks.h"
 
 #include "ggml.h"
@@ -14,6 +15,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <utility>
 
 namespace dflash::common {
 
@@ -259,6 +261,157 @@ bool run_qwen35_layer_split_forward(
     step_graph_destroy(final_sg);
     activation_pair_free(acts);
     if (!ok) return false;
+    last_tok = argmax_tokens.empty() ? -1 : argmax_tokens.back();
+    for (auto & shard : shards) {
+        shard.cache.cur_pos = base_pos + n_tokens_total;
+        shard.cache.last_tok = last_tok;
+    }
+    if (argmax_out) *argmax_out = std::move(argmax_tokens);
+    return true;
+}
+
+bool run_qwen35_layer_split_forward_from_activation(
+        std::vector<Qwen35LayerSplitShard> & shards,
+        ActivationPair & acts,
+        int base_pos,
+        int n_tokens_total,
+        int ubatch,
+        int & last_tok,
+        int kq_stride_pad,
+        int fa_window,
+        std::vector<int32_t> * argmax_out,
+        std::vector<float> * logits_out,
+        std::vector<Qwen35TargetCaptureSlice> * captures_out) {
+    if (shards.empty() || !acts.a || !acts.b || n_tokens_total <= 0) return false;
+
+    const int hidden = shards.front().weights.n_embd;
+    const int vocab = shards.back().weights.n_vocab;
+    if (hidden <= 0 || vocab <= 0 || !shards.front().backend ||
+        acts.backend != shards.front().backend || acts.n_tokens < n_tokens_total ||
+        acts.a->type != acts.b->type || acts.a->type != acts.type ||
+        acts.a->ne[0] < hidden || acts.b->ne[0] < hidden ||
+        acts.a->ne[1] < n_tokens_total || acts.b->ne[1] < n_tokens_total) {
+        std::fprintf(stderr, "target-split invalid boundary activation\n");
+        return false;
+    }
+    if (captures_out && (acts.a->type != GGML_TYPE_F32 || acts.b->type != GGML_TYPE_F32)) {
+        std::fprintf(stderr,
+            "target-split host capture requires F32 activation; got %s\n",
+            ggml_type_name(acts.a->type));
+        return false;
+    }
+
+    ubatch = std::max(1, ubatch);
+
+    ggml_tensor * act_in = acts.a;
+    ggml_tensor * act_out = acts.b;
+    Qwen35LayerSplitShard * current_shard = &shards.front();
+    std::vector<uint16_t> mask_buf;
+    std::vector<int32_t> pos_buf;
+
+    for (int il = shards.front().layer_begin; il < shards.back().layer_end; ++il) {
+        Qwen35LayerSplitShard * shard = find_layer_split_shard(shards, il);
+        if (!shard) {
+            std::fprintf(stderr, "target-split missing owner for layer %d\n", il);
+            return false;
+        }
+        if (shard != current_shard) {
+            ActivationPair next_acts;
+            if (!activation_pair_init(next_acts, shard->backend, hidden, n_tokens_total,
+                                      act_in->type)) {
+                std::fprintf(stderr, "target-split activation alloc failed on gpu %d\n",
+                             shard->gpu);
+                return false;
+            }
+            ggml_backend_synchronize(current_shard->backend);
+            ggml_backend_tensor_copy(act_in, next_acts.a);
+            ggml_backend_synchronize(shard->backend);
+            activation_pair_free(acts);
+            acts = next_acts;
+            act_in = acts.a;
+            act_out = acts.b;
+            current_shard = shard;
+        }
+
+        const bool is_attn = (((il + 1) % shard->weights.full_attention_interval) == 0);
+        const int capture_idx = target_capture_index(shard->weights.capture_layer_ids,
+                                                     shard->weights.n_capture_layers, il);
+        for (int start = 0; start < n_tokens_total; start += ubatch) {
+            const int n = std::min(ubatch, n_tokens_total - start);
+            const int kv_start = base_pos + start;
+            const int kv_len = kv_start + n;
+            const bool with_mask = (kq_stride_pad > KQ_MASK_PAD) || (n > 1);
+            if (!build_layer_step(shard->layer_graph, shard->weights, shard->cache,
+                                  shard->backend, il, act_in, act_out,
+                                  start, n, kv_start, with_mask,
+                                  /*capture=*/false, fa_window, kq_stride_pad)) {
+                std::fprintf(stderr, "target-split build layer=%d @%d gpu=%d\n",
+                             il, start, shard->gpu);
+                return false;
+            }
+            if (is_attn && shard->layer_graph.positions) {
+                pos_buf.assign((size_t)4 * n, 0);
+                for (int i = 0; i < n; i++) {
+                    const int p = kv_start + i;
+                    pos_buf[0 * n + i] = p;
+                    pos_buf[1 * n + i] = p;
+                    pos_buf[2 * n + i] = p;
+                    pos_buf[3 * n + i] = 0;
+                }
+                ggml_backend_tensor_set(shard->layer_graph.positions, pos_buf.data(), 0,
+                                        sizeof(int32_t) * pos_buf.size());
+            }
+            if (is_attn && with_mask && shard->layer_graph.attn_mask) {
+                const int win_start_l = (fa_window > 0 && kv_start > fa_window)
+                                            ? (kv_start - fa_window) : 0;
+                const int win_len_l = kv_len - win_start_l;
+                const int kv_pad_override = (int)shard->layer_graph.attn_mask->ne[0];
+                build_causal_mask(mask_buf, win_len_l, n, kv_start, kq_stride_pad,
+                                  win_start_l, kv_pad_override);
+                ggml_backend_tensor_set(shard->layer_graph.attn_mask, mask_buf.data(), 0,
+                                        sizeof(uint16_t) * mask_buf.size());
+            }
+            auto st = ggml_backend_graph_compute(shard->backend, shard->layer_graph.gf);
+            if (st != GGML_STATUS_SUCCESS) {
+                std::fprintf(stderr, "target-split compute layer=%d @%d gpu=%d status=%d\n",
+                             il, start, shard->gpu, (int)st);
+                return false;
+            }
+            if (captures_out && capture_idx >= 0) {
+                Qwen35TargetCaptureSlice capture;
+                capture.capture_idx = capture_idx;
+                capture.start_pos = base_pos + start;
+                capture.n_tokens = n;
+                if (!copy_activation_to_host(act_out, shard->backend,
+                                             start, n, hidden, capture.data)) {
+                    std::fprintf(stderr,
+                                 "target-split host capture failed layer=%d capture=%d gpu=%d\n",
+                                 il, capture_idx, shard->gpu);
+                    return false;
+                }
+                captures_out->push_back(std::move(capture));
+            }
+        }
+        std::swap(act_in, act_out);
+    }
+
+    if (act_in != acts.a) {
+        std::swap(acts.a, acts.b);
+    }
+
+    StepGraph final_sg;
+    std::vector<int32_t> argmax_tokens;
+    Qwen35LayerSplitShard & last_shard = shards.back();
+    const bool need_all_argmax = argmax_out != nullptr;
+    const int argmax_offset = need_all_argmax ? 0 : (n_tokens_total - 1);
+    const int argmax_count = need_all_argmax ? n_tokens_total : 1;
+    const bool ok = compute_target_split_projection(
+        final_sg, last_shard.weights, last_shard.backend, acts.a,
+        argmax_offset, argmax_count, hidden, vocab,
+        &argmax_tokens, logits_out);
+    step_graph_destroy(final_sg);
+    if (!ok) return false;
+
     last_tok = argmax_tokens.empty() ? -1 : argmax_tokens.back();
     for (auto & shard : shards) {
         shard.cache.cur_pos = base_pos + n_tokens_total;
