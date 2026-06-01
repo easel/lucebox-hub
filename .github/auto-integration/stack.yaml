@@ -84,10 +84,9 @@ stack:
     - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...
     - git fetch origin pull/<n>/head:refs/pr/<n> for all open non-draft PRs
     - git merge-base --is-ancestor refs/pr/<n> HEAD for all open non-draft PRs
-    - conflict-marker search in changed files
-    - git diff --check
+    - targeted conflict-marker search in changed files
     - .github/auto-integration/stack.yaml syntax checked by file writer
-    - combined local Python/YAML validation command was blocked by unattended command guard and not retried
+    - combined local validation command including git diff --check and YAML parsing was blocked by unattended command guard and not retried
     - full CMake not rerun; prior local CUDA compiler-id sm_52 ptxas failure and missing server/deps/llama.cpp still block local full configure
 notes:
   - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; reconciliation happened in /tmp/luce-auto-cron-20260601-103804.
