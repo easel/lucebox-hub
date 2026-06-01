@@ -1,4 +1,4 @@
-updated_at: 2026-06-01T10:14:48-04:00
+updated_at: 2026-06-01T10:49:10-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,9 +6,9 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: 8b8713a3
-  current_integration_head_before_refresh: 8b8713a3
-  refreshed_head: 87ce1d9d
+  easel_auto_integration_before_refresh: a30e2049
+  current_integration_head_before_refresh: a30e2049
+  refreshed_head: a30e2049
   base_before_run: auto-integration
 stack:
   included:
@@ -56,12 +56,12 @@ stack:
     - {pr: 298, note: Gemma4 destructor-link fix}
     - {pr: 292, note: backend IPC payload-pipe support}
   attempted_this_run:
-    - {pr: 305, head: 1de45e4d, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-100813/probe-pr-305, note: fresh direct merge probe still broad (61 status entries / 38 unmerged paths); broader common/Laguna refactor deferred}
-    - {pr: 237, head: 02c6a6c4, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-100813/probe-pr-237, note: fresh direct merge probe still old-layout MTP foundation conflicts (33 status entries / 27 unmerged paths); tmux Claude reached max turns without a usable report, no source slice promoted}
-    - {pr: 221, head: 05502974, status: conflicts-suggested-close-superseded, worktree: /tmp/luce-auto-cron-20260601-100813/probe-pr-221, note: fresh direct merge probe still broad (88 status entries / 25 unmerged paths); prior Codex review found no safe current-layout behavior slice without Qwen36 MTP module/runtime validation}
-    - {pr: 154, head: 2f4ede79, status: conflicts-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-100813/probe-pr-154, note: fresh direct merge probe still conflicts (13 status entries / 12 unmerged paths); prior Codex review found no safe independent slice before PR153/PR237 reconciliation}
-    - {pr: 153, head: e9b17cb1, status: conflicts-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-100813/probe-pr-153, note: fresh direct merge probe still conflicts (10 status entries / 10 unmerged paths); old-layout target graph/MTP runtime conflicts remain coupled to PR237 foundation}
-    - {pr: 135, head: 561b0ac1, status: partial-selective-port-promoted, worktree: /tmp/luce-auto-cron-20260601-100813/probe-pr-135, note: direct merge still conflicts in internal.h, qwen35_target_graph.cpp, and test_dflash.cpp; Codex identified/promoted reset_target_cache last_tok=-1 slice and rejected broader runtime/test conflict content without runtime validation}
+    - {pr: 305, head: 1de45e4d, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-103804/probe-pr-305, note: fresh direct merge probe still broad (61 status entries / 38 unmerged paths); broader common/Laguna refactor deferred}
+    - {pr: 237, head: 02c6a6c4, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-103804/probe-pr-237, note: fresh direct merge probe still old-layout MTP foundation conflicts (33 status entries / 27 unmerged paths); no source slice promoted this run}
+    - {pr: 221, head: 05502974, status: conflicts-suggested-close-superseded, worktree: /tmp/luce-auto-cron-20260601-103804/probe-pr-221, note: fresh direct merge probe still broad (88 status entries / 25 unmerged paths); tmux Codex transcript streamed conflicted excerpts but produced no final feasibility report; no safe current-layout behavior slice promoted}
+    - {pr: 154, head: 2f4ede79, status: conflicts-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-103804/probe-pr-154, note: fresh direct merge probe still conflicts (13 status entries / 12 unmerged paths); prior Codex review found no safe independent slice before PR153/PR237 reconciliation}
+    - {pr: 153, head: e9b17cb1, status: conflicts-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-103804/probe-pr-153, note: fresh direct merge probe still conflicts (10 status entries / 10 unmerged paths); old-layout target graph/MTP runtime conflicts remain coupled to PR237 foundation}
+    - {pr: 135, head: 561b0ac1, status: partial-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-103804/probe-pr-135, note: direct merge still conflicts in internal.h, qwen35_target_graph.cpp, and test_dflash.cpp; no additional source slice promoted this run}
   pending: []
   blocked_needs_human:
     - {pr: 305, reason: remaining Laguna/common-MoE hybrid refactor is broad/non-minimal beyond existing selective ports}
@@ -90,7 +90,7 @@ stack:
     - combined local Python/YAML validation command was blocked by unattended command guard and not retried
     - full CMake not rerun; prior local CUDA compiler-id sm_52 ptxas failure and missing server/deps/llama.cpp still block local full configure
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; reconciliation happened in /tmp/luce-auto-cron-20260601-100813.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; reconciliation happened in /tmp/luce-auto-cron-20260601-103804.
   - origin/main 8305b6c2 remains ancestor of auto-integration.
   - Open PR enumeration reported 36 non-draft PRs and 4 draft/excluded PRs; after this run 30 current non-draft PR heads are exact ancestors and 6 remain blocked/selective-port candidates.
-  - This run promoted a narrow PR135 cache-reset seed fix; broader PR305 common/Laguna refactor and remaining MTP/scheduler candidates stay selective-port/runtime-validation blocked.
+  - This run was manifest-only; no open non-draft PR head advanced and no source slice was promoted. Broader PR305 common/Laguna refactor and remaining MTP/scheduler candidates stay selective-port/runtime-validation blocked.
