@@ -1,4 +1,4 @@
-updated_at: 2026-06-01T00:12:02-04:00
+updated_at: 2026-06-01T00:35:44-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -98,5 +98,5 @@ stack:
 notes:
   - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; integration work was performed in /tmp/luce-auto-cron-20260601-0005.
   - origin/main 8305b6c2 remains ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
-  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry after this run has 25 current non-draft PR heads as ancestors and 8 non-ancestor selective-port candidates.
+  - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs; exact ancestry after this run has 25 current non-draft PR heads as ancestors and 8 non-ancestor selective-port candidates.
   - Conflict probe worktrees are retained under /tmp/luce-probe-20260601-0012-pr-* and /tmp/luce-probe-20260601-0005-pr-321 because safe cleanup is left to a supervised pass.
