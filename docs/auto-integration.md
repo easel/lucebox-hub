@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T06:46:00-04:00`
+Last refresh: `2026-06-01T06:49:08-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `089cb776`
-Current integration source tip before this refresh: `089cb776`
+Previous integration tip: `easel/auto-integration` `2751938f`
+Current integration source tip before this refresh: `2751938f`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 27 exact current open non-draft PR heads after post-push enumeration detected #322 advanced during the run and the new head merged cleanly. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT` and Qwen35MoE gallocr/full-chunk FFN work, #237's common MTP helper scaffold, and #135's diagnostic/control-plane multi-request scheduler scaffolds; the remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run added a fresh tmux-driven Codex feasibility review for #305, which found no safe Laguna/common-MoE extraction slice and recommended deferring its remaining runtime work.
+The current stack contains 27 exact current open non-draft PR heads. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT` and Qwen35MoE gallocr/full-chunk FFN work, #237's common MTP helper scaffold, and #135's diagnostic/control-plane multi-request scheduler scaffolds; the remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run reconfirmed direct-merge conflicts for all six remaining candidates and attempted an additional tmux-driven #237 feasibility pass; Codex hit the known Git LFS clean-filter failure in the conflicted probe and Claude produced an empty report before being stopped, so no new source slice was promoted.
 
 ## Included in the current non-draft stack
 
@@ -50,6 +50,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T06:49:08-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `2751938f`, and reconcile tip `2751938f`; `origin/main` was already represented.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 27 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates are #305, #237, #221, #154, #153, and #135.
+- Fresh worktree direct-merge probes were run for #305, #237, #221, #154, #153, and #135 under `/tmp/luce-auto-cron-20260601-065006/`. Conflict counts remain #305 (61 status / 38 unmerged), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Codex session `luce237-codex-065006` in `/tmp/luce-auto-cron-20260601-065006/probe-pr-237` wrote transcript `/tmp/luce-codex-pr237-065006.txt` but hit the known Git LFS clean-filter failure on `assets/cards/dflash_card.png` before producing a usable final feasibility report. Tmux-driven Claude session `luce237-claude-065006` produced an empty redirected report and was stopped as stuck. No new #237 source slice was promoted.
+- Validation for this manifest-only refresh: `git diff --check` passed. Full CMake validation was not rerun because no source code changed and this checkout still lacks populated `server/deps/llama.cpp` plus the known CUDA compiler-id `sm_52` environment blocker.
 
 - Post-push enumeration detected #322 advanced from `fc601acb` to `4b40aa13` during the run. A fresh reconcile worktree `/tmp/luce-auto-cron-20260601-0640/reconcile` merged the advanced head cleanly, adding non-blocking `MSG_DONTWAIT` SSE heartbeat sends in `server/src/server/http_server.cpp`, then refreshed this manifest.
 - Validation for the post-push #322 refresh: `git diff --check` passed and `.github/auto-integration/stack.yaml` parsed successfully. Full CMake validation was not rerun because the source delta is a small HTTP heartbeat send change and the checkout still lacks populated `server/deps/llama.cpp` plus the known CUDA compiler-id `sm_52` environment blocker.
