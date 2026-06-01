@@ -9,8 +9,11 @@
 // 6. Bare JSON objects with name+arguments fields
 // 7. Native claude-code XML tags: <bash>CMD</bash>, <read>PATH</read>, etc.
 //
-// Pattern 5 runs before pattern 6 so inner JSON in call-verb payloads
-// does not get hijacked by the bare-JSON sweep.
+// Pattern 5 runs *before* pattern 6 so that args like
+//   call:outer{"name": "inner", "arguments": {}}
+// don't get hijacked by the bare-JSON sweep into a spurious `inner` tool
+// call. The brace-balanced span pattern 5 records in `removals` shadows
+// the inner JSON from pattern 6's view via `overlaps()`.
 
 #include "tool_parser.h"
 
@@ -166,7 +169,7 @@ static const std::regex & re_tool_code() {
     return r;
 }
 
-// Pattern 6: native claude-code XML tags.
+// Pattern 7: native claude-code XML tags.
 // Matches <bash>BODY</bash>, <read>BODY</read>, etc.
 static const std::regex & re_native_tag() {
     static std::regex r(R"(<(bash|read|write|edit|ls|grep|glob)>([\s\S]*?)</\1>)",
