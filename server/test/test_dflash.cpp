@@ -2415,6 +2415,22 @@ int main(int argc, char ** argv) {
             // q=5 (pos 105): attend k=[0..105]
             check(buf[5 * pad + 105] == F16_ZERO, "1c: q=5,k=105 attendable");
         }
+        {
+            std::vector<uint16_t> buf;
+            DDTree tree;
+            tree.n_nodes = 1;
+            tree.visibility = {1, 0,
+                               1, 1};
+            const int override_kv = 2 * g_kq_stride_pad;
+            build_tree_mask(tree, /*past_length=*/5, buf, g_kq_stride_pad,
+                            /*win_start=*/0, /*kv_pad_override=*/override_kv);
+            const int pad = align_up(override_kv, g_kq_stride_pad);
+            const int q_pad = align_up(1 + tree.n_nodes, KQ_MASK_PAD);
+            check((int)buf.size() == pad * q_pad, "1d: tree mask honors explicit kv stride");
+            check(buf[0 * pad + 4] == F16_ZERO, "1d: root attends past token at override stride");
+            check(buf[1 * pad + 5] == F16_ZERO, "1d: child attends root/tree column at override stride");
+            check(buf[1 * pad + 6] == F16_NEG_INF, "1d: child masks beyond populated tree columns");
+        }
 
         // ── Tests 2 & 3: GPU regression tests ───────────────────────────
         const int hidden_t = DFLASH27B_TARGET_HIDDEN;

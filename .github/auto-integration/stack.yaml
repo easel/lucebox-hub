@@ -1,4 +1,4 @@
-updated_at: 2026-06-01T14:27:57-04:00
+updated_at: 2026-06-01T14:50:23-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: ae64c511
-  current_integration_head_before_refresh: ae64c511
+  easel_auto_integration_before_refresh: 74570594
+  current_integration_head_before_refresh: 74570594
   refreshed_head: post-commit-see-git-log
   base_before_run: auto-integration
 stack:
@@ -56,12 +56,12 @@ stack:
     - {pr: 298, note: Gemma4 destructor-link fix}
     - {pr: 292, note: backend IPC payload-pipe support}
   attempted_this_run:
-    - {pr: 305, head: 1de45e4d, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-142144/probe-pr-305, note: fresh direct merge probe still broad (61 status entries / 38 unmerged paths); tmux Codex report at /tmp/luce-codex-pr305-20260601-142144.txt found a safe common-MoE planning helper slice, promoted this run; broader Laguna/Qwen/runtime commonization deferred}
-    - {pr: 237, head: 02c6a6c4, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-142144/probe-pr-237, note: fresh direct merge probe still old-layout native Qwen MTP conflicts (33 status entries / 27 unmerged paths); prior tmux Codex found only server/src/common/gguf_metadata.h safe, already present in the stack; no new source slice promoted}
-    - {pr: 221, head: 05502974, status: conflicts-suggested-close-superseded, worktree: /tmp/luce-auto-cron-20260601-142144/probe-pr-221, note: fresh direct merge probe still broad (88 status entries / 25 unmerged paths); prior tmux Codex report found no safe slice, with remaining old-layout MTP/prefix-WARM runtime coupled to PR237/Qwen MTP reconciliation}
-    - {pr: 154, head: 2f4ede79, status: conflicts-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-142144/probe-pr-154, note: fresh direct merge probe still conflicts (13 status entries / 12 unmerged paths); prior Codex review found no safe independent slice before PR153/PR237 reconciliation}
-    - {pr: 153, head: e9b17cb1, status: conflicts-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-142144/probe-pr-153, note: fresh direct merge probe still conflicts (10 status entries / 10 unmerged paths); old-layout target graph/MTP runtime conflicts remain coupled to PR237 foundation}
-    - {pr: 135, head: 561b0ac1, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-142144/probe-pr-135, note: direct merge still conflicts in internal.h, qwen35_target_graph.cpp, and test_dflash.cpp; prior committed-boundary bookkeeping slice remains in stack; broader live scheduler remains deferred}
+    - {pr: 305, head: 1de45e4d, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-144416/probe-pr-305, note: fresh direct merge probe still broad (60 status entries / 39 unmerged paths); previous common-MoE planning helper slice remains in stack; broader Laguna/Qwen/runtime commonization deferred}
+    - {pr: 237, head: 02c6a6c4, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-144416/probe-pr-237, note: fresh direct merge probe still old-layout native Qwen MTP conflicts (33 status entries / 27 unmerged paths); prior tmux Codex found only server/src/common/gguf_metadata.h safe, already present in the stack; no new source slice promoted}
+    - {pr: 221, head: 05502974, status: conflicts-suggested-close-superseded, worktree: /tmp/luce-auto-cron-20260601-144416/probe-pr-221, note: fresh direct merge probe still broad (88 status entries / 25 unmerged paths); tmux Codex report at /tmp/luce-codex-pr221-20260601-144416.txt identified one safe header-only tree-mask stride helper slice, promoted this run with focused test-window coverage; remaining old-layout MTP/prefix-WARM runtime stays coupled to PR237/Qwen MTP reconciliation}
+    - {pr: 154, head: 2f4ede79, status: conflicts-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-144416/probe-pr-154, note: fresh direct merge probe still conflicts (13 status entries / 12 unmerged paths); prior Codex review found no safe independent slice before PR153/PR237 reconciliation}
+    - {pr: 153, head: e9b17cb1, status: conflicts-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-144416/probe-pr-153, note: fresh direct merge probe still conflicts (10 status entries / 10 unmerged paths); old-layout target graph/MTP runtime conflicts remain coupled to PR237 foundation}
+    - {pr: 135, head: 561b0ac1, status: conflicts-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-144416/probe-pr-135, note: direct merge still conflicts in internal.h, qwen35_target_graph.cpp, and test_dflash.cpp; prior committed-boundary bookkeeping slice remains in stack; broader live scheduler remains deferred}
   pending: []
   blocked_needs_human:
     - {pr: 305, reason: remaining Laguna/common-MoE hybrid refactor is broad/non-minimal beyond existing selective ports}
@@ -84,16 +84,15 @@ stack:
     - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...
     - git fetch origin pull/<n>/head:refs/pr/<n> for all open non-draft PRs
     - git merge-base --is-ancestor refs/pr/<n> HEAD for all open non-draft PRs
-    - fresh worktree direct merge probes for #305/#237/#221/#154/#153/#135 under /tmp/luce-auto-cron-20260601-142144
-    - tmux-driven Codex feasibility report for #305 at /tmp/luce-codex-pr305-20260601-142144.txt
-    - promoted common MoE planning helper slice and test_common_moe_hybrid
+    - fresh worktree direct merge probes for #305/#237/#221/#154/#153/#135 under /tmp/luce-auto-cron-20260601-144416
+    - tmux-driven Codex feasibility report for #221 at /tmp/luce-codex-pr221-20260601-144416.txt
+    - promoted #221 tree-mask explicit kv-stride helper slice and focused test-window coverage
     - git diff --check
-    - targeted conflict-marker search in new common files
-    - stub-header C++ object checks for moe_hybrid_routing_stats.cpp, moe_hybrid_swap_manager.cpp, and test_common_moe_hybrid.cpp; moe_hybrid_placement.cpp standalone check blocked by missing nlohmann/json.hpp outside CMake FetchContent
+    - targeted conflict-marker search in changed files
     - .github/auto-integration/stack.yaml parsed by file-tool YAML lint
     - full CMake not rerun; prior local CUDA compiler-id sm_52 ptxas failure and missing server/deps/llama.cpp still block local full configure
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; reconciliation happened in /tmp/luce-auto-cron-20260601-142144.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; reconciliation happened in /tmp/luce-auto-cron-20260601-144416.
   - origin/main 8305b6c2 remains ancestor of auto-integration.
   - Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs; after this run 29 current non-draft PR heads are exact ancestors plus draft #329 already represented, and 6 remain blocked/selective-port candidates.
-  - This run promoted a narrow #305 common-MoE planning helper slice; broader Laguna/Qwen hybrid runtime commonization remains deferred for current-layout reconciliation and CUDA/runtime validation.
+  - This run promoted a narrow #221 tree-mask stride helper slice; broader #221 MTP/prefix-WARM runtime remains deferred for PR237/current-layout reconciliation and CUDA/runtime validation.
