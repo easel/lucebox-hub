@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T21:06:55-04:00`
+Last refresh: `2026-05-31T21:20:55-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `019aba8a`
-Current integration source tip before this refresh: `019aba8a`
+Previous integration tip: `easel/auto-integration` `09cbdca2`
+Current integration source tip before this refresh: `09cbdca2`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -340,9 +340,21 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 - Tmux-driven Codex review for the #325 validation diff (`/tmp/luce-auto-cron-20260531-210238/codex-pr325-servermain-review.txt`) initially hit the known Git LFS clean-filter tmp-path issue on plain `git diff`, retried with LFS filters disabled for read-only inspection, checked `DevicePlacement::is_mixed_layer_split()` semantics, ran `git diff --check`, and reported no findings.
 - Validation for this source/metadata refresh: `git diff --check` passed; conflict-marker search found no merge markers in promoted source/metadata files; YAML parse of `.github/auto-integration/stack.yaml` passed. Full CMake validation was not rerun because the change is validation-only and this checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
 
+- `date -Is` -> `2026-05-31T21:20:55-04:00` during this docs-only refresh preflight; primary checkout was clean on `auto-integration` at `09cbdca2`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`).
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs remained `origin/main` `8305b6c2` and `easel/auto-integration` `09cbdca2`; `origin/main` was already represented in the stack.
+- Open PR enumeration again reported 32 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 24 current open non-draft PR heads included and 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-212144`; direct merge of #321 still conflicted across backend IPC, DFlash draft IPC, layer-split runtime, Gemma4/Laguna/Qwen35 layer-split adapters, backend IPC main, Qwen35 target-shard IPC, and `server_main` (31 status entries / 11 unmerged paths). Tmux-driven Claude (`claude-pr321-212144`) reached max turns with no file changes, and tmux-driven Codex (`codex-pr321-212144`) inspected conflicts but did not complete a safe resolution or final report before this refresh.
+- A separate #325 probe worktree `/tmp/luce-auto-cron-20260531-212144-pr325` reconfirmed conflicts across backend IPC, DFlash draft IPC, layer-split backend/runtime, Gemma4/Laguna/Qwen35 adapters, backend IPC main, target-shard IPC, and `server_main` (34 status entries / 14 unmerged paths). No source changes were promoted this run.
+- Validation for this docs-only refresh: `git diff --check` passed for the manifest update. No build/CMake validation was rerun because no source code changed and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+
 ## Retained worktrees / logs
 
 This run retained the updated stack worktree, conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+
+- `/tmp/luce-auto-cron-20260531-212144` (docs-only refresh worktree; #321 conflict probe attempted here)
+- `/tmp/luce-auto-cron-20260531-212144-pr325` (#325 conflict probe)
+- `/tmp/luce-claude-pr321-20260531-212144.txt` (Claude #321 attempt; max-turns/no file changes)
+- `/tmp/luce-codex-pr321-20260531-212144.txt` (Codex #321 transcript; incomplete conflict-resolution attempt)
 
 - `/tmp/luce-auto-cron-20260531-210238/reconcile` (current source/metadata refresh worktree; #325 same-backend target layer-split disk-cache validation unlock promoted here)
 - `/tmp/luce-auto-cron-20260531-210238/probe-pr325`
