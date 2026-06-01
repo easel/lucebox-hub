@@ -1,4 +1,4 @@
-updated_at: 2026-05-31T22:13:07-04:00
+updated_at: 2026-05-31T22:44:14-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,9 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: d7d40800
-  current_integration_head_before_refresh: d7d40800
+  easel_auto_integration_before_refresh: 5be9653d
+  current_integration_head_before_refresh: 5be9653d
+  refreshed_head: 44f2fea4
   base_before_run: auto-integration
 stack:
   included:
@@ -26,7 +27,7 @@ stack:
     - {pr: 291, head: 91ff48fa, status: included, note: Gemma4 draft residency follow-up; ancestor of auto-integration}
     - {pr: 290, head: ddcf3005, status: included, note: draft residency policy; ancestor of auto-integration}
     - {pr: 289, head: caf2b112, status: included, note: pipelined hybrid Qwen35 MoE decode; ancestor of auto-integration}
-    - {pr: 285, head: b707e876, status: included, note: docker stack, lucebox CLI, harness, luce-bench; ancestor of auto-integration}
+    - {pr: 285, head: fac7e0ff, status: included, note: docker stack, lucebox CLI, harness, luce-bench; ancestor of auto-integration}
     - {pr: 276, head: 5e861b4d, status: included, note: Qwen3.6 Claude-code Anthropic tool-calling fix; ancestor of auto-integration}
     - {pr: 274, head: 8fc961b5, status: included, note: adaptive pFlash / effective-size admission guard; ancestor of auto-integration}
     - {pr: 266, head: 17525eae, status: included, note: typed harness adapters and session-inject proxy; ancestor of auto-integration}
@@ -48,35 +49,26 @@ stack:
     - {pr: 298, note: Gemma4 destructor-link fix}
     - {pr: 292, note: backend IPC payload-pipe support}
   attempted_this_run:
-    - pr: 325
-      head: b47fb3aa
-      status: probed-selective-port-candidate
-      worktree: /tmp/luce-auto-cron-20260531-2204/probe-pr-325
-      probe_worktree: /tmp/luce-auto-cron-20260531-2204/probe-pr-325
-      unmerged_files: 15
-      note: "fresh probe still conflicts broadly; no #325-specific source patch was promoted this run. The promoted #321 forward-from-activation foundation is a prerequisite for later target-shard daemon/adapter wiring that also overlaps #325 mixed-backend disk-cache work."
     - pr: 321
       head: 87fe7655
       status: selective-port-promoted
-      worktree: /tmp/luce-auto-cron-20260531-2204/probe-pr-321
-      unmerged_files: 14
-      note: "promoted an additive, currently inert Qwen35 run_qwen35_layer_split_forward_from_activation helper in server/src/qwen35/layer_split_forward.{h,cpp}; direct PR merge remains conflicted and daemon dispatch/runtime adapter wiring remains pending."
-      delegation: "tmux Codex read-only review wrote /tmp/luce-auto-cron-20260531-2204/codex-pr321-forward-review.txt, warning about ActivationPair validation/ownership and F32 capture requirements; the promoted diff adds those guards and comments."
-    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-2204/probe-pr-305, unmerged_files: 38}
-    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-2204/probe-pr-237, unmerged_files: 27}
-    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-2204/probe-pr-221, unmerged_files: 25}
-    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-2204/probe-pr-154, unmerged_files: 12}
-    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-2204/probe-pr-153, unmerged_files: 10}
-    - pr: 135
-      head: 561b0ac1
+      worktree: /tmp/luce-auto-cron-20260531-223135/reconcile
+      note: "promoted the next mixed-backend target-shard IPC daemon slice: backend_ipc_main now accepts qwen35-target-shard options and dispatches to a POSIX Qwen35 target-shard daemon scaffold supporting boundary activation forwarding, optional shared payload, prefix snapshot commands, and LM-head projection. Higher-level runtime adapter activation remains intentionally separate."
+    - pr: 325
+      head: b47fb3aa
       status: probed-selective-port-candidate
-      worktree: /tmp/luce-auto-cron-20260531-2204/probe-pr-135
-      unmerged_files: 3
-      note: "diagnostic-only SCHED_BATCH_PROBE remains the next safe #135 slice after the Qwen35 target-shard IPC foundation work."
+      worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-325
+      note: "still non-ancestor; current #321 daemon port is a prerequisite for remaining mixed-backend disk-cache wiring."
+    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-305, note: direct merge remains broad common-MoE/Qwen35MoE/Laguna conflict surface}
+    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-237, note: old-layout MTP foundation still needs architecture-aware selective port}
+    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-221, note: superseded as direct integration candidate by current stack plus PR237 salvage path}
+    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-154, note: stacked old-layout MTP speculative-loop work depends on PR153/PR237 reconciliation}
+    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-153, note: old-layout native Qwen3.6 MTP runtime requires staged selective port}
+    - {pr: 135, head: 561b0ac1, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-135, note: diagnostic-only SCHED_BATCH_PROBE remains next safe slice after target-shard IPC foundation}
   pending: []
   blocked_needs_human:
-    - {pr: 325, reason: partial selective ports now include same-backend Qwen35 and Laguna disk snapshot export/adopt, disk-cache first-request lookup/adopted-layout validation, backend/DFlash draft IPC robustness, and same-backend target layer-split disk-cache validation unlock; remaining mixed-backend disk-cache pieces depend on/overlap PR321 runtime and still have broad IPC/runtime/adapter conflicts}
-    - {pr: 321, reason: placement-config foundation, target-shard IPC control-plane staging, layer-split runtime per-shard backend metadata/null-safe diagnostics, Qwen35 config propagation, LayerSplitShardMeta placement_backend, target-shard IPC mode/header/client implementation/CMake registration, inactive-client no-op hooks, DFlash feature-ring capture bounds hardening, and inert Qwen35 forward-from-existing-activation foundation are selectively ported; daemon dispatch/runtime adapter wiring remains blocked on a current-layout mixed-backend data path and broader conflict resolution}
+    - {pr: 325, reason: partial selective ports now include same-backend Qwen35 and Laguna disk snapshot export/adopt, disk-cache first-request lookup/adopted-layout validation, backend/DFlash draft IPC robustness, same-backend target layer-split disk-cache validation unlock, and the PR321 target-shard IPC daemon prerequisite; remaining mixed-backend disk-cache pieces still overlap runtime/adapter conflicts}
+    - {pr: 321, reason: placement-config foundation, target-shard IPC control-plane staging, layer-split runtime per-shard backend metadata/null-safe diagnostics, Qwen35 config propagation, LayerSplitShardMeta placement_backend, target-shard IPC mode/header/client implementation/CMake registration, inactive-client no-op hooks, DFlash feature-ring capture bounds hardening, inert Qwen35 forward-from-existing-activation foundation, and target-shard IPC daemon scaffold are selectively ported; remaining live adapter wiring requires current-layout mixed-backend data-path reconciliation}
     - {pr: 305, reason: direct merge has large common-MoE/Qwen35MoE/Laguna conflicts and remaining value requires staged selective port}
     - {pr: 237, reason: old-layout MTP foundation needs architecture-aware selective port}
     - {pr: 154, reason: stacked/dependent old-layout MTP speculative-loop work}
@@ -88,25 +80,21 @@ stack:
     - {prs: [312, 304, 275, 249, 193], reason: draft PRs excluded except dependency awareness}
   tests_and_checks:
     - date -Is
-    - git status --short; git branch --show-current; git remote -v
+    - git status --short --branch; git remote -v
     - GH_CONFIG_DIR=/home/erik/.config/gh XDG_CONFIG_HOME=/home/erik/.config HOME=/home/erik gh auth status
     - HOME=/home/erik /home/erik/.local/bin/claude auth status --text
     - HOME=/home/erik /home/linuxbrew/.linuxbrew/bin/codex --version
     - git fetch --prune origin
     - git fetch --prune easel
+    - git fetch origin '+refs/pull/*/head:refs/pr/*'
     - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...
-    - explicit git fetch origin pull/<n>/head:refs/pr/<n> for all open PRs
     - git merge-base --is-ancestor refs/pr/<n> HEAD for all open non-draft PRs
-    - direct merge probes for PRs 325, 321, 305, 237, 221, 154, 153, and 135 from refreshed integration head
-    - Hermes subagent reviews for next safe #325, #321, and #135 selective-port slices
-    - tmux Codex read-only review for PR321/PR325 forward-from-activation prerequisite
-    - tmux Codex read-only review for the promoted PR321 forward-from-activation source slice
-    - git diff --check for promoted source and metadata refresh
-    - conflict-marker search in promoted qwen35 source and metadata files
-    - lightweight qwen35 layer_split_forward header smoke compile (stopped at known missing ggml.h dependency)
+    - git diff --check
+    - conflict-marker grep over changed files
     - YAML parse of .github/auto-integration/stack.yaml
+    - lightweight backend_ipc_main/qwen35 target-shard daemon fsyntax-only attempt stopped at known missing vendored headers dflash27b.h and ggml-backend.h
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration and will be fast-forwarded only after verified push.
-  - origin/main 8305b6c2 is already ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
-  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry includes 24 current non-draft heads, with 8 remaining non-ancestor/selective-port candidates before this run's #321 source slice.
-  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-2204/ because safe cleanup is left to a supervised pass.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; integration work was performed in /tmp/luce-auto-cron-20260531-223135/reconcile.
+  - origin/main 8305b6c2 remains ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
+  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry after this run has 24 current non-draft PR heads as ancestors and 8 non-ancestor selective-port candidates.
+  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-2204/ and /tmp/luce-auto-cron-20260531-223135/ because safe cleanup is left to a supervised pass.
