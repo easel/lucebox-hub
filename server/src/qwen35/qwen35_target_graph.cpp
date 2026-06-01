@@ -938,8 +938,23 @@ static ggml_tensor * build_delta_net_block(
             S_v * S_v * r_elt,
             S_v * S_v * H_v * r_elt,
             inter_offset);
+        // The persistent cache buffer is sized for max_verify_tokens slots
+        // along its last dim; chain verify may feed fewer than that. ggml_cpy
+        // requires matching nelements, so slice the destination to n_seq_tokens.
+        ggml_tensor * inter_dst = cap->ssm_intermediate_states;
+        if ((int64_t)n_seq_tokens != inter_dst->ne[3]) {
+            inter_dst = ggml_view_4d(ctx, cap->ssm_intermediate_states,
+                cap->ssm_intermediate_states->ne[0],
+                cap->ssm_intermediate_states->ne[1],
+                cap->ssm_intermediate_states->ne[2],
+                n_seq_tokens,
+                cap->ssm_intermediate_states->nb[1],
+                cap->ssm_intermediate_states->nb[2],
+                cap->ssm_intermediate_states->nb[3],
+                /*offset=*/0);
+        }
         ggml_build_forward_expand(gf,
-            ggml_cpy(ctx, inter_view, cap->ssm_intermediate_states));
+            ggml_cpy(ctx, inter_view, inter_dst));
     }
     } // end of block started at `{` before `const int64_t S_v = head_v_dim;`
 
