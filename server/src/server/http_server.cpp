@@ -2099,7 +2099,6 @@ void HttpServer::worker_loop() {
             continue;
         }
 
-        // Send SSE headers (skip when proxying — curl_forward handles its own headers).
         if (req.stream && config_.pflash_upstream_base.empty()) {
             if (!send_sse_headers(fd)) {
                 // Client already disconnected before we started.

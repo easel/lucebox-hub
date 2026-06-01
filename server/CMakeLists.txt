@@ -881,7 +881,7 @@ if(DFLASH27B_TESTS)
     # ─── Unit tests (no GPU, no model files) ────────────────────────────
     enable_testing()
 
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_server_unit.cpp")
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_server_unit.cpp" AND CURL_FOUND)
         add_executable(test_server_unit test/test_server_unit.cpp)
         target_sources(test_server_unit PRIVATE
             src/server/http_server.cpp
@@ -905,11 +905,18 @@ if(DFLASH27B_TESTS)
     endif()
 
     # 'make check' — builds test targets then runs ctest
-    add_custom_target(check
-        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-        DEPENDS test_server_unit
-        COMMENT "Building and running unit tests"
-    )
+    if(TARGET test_server_unit)
+        add_custom_target(check
+            COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+            DEPENDS test_server_unit
+            COMMENT "Building and running unit tests"
+        )
+    else()
+        add_custom_target(check
+            COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+            COMMENT "Building and running unit tests (server unit tests skipped — CURL not found)"
+        )
+    endif()
 
     if(DFLASH27B_GPU_BACKEND STREQUAL "cuda")
     # internal.h includes <cuda_runtime.h> when GGML_USE_CUDA is set; link
