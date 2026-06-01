@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T21:20:55-04:00`
+Last refresh: `2026-05-31T21:44:29-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `fd77b00b`
-Current integration source tip before this refresh: `fd77b00b`
+Previous integration tip: `easel/auto-integration` `f41ed593`
+Current integration source tip before this refresh: `f41ed593`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -350,9 +350,29 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 - Post-push re-enumeration found #285 advanced from `b707e876` to `fac7e0ff` while this run was in progress. A fresh worktree `/tmp/luce-auto-cron-20260531-212144-pr285` merged the new head cleanly on top of `fd77b00b`, adding Forge grader updates and relaxed tool parser handling.
 - Validation after the #285 fast-follow merge: `git diff --check HEAD~1..HEAD` passed, `python3 -m py_compile luce-bench/src/lucebench/areas/forge.py` passed, and `uv run --project luce-bench --extra dev pytest luce-bench/tests/test_forge_grader.py` passed (`18 passed`).
 
+- `date -Is` -> `2026-05-31T21:44:29-04:00` during this metadata/probe refresh; primary checkout was clean on `auto-integration` at `f41ed593`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`).
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs remained `origin/main` `8305b6c2` and `easel/auto-integration` `f41ed593`; `origin/main` was already represented in the stack.
+- Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 24 current open non-draft PR heads included and 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-2144/reconcile`; direct merge of `origin/main` was already up to date. Fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 15 unmerged paths), #321 (23 / 14), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Hermes subagent reviews for #321 and #325 independently identified the same next safe source prerequisite: an additive, currently inert Qwen35 `run_qwen35_layer_split_forward_from_activation` foundation in `server/src/qwen35/layer_split_forward.{h,cpp}` before re-attempting target-shard daemon dispatch or adapter wiring. Both reviews warned not to copy PR #321/#325 code verbatim because the PRs predate the current stack's `activation_type` / activation-precision plumbing.
+- Tmux-driven Codex read-only review in `/tmp/luce-auto-cron-20260531-2144/reconcile` wrote `/tmp/luce-auto-cron-20260531-2144/codex-pr321-forward-review.txt` and confirmed the same recommendation: preserve current typed `ActivationPair` / `set_activation_tensor_from_f32` behavior, keep final projection through current `compute_target_split_projection`, and defer mixed-forward adapter wiring. Codex also reported a read-only `git status` caveat from the known Git LFS clean-filter temp-path issue.
+- Hermes subagent review for #135 reconfirmed diagnostic-only `SCHED_BATCH_PROBE` as the next safe scheduler slice after `SCHED_BATCH_PEEK`, but only if adapted to current request/cache-slot scaffolding with no live cache copyback or request-state mutation. No source changes were promoted this run.
+- Validation for this metadata-only refresh: YAML parse of `.github/auto-integration/stack.yaml` passed; `git diff --check` passed for metadata changes. No build/CMake validation was rerun because no source code changed and this checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+
 ## Retained worktrees / logs
 
 This run retained the updated stack worktree, conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+
+- `/tmp/luce-auto-cron-20260531-2144/reconcile` (metadata/probe refresh worktree; no source changes promoted)
+- `/tmp/luce-auto-cron-20260531-2144/probe-pr-325`
+- `/tmp/luce-auto-cron-20260531-2144/probe-pr-321`
+- `/tmp/luce-auto-cron-20260531-2144/probe-pr-305`
+- `/tmp/luce-auto-cron-20260531-2144/probe-pr-237`
+- `/tmp/luce-auto-cron-20260531-2144/probe-pr-221`
+- `/tmp/luce-auto-cron-20260531-2144/probe-pr-154`
+- `/tmp/luce-auto-cron-20260531-2144/probe-pr-153`
+- `/tmp/luce-auto-cron-20260531-2144/probe-pr-135`
+- `/tmp/luce-auto-cron-20260531-2144/codex-pr321-forward-review.txt` (tmux Codex read-only review; confirms forward-from-activation prerequisite and activation-precision caveat)
 
 - `/tmp/luce-auto-cron-20260531-212144` (docs-only refresh worktree; #321 conflict probe attempted here)
 - `/tmp/luce-auto-cron-20260531-212144-pr325` (#325 conflict probe)

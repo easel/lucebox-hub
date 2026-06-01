@@ -1,4 +1,4 @@
-updated_at: 2026-05-31T21:06:55-04:00
+updated_at: 2026-05-31T21:44:29-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: 019aba8a
-  current_integration_head_before_refresh: 019aba8a
+  easel_auto_integration_before_refresh: f41ed593
+  current_integration_head_before_refresh: f41ed593
   base_before_run: auto-integration
 stack:
   included:
@@ -50,32 +50,32 @@ stack:
   attempted_this_run:
     - pr: 325
       head: b47fb3aa
-      status: partial-selective-port-promoted
-      worktree: /tmp/luce-auto-cron-20260531-210238/reconcile
-      probe_worktree: /tmp/luce-auto-cron-20260531-210238/probe-pr325
+      status: probed-selective-port-candidate
+      worktree: /tmp/luce-auto-cron-20260531-2144/probe-pr-325
+      probe_worktree: /tmp/luce-auto-cron-20260531-2144/probe-pr-325
       unmerged_files: 15
-      note: "promoted the PR325 server_main validation unlock: same-backend target layer-split can now use --kv-cache-dir, while mixed-backend target layer-split remains rejected until remote shard disk snapshot/restore IPC export/import support exists."
-      delegation: "Hermes subagent recommended this as the lowest-risk PR325 slice; tmux Codex reviewed the uncommitted diff and reported no findings after checking is_mixed_layer_split semantics and git diff --check."
+      note: "fresh probe still conflicts broadly; subagent review confirmed the next safe shared #321/#325 prerequisite is the inert Qwen35 forward-from-existing-activation helper before daemon/adapter wiring. No source patch was promoted this run."
+      delegation: "Hermes subagent and tmux Codex read-only review both warned not to copy PR325/PR321 layer_split_forward code verbatim because it predates current activation_type / activation-precision plumbing."
     - pr: 321
       head: 87fe7655
       status: probed-selective-port-candidate
-      worktree: /tmp/luce-auto-cron-20260531-210238/probe-pr321
+      worktree: /tmp/luce-auto-cron-20260531-2144/probe-pr-321
       unmerged_files: 14
-      note: "subagent identified the next safe slice as an unused Qwen35 forward-from-existing-activation foundation before daemon dispatch; not promoted this run."
-    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-210238/probe-pr305, unmerged_files: 38}
-    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-210238/probe-pr237, unmerged_files: 27}
-    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-210238/probe-pr221, unmerged_files: 25}
-    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-210238/probe-pr154, unmerged_files: 12}
-    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-210238/probe-pr153, unmerged_files: 10}
+      note: "subagent plus tmux Codex identified the next safe slice as an unused Qwen35 forward-from-existing-activation foundation before daemon dispatch; not promoted this run because it needs careful activation-precision adaptation."
+    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-2144/probe-pr-305, unmerged_files: 38}
+    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-2144/probe-pr-237, unmerged_files: 27}
+    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-2144/probe-pr-221, unmerged_files: 25}
+    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-2144/probe-pr-154, unmerged_files: 12}
+    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-2144/probe-pr-153, unmerged_files: 10}
     - pr: 135
       head: 561b0ac1
       status: probed-selective-port-candidate
-      worktree: /tmp/luce-auto-cron-20260531-210238/probe-pr135
+      worktree: /tmp/luce-auto-cron-20260531-2144/probe-pr-135
       unmerged_files: 3
-      note: "subagent identified diagnostic-only SCHED_BATCH_PROBE, adapted to current slot readiness, as the next safe #135 slice before live SCHED_BATCH_TARGET_STEP/copyback; not promoted this run."
+      note: "subagent reconfirmed diagnostic-only SCHED_BATCH_PROBE, adapted to current slot readiness and no live copyback, as the next safe #135 slice before live SCHED_BATCH_TARGET_STEP/copyback; not promoted this run."
   pending: []
   blocked_needs_human:
-    - {pr: 325, reason: partial selective ports now include same-backend Qwen35 and Laguna disk snapshot export/adopt, disk-cache first-request lookup/adopted-layout validation, backend/DFlash draft IPC robustness, and this refresh's same-backend target layer-split disk-cache validation unlock; remaining mixed-backend disk-cache pieces depend on/overlap PR321 runtime and still have broad IPC/runtime/adapter conflicts}
+    - {pr: 325, reason: partial selective ports now include same-backend Qwen35 and Laguna disk snapshot export/adopt, disk-cache first-request lookup/adopted-layout validation, backend/DFlash draft IPC robustness, and same-backend target layer-split disk-cache validation unlock; remaining mixed-backend disk-cache pieces depend on/overlap PR321 runtime and still have broad IPC/runtime/adapter conflicts}
     - {pr: 321, reason: placement-config foundation, target-shard IPC control-plane staging, layer-split runtime per-shard backend metadata/null-safe diagnostics, Qwen35 config propagation, LayerSplitShardMeta placement_backend, target-shard IPC mode/header/client implementation/CMake registration, inactive-client no-op hooks, and DFlash feature-ring capture bounds hardening are selectively ported; daemon dispatch remains blocked until a current-layout Qwen35 forward-from-activation path exists}
     - {pr: 305, reason: direct merge has large common-MoE/Qwen35MoE/Laguna conflicts and remaining value requires staged selective port}
     - {pr: 237, reason: old-layout MTP foundation needs architecture-aware selective port}
@@ -99,12 +99,12 @@ stack:
     - git merge-base --is-ancestor refs/pr/<n> HEAD for all open non-draft PRs
     - direct merge probes for PRs 325, 321, 305, 237, 221, 154, 153, and 135 from refreshed integration head
     - Hermes subagent reviews for next safe #325, #321, and #135 selective-port slices
-    - tmux Codex review for promoted #325 server_main validation slice
-    - git diff --check for source and metadata refresh
-    - conflict-marker search in promoted files
+    - tmux Codex read-only review for PR321/PR325 forward-from-activation prerequisite
+    - git diff --check for metadata refresh
+    - conflict-marker search in metadata files
     - YAML parse of .github/auto-integration/stack.yaml
 notes:
   - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration and will be fast-forwarded only after verified push.
   - origin/main 8305b6c2 is already ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
-  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry includes 24 current non-draft heads, with 8 remaining non-ancestor/selective-port candidates before the promoted narrow PR325 server_main validation unlock.
-  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-210238/ because safe cleanup is left to a supervised pass.
+  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry includes 24 current non-draft heads, with 8 remaining non-ancestor/selective-port candidates.
+  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-2144/ because safe cleanup is left to a supervised pass.
