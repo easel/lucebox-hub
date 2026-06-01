@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T09:50:30-04:00`
+Last refresh: `2026-06-01T10:14:48-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `3a3196b7`
-Current integration source tip before this refresh: `3a3196b7`
+Previous integration tip: `easel/auto-integration` `8b8713a3`
+Current integration source tip before this refresh: `8b8713a3`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 30 exact current open non-draft PR heads after integrating new PR #329. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. This run merged #329 with one `server/src/server/tool_parser.cpp` conflict resolved manually by preserving the current native Claude-code XML tag/parameter-alias parser plus #329's brace-balanced `call:<verb>{...}` shadowing comments and tests. Fresh direct-merge probes reconfirmed conflicts for all six remaining candidates after #329. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation.
+The current stack contains 30 exact current open non-draft PR heads after integrating PR #329 in the previous refresh, plus an additional narrow #135 selective-port fix from this run (`reset_target_cache` now clears `TargetCache::last_tok` together with `cur_pos`). Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes reconfirmed conflicts for all six remaining candidates. Tmux-driven Codex for #135 identified the promoted cache-reset seed fix and rejected the broader conflicted runtime/test changes as structurally incompatible without runtime validation; tmux-driven Claude for #237 reached its max-turn limit without a usable report. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation.
 
 ## Included in the current non-draft stack
 
@@ -53,6 +53,13 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T10:06:55-04:00` / `2026-06-01T10:14:48-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`, and `tmux -V`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `8b8713a3`, and source tip `8b8713a3`; `origin/main` was already represented.
+- Open PR enumeration reported 36 non-draft PRs and 4 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 30 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
+- Fresh worktree direct-merge probes were run under `/tmp/luce-auto-cron-20260601-100813/`. Conflict counts remain #305 (61 status / 38 unmerged), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Codex session `luce1008-pr135-codex` in `/tmp/luce-auto-cron-20260601-100813/probe-pr-135` completed with report `/tmp/luce-codex-pr135-100813.txt`. It identified one low-risk #135 source slice: reset `TargetCache::last_tok` to `-1` inside `reset_target_cache` alongside `cur_pos = 0`, avoiding stale decode seeds after cache reuse. That slice was promoted in `server/src/qwen35/qwen35_target_graph.cpp`. The same report rejected broader `internal.h`, target-graph runtime, and `test_dflash.cpp` conflict content as structurally incompatible without runtime validation.
+- Tmux-driven Claude session `luce1008-pr237-claude` in `/tmp/luce-auto-cron-20260601-100813/probe-pr-237` exited with `Error: Reached max turns (8)` and produced no usable feasibility report, so no #237 source slice was promoted.
+- Validation for this source/manifest refresh: `git diff --check` passed and targeted conflict-marker search in changed files found none; `.github/auto-integration/stack.yaml` syntax was checked by the file writer. A combined local Python/YAML validation command was blocked by the unattended command guard and was not retried. Full CMake validation was not rerun because prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - `date -Is` -> `2026-06-01T09:46:55-04:00` / `2026-06-01T09:50:30-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --help`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `3a3196b7`, and reconcile tip `24b9e1e9` after merging #329; `origin/main` was already represented.
 - Open PR enumeration reported 36 non-draft PRs and 4 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included before reconciliation; #329 plus selective-port candidates #305, #237, #221, #154, #153, and #135 were non-ancestors. #329 was merged with one conflict in `server/src/server/tool_parser.cpp`; the resolution preserved both the current native Claude-code XML tag / parameter-alias parser and #329's call-verb JSON span shadowing before the bare-JSON sweep.
