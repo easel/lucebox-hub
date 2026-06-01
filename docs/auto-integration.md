@@ -4,15 +4,15 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T15:06:09-04:00`
+Last refresh: `2026-06-01T15:26:59-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `d0a3ef7d`
-Current integration source tip before this refresh: `d0a3ef7d`
+Previous integration tip: `easel/auto-integration` `882023dd`
+Current integration source tip before this refresh: `882023dd`
 refreshed_head: `post-commit-see-git-log`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 29 exact current open non-draft PR heads plus draft #329, which was already integrated before it became draft. No open non-draft PR head advanced since the prior pushed refresh. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes reconfirmed conflicts for all six remaining candidates. This run ran a tmux-driven Codex pass for #221 and promoted one narrow current-layout safety slice: `build_tree_mask` now accepts a defaulted explicit KV-stride override so future tree-verify consumers can match a preallocated attention-mask row pitch, with focused `--test-window` coverage in `server/test/test_dflash.cpp`. Codex rejected the broader #221 MTP/prefix-WARM runtime as still coupled to PR237/current Qwen MTP reconciliation, stale old-layout `dflash/` paths, CMake/backend/server conflicts, and CUDA/runtime validation. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, PR305 persistent prefill `StepGraph` reuse slice, and common-MoE planning helpers; #237's common MTP helper scaffold; #153/#154's pre-norm hidden exposure; #135's diagnostic/control-plane multi-request scheduler scaffolds plus cache-reset seed fix and committed-boundary bookkeeping; and now #221's tree-mask stride helper. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation.
+The current stack contains 29 exact current open non-draft PR heads plus draft #329, which was already integrated before it became draft. No open non-draft PR head advanced since the prior pushed refresh. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-20260601-152814-pr-*` reconfirmed conflicts for all six remaining candidates: #305 (60 status / 39 unmerged), #237 (33 / 28), #221 (88 / 26), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3). This run re-ran a tmux-driven Claude/Codex feasibility pass for #135: Claude exited without a usable report, and Codex streamed conflicted excerpts without reaching a final feasibility verdict before being stopped; no new source slice was safe to promote. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, PR305 persistent prefill `StepGraph` reuse slice, and common-MoE planning helpers; #237's common MTP helper scaffold plus destination-view chain-verify fix; #153/#154's pre-norm hidden exposure; #135's diagnostic/control-plane multi-request scheduler scaffolds plus cache-reset seed fix and committed-boundary bookkeeping; and #221's tree-mask stride helper. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation.
 
 ## Included in the current stack
 
