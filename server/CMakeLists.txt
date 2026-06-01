@@ -249,6 +249,9 @@ add_library(dflash_common STATIC
     src/common/dflash_spec_decode.cpp
     src/common/layer_split_backend.cpp
     src/common/layer_split_runtime.cpp
+    src/common/moe_hybrid_placement.cpp
+    src/common/moe_hybrid_routing_stats.cpp
+    src/common/moe_hybrid_swap_manager.cpp
     src/qwen35/graph_builders.cpp
     src/qwen35moe/qwen35moe_ffn.cpp
     src/qwen35moe/qwen35moe_backend.cpp
@@ -580,6 +583,17 @@ if(DFLASH27B_TESTS)
         add_test(NAME common_mtp_orchestrator
             COMMAND test_common_mtp_orchestrator)
     endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_common_moe_hybrid.cpp")
+        add_executable(test_common_moe_hybrid test/test_common_moe_hybrid.cpp)
+        target_include_directories(test_common_moe_hybrid PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
+        if(DFLASH27B_GPU_BACKEND STREQUAL "cuda")
+            target_include_directories(test_common_moe_hybrid PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+        endif()
+        target_link_libraries(test_common_moe_hybrid PRIVATE dflash_common)
+        add_test(NAME common_moe_hybrid
+            COMMAND test_common_moe_hybrid)
+    endif()
+
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_early_exit_score_range.cpp")
         add_executable(test_drafter_early_exit_score_range
             test/test_drafter_early_exit_score_range.cpp)
