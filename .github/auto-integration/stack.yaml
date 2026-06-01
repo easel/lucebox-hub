@@ -1,4 +1,4 @@
-updated_at: 2026-06-01T02:23:05-04:00
+updated_at: 2026-06-01T03:53:53-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,9 +6,9 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: 3fe2f8bf
-  current_integration_head_before_refresh: 3fe2f8bf
-  refreshed_head: this-source-metadata-commit
+  easel_auto_integration_before_refresh: 91158f91
+  current_integration_head_before_refresh: 91158f91
+  refreshed_head: this-metadata-commit
   base_before_run: auto-integration
 stack:
   included:
@@ -50,30 +50,14 @@ stack:
     - {pr: 298, note: Gemma4 destructor-link fix}
     - {pr: 292, note: backend IPC payload-pipe support}
   attempted_this_run:
-    - pr: 321
-      head: 87fe7655
-      status: delegated-readonly-probe-no-source-promoted
-      worktree: /tmp/luce-auto-cron-20260601-022305/probe-pr321
-      note: "fresh #321 direct merge probe still conflicts (23 status entries / 15 unmerged paths). Tmux Codex read-only delegation reported SAFE_PORT: no for porting server_main mixed-backend validation/control-plane alone, because exposing --target-shard-ipc-* mixed target admission before reconciling the still-conflicted Qwen35 adapter/forward/target-shard IPC/backend IPC runtime path would be unsafe."
-    - pr: 325
-      head: b47fb3aa
-      status: probed-selective-port-candidate
-      worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr325
-      note: "still non-ancestor; fresh direct merge probe conflicts (25 status entries / 16 unmerged paths). Hermes subagent review found the non-#321 same-backend disk-prefix-cache snapshot/adopt behavior is represented; remaining #325 value is mixed-target snapshot coordination after #321 live adapter wiring."
-    - pr: 305
-      head: 1de45e4d
-      status: selective-port-promoted
-      worktree: /tmp/luce-auto-cron-20260601-0050/reconcile
-      note: "direct merge remains broad common-MoE/Qwen35MoE/Laguna conflict surface. This run promoted a narrow current-layout subset from PR305's async/GPU-resident act_cur work: Qwen35MoE pipelined decode now projects logits by copying GPU-resident pipe_state_->gpu_state.act_cur directly into the persistent logits graph input, avoiding the previous GPU-to-CPU readback before logits. Tmux Codex review found async host uploads could race with existing internal tensor_copy calls, so this slice intentionally keeps host-to-GPU uploads synchronous and only uses the ordered backend-to-backend logits copy. Laguna hot/cold hybrid remains deferred as non-minimal."
-    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr237, note: old-layout MTP foundation still needs architecture-aware selective port (33 status entries / 27 unmerged paths)}
-    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr221, note: superseded as direct integration candidate by current stack plus PR237 salvage path (88 status entries / 25 unmerged paths)}
-    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr154, note: stacked old-layout MTP speculative-loop work depends on PR153/PR237 reconciliation (13 status entries / 12 unmerged paths)}
-    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr153, note: old-layout native Qwen3.6 MTP runtime requires staged selective port (10 status entries / 10 unmerged paths)}
-    - pr: 135
-      head: 561b0ac1
-      status: selective-port-promoted
-      worktree: /tmp/luce-auto-cron-20260601-022305/probe-pr135
-      note: "diagnostic-only SCHED_BATCH_PROBE [max_batch] is already promoted. Fresh direct probe still conflicts (3 status entries / 3 unmerged paths). Tmux Codex read-only delegation reported SAFE_PORT: no for live scheduler batch target-step/copyback; the live PR-side path remains coupled to internal.h, qwen35_target_graph.cpp, and test_dflash.cpp pending runtime validation of the diagnostic probe."
+    - {pr: 325, head: b47fb3aa, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-034542/probe-pr-325, note: "fresh direct merge probe still conflicts (25 status entries / 16 unmerged paths). Existing selective ports cover same-backend Qwen35/Laguna disk snapshot export-adopt, disk-cache first-request validation, backend/DFlash IPC robustness, and target-shard IPC scaffold; remaining value is coupled mixed-backend disk-cache/runtime adapter wiring."}
+    - {pr: 321, head: 87fe7655, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-034542/probe-pr-321, note: "fresh direct merge probe still conflicts (23 status entries / 15 unmerged paths). Prior delegations found live mixed-backend data-path wiring unsafe to port separately from Qwen35 adapter/forward/target-shard IPC/backend IPC runtime reconciliation."}
+    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-034542/probe-pr-305, note: "fresh direct merge probe still broad (61 status entries / 38 unmerged paths). Current stack already carries DFLASH_EXPERT_BUDGET_PCT, Qwen35MoE gallocr reuse/full-chunk FFN, and GPU-resident act_cur logits projection; remaining Laguna/common-MoE hybrid work is non-minimal."}
+    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-034542/probe-pr-237, note: "old-layout MTP foundation still needs architecture-aware selective port (33 status entries / 27 unmerged paths)."}
+    - {pr: 221, head: 05502974, status: delegated-readonly-probe-blocked-human-runtime, worktree: /tmp/luce-auto-cron-20260601-034542/probe-pr-221, note: "fresh direct merge probe still conflicts (88 status entries / 25 unmerged paths). Claude exited at max turns with no report; tmux Codex read-only review completed at /tmp/luce-codex-pr221-luce-auto-cron-20260601-034542.txt and found no safe current-layout behavior slice: exact MTP WARM hit would require Qwen36 MTP module porting, backend init/selection, MTP head-KV snapshot/restore, exact restore gates, and runtime validation before partial range-warm."}
+    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-034542/probe-pr-154, note: "stacked old-layout MTP speculative-loop work depends on PR153/PR237 reconciliation (13 status entries / 12 unmerged paths)."}
+    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-034542/probe-pr-153, note: "old-layout native Qwen3.6 MTP runtime requires staged selective port (10 status entries / 10 unmerged paths)."}
+    - {pr: 135, head: 561b0ac1, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-034542/probe-pr-135, note: "diagnostic-only scheduler/test scaffolds including SCHED_BATCH_PROBE are already promoted. Fresh direct probe still conflicts in internal.h, qwen35_target_graph.cpp, and test_dflash.cpp (3 status entries / 3 unmerged paths); live target-step/copyback mutation remains deferred pending runtime validation."}
   pending: []
   blocked_needs_human:
     - {pr: 325, reason: partial selective ports now include same-backend Qwen35 and Laguna disk snapshot export/adopt, disk-cache first-request lookup/adopted-layout validation, backend/DFlash draft IPC robustness, same-backend target layer-split disk-cache validation unlock, and the PR321 target-shard IPC daemon prerequisite; remaining mixed-backend disk-cache pieces still overlap runtime/adapter conflicts}
@@ -84,7 +68,7 @@ stack:
     - {pr: 153, reason: stacked/dependent old-layout MTP integrated work}
     - {pr: 135, reason: multi-request scheduler conflicts with current daemon/backend architecture and needs selective port; diagnostic scaffolds are partially ported, including the read-only SCHED_BATCH_PROBE diagnostics, while live target-step/copyback mutation remains deferred pending runtime validation}
   suggested_close_or_superseded:
-    - {pr: 221, reason: older broader MTP/prefix-warm branch is superseded as a direct integration candidate by current stack plus PR237 salvage path}
+    - {pr: 221, reason: older broader MTP/prefix-warm branch is superseded as a direct integration candidate by current stack plus PR237 salvage path; no safe current-layout behavior slice was identified by the 2026-06-01 Codex read-only review without Qwen36 MTP module/runtime validation}
   draft_excluded:
     - {prs: [312, 304, 275, 249, 193], reason: draft PRs excluded except dependency awareness}
   tests_and_checks:
@@ -106,9 +90,10 @@ stack:
     - lightweight backend_ipc_main/qwen35 target-shard daemon fsyntax-only attempt stopped at known missing vendored headers dflash27b.h and ggml-backend.h
     - git grep in the populated gitlink module confirmed ggml_backend_tensor_copy_async and ggml_backend_tensor_set_async declarations in ggml/include/ggml-backend.h
     - tmux-driven Codex review of the PR135 diagnostic SCHED_BATCH_PROBE slice reported no findings and confirmed read-only behavior/pointer lifetimes
+    - tmux-driven Claude read-only review for PR221 exited at max turns with no usable report; tmux-driven Codex read-only PR221 review completed and recommended no safe behavior slice without Qwen36 MTP/runtime validation
     - g++ -std=c++17 -fsyntax-only on qwen35moe_backend.cpp stopped at known missing local headers/submodule materialization (qwen35_backend.h with minimal include path, then ggml.h after adding qwen35 include path)
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; integration work was performed in /tmp/luce-auto-cron-20260601-022305/reconcile, with retained read-only Codex reports /tmp/luce-auto-cron-20260601-022305/codex-pr321-022305b.txt and /tmp/luce-auto-cron-20260601-022305/codex-pr135-022305b.txt.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; integration work was performed in /tmp/luce-auto-cron-20260601-034542/reconcile, with retained probes under /tmp/luce-auto-cron-20260601-034542/probe-pr-* and read-only agent reports /tmp/luce-claude-pr221-luce-auto-cron-20260601-034542.txt and /tmp/luce-codex-pr221-luce-auto-cron-20260601-034542.txt.
   - origin/main 8305b6c2 remains ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
   - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs; exact ancestry after this run still has 25 current non-draft PR heads as ancestors and 8 non-ancestor selective-port candidates.
-  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260601-022305/probe-pr* because safe cleanup is left to a supervised pass.
+  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260601-034542/probe-pr-* because safe cleanup is left to a supervised pass.

@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T03:25:07-04:00`
+Last refresh: `2026-06-01T03:53:53-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `5e6177dc`
-Current integration source tip before this refresh: `5e6177dc`
+Previous integration tip: `easel/auto-integration` `91158f91`
+Current integration source tip before this refresh: `91158f91`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -48,6 +48,13 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed:
+
+- `date -Is` -> `2026-06-01T03:53:53-04:00` during this refresh preflight; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and remotes were unchanged.
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `91158f91`; `origin/main` was already represented in the stack.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch again showed 25 current open non-draft PR heads included and the same 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260601-034542/reconcile`; `origin/main` was already represented. Fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 16 unmerged paths), #321 (23 / 15), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Claude read-only delegation for #221 in `/tmp/luce-auto-cron-20260601-034542/probe-pr-221` exited with `Error: Reached max turns (10)` and produced no usable report. A tmux-driven Codex read-only delegation completed with report `/tmp/luce-codex-pr221-luce-auto-cron-20260601-034542.txt`; it found no safe current-layout #221 behavior slice because exact MTP WARM hit requires Qwen36 MTP module porting, backend init/selection, MTP head-KV snapshot/restore, exact restore gates, and runtime validation before any partial range-warm work.
+- Validation for this metadata-only refresh: YAML parse of `.github/auto-integration/stack.yaml` passed and `git diff --check` passed. Full CMake validation was not rerun because no source code changed and this checkout still lacks populated `server/deps/llama.cpp` plus the known CUDA compiler-id `sm_52` environment blocker.
 
 - `date -Is` -> `2026-06-01T03:25:07-04:00` during this refresh preflight; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and remotes were unchanged.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `5e6177dc`; `origin/main` was already represented in the stack.
