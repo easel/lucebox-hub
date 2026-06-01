@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T06:29:09-04:00`
+Last refresh: `2026-06-01T06:40:00-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `3014be09`
-Current integration source tip before this refresh: `3014be09`
+Previous integration tip: `easel/auto-integration` `c6a9f251`
+Current integration source tip before this refresh: `c6a9f251`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 27 exact current open non-draft PR heads. This refresh found no new upstream base commits or advanced non-draft PR heads to promote. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT` and Qwen35MoE gallocr/full-chunk FFN work, #237's common MTP helper scaffold, and #135's diagnostic/control-plane multi-request scheduler scaffolds; the remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run added a fresh tmux-driven Codex feasibility review for #305, which found no safe Laguna/common-MoE extraction slice and recommended deferring its remaining runtime work.
+The current stack contains 28 exact current open non-draft PR heads after post-push enumeration detected #322 advanced during the run and the new head merged cleanly. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT` and Qwen35MoE gallocr/full-chunk FFN work, #237's common MTP helper scaffold, and #135's diagnostic/control-plane multi-request scheduler scaffolds; the remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run added a fresh tmux-driven Codex feasibility review for #305, which found no safe Laguna/common-MoE extraction slice and recommended deferring its remaining runtime work.
 
 ## Included in the current non-draft stack
 
@@ -20,7 +20,7 @@ The current stack contains 27 exact current open non-draft PR heads. This refres
 | #326 | `feat/soft-close-thinking-termination` | `d799d000` | included | Adds soft-close thinking termination via logit-ratio peek, server flags/status props, Qwen35/Qwen35MoE model-backend hooks, HTTP stop-reason propagation, and unit coverage while preserving the current stack's visible-output retry, stall guards, MoE AR dispatch path, and C2 gate tests. |
 | #325 | `feat-layer-split-disk-prefix-cache` | `b47fb3aa` | included / represented | Current PR head is now an ancestor via no-content merge after manual and tmux-delegated conflict-resolution attempts. Existing auto-integration commits already carry the same-backend layer-split disk prefix-cache snapshot/adopt support, disk-cache lookup/adopted-layout validation cleanup, and related runtime/IPC robustness; direct merge remains heavily conflicted against newer current-stack layer-split code. |
 | #321 | `feat-mixed-backend-layer-split-runtime` | `87fe7655` | included / represented | Current PR head is now an ancestor via no-content merge after a direct merge produced 15 unmerged paths and tmux-driven Claude reached max turns without resolving it. Existing auto-integration commits already carry the mixed-backend placement parsing, target-shard IPC control-plane staging, layer-split runtime metadata hardening, `placement_backend` propagation, and inactive-client safe hooks. |
-| #322 | `status_html` | `fc601acb` | included | Adds real-time `/status` dashboard assets, SSE plumbing, server status registry, and inference observer callbacks; conflicts were resolved by preserving both current-stack MTP/status/cancellation callbacks and PR322 dashboard plumbing. |
+| #322 | `status_html` | `4b40aa13` | included | Adds real-time `/status` dashboard assets, SSE plumbing, server status registry, inference observer callbacks, and non-blocking SSE heartbeat sends; conflicts were resolved by preserving both current-stack MTP/status/cancellation callbacks and PR322 dashboard plumbing. |
 | #324 | `codex/visible-empty-dflash-retry-upstream` | `47fd712` | included | Current head is now carried exactly. It adds cancellation-on-disconnect plumbing through `CancelCallback`, `DaemonIO::should_cancel`, tokenizer cancellation, backend loops, SSE/header handling, regression coverage, and the latest visible-empty retry updates while preserving auto-integration status-dashboard broadcasts, draft-residency fields, Qwen35MoE gallocr cleanup, layer-split runtime behavior, and #285 Gemma4 `<|channel>*` handling. |
 | #319 | `codex/pr314-restore-default` | `de1c77fe` | included | Adds default empty-spec-decode retry through backend wrapper methods so successful zero-token speculative paths retry once via AR decode while preserving timing/metadata, and the latest visible-output tracking for empty DFlash retry/cache-save behavior. |
 | #316 | `fix/issue-233` | `d28eb1fb` | included | Captures daemon stderr in `DflashClient` error messages by redirecting child stderr to stdout for both Windows and POSIX subprocess launches. |
@@ -50,6 +50,9 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- Post-push enumeration detected #322 advanced from `fc601acb` to `4b40aa13` during the run. A fresh reconcile worktree `/tmp/luce-auto-cron-20260601-0640/reconcile` merged the advanced head cleanly, adding non-blocking `MSG_DONTWAIT` SSE heartbeat sends in `server/src/server/http_server.cpp`, then refreshed this manifest.
+- Validation for the post-push #322 refresh: `git diff --check` passed and `.github/auto-integration/stack.yaml` parsed successfully. Full CMake validation was not rerun because the source delta is a small HTTP heartbeat send change and the checkout still lacks populated `server/deps/llama.cpp` plus the known CUDA compiler-id `sm_52` environment blocker.
 
 - `date -Is` -> `2026-06-01T06:29:09-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --help`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `3014be09`, and reconcile tip `3014be09`; `origin/main` was already represented.
 - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 27 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates are #305, #237, #221, #154, #153, and #135.
