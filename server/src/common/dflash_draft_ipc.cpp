@@ -138,19 +138,23 @@ bool DFlashDraftIpcClient::send_feature_slice(
     const size_t bytes = slice.size() * sizeof(float);
     if (process_.resolved_payload_transport() == BackendIpcPayloadTransport::Shared) {
         uint64_t seq = 0;
-        if (process_.write_shared_payload(slice.data(), bytes, seq)) {
-            std::fprintf(cmd, "feature_slice_shared %d %d %d %zu %" PRIu64 "\n",
-                         capture_idx, start_pos, n_tokens, bytes, seq);
-            std::fflush(cmd);
-            int32_t status = -1;
-            const bool ok =
-                read_exact_fd(stream_fd, &status, sizeof(status)) && status == 0;
-            if (!ok) {
-                std::fprintf(stderr, "draft-ipc feature_slice_shared failed status=%d\n",
-                             status);
-            }
-            return ok;
+        if (!process_.write_shared_payload(slice.data(), bytes, seq)) {
+            std::fprintf(stderr,
+                         "draft-ipc feature_slice shared payload too large bytes=%zu capacity=%zu\n",
+                         bytes, process_.shared_payload_capacity());
+            return false;
         }
+        std::fprintf(cmd, "feature_slice_shared %d %d %d %zu %" PRIu64 "\n",
+                     capture_idx, start_pos, n_tokens, bytes, seq);
+        std::fflush(cmd);
+        int32_t status = -1;
+        const bool ok =
+            read_exact_fd(stream_fd, &status, sizeof(status)) && status == 0;
+        if (!ok) {
+            std::fprintf(stderr, "draft-ipc feature_slice_shared failed status=%d\n",
+                         status);
+        }
+        return ok;
     }
     if (payload_fd >= 0) {
         std::fprintf(cmd, "feature_slice_pipe %d %d %d %zu\n",
@@ -207,22 +211,26 @@ bool DFlashDraftIpcClient::propose(
     const size_t bytes = noise_embed.size() * sizeof(float);
     if (process_.resolved_payload_transport() == BackendIpcPayloadTransport::Shared) {
         uint64_t seq = 0;
-        if (process_.write_shared_payload(noise_embed.data(), bytes, seq)) {
-            std::fprintf(cmd, "propose_shared %d %d %zu %" PRIu64 "\n",
-                         committed, ctx_len, bytes, seq);
-            std::fflush(cmd);
-            int32_t status = -1;
-            bool ok = read_exact_fd(stream_fd, &status, sizeof(status)) && status == 0;
-            if (ok) {
-                hidden_out.assign(noise_expected, 0.0f);
-                ok = read_exact_fd(stream_fd, hidden_out.data(),
-                                   hidden_out.size() * sizeof(float));
-            }
-            if (!ok) {
-                std::fprintf(stderr, "draft-ipc propose_shared failed status=%d\n", status);
-            }
-            return ok;
+        if (!process_.write_shared_payload(noise_embed.data(), bytes, seq)) {
+            std::fprintf(stderr,
+                         "draft-ipc propose shared payload too large bytes=%zu capacity=%zu\n",
+                         bytes, process_.shared_payload_capacity());
+            return false;
         }
+        std::fprintf(cmd, "propose_shared %d %d %zu %" PRIu64 "\n",
+                     committed, ctx_len, bytes, seq);
+        std::fflush(cmd);
+        int32_t status = -1;
+        bool ok = read_exact_fd(stream_fd, &status, sizeof(status)) && status == 0;
+        if (ok) {
+            hidden_out.assign(noise_expected, 0.0f);
+            ok = read_exact_fd(stream_fd, hidden_out.data(),
+                               hidden_out.size() * sizeof(float));
+        }
+        if (!ok) {
+            std::fprintf(stderr, "draft-ipc propose_shared failed status=%d\n", status);
+        }
+        return ok;
     }
     if (payload_fd >= 0) {
         std::fprintf(cmd, "propose_pipe %d %d %zu\n", committed, ctx_len, bytes);

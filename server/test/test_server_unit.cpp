@@ -5048,6 +5048,12 @@ int main() {
     RUN_TEST(test_backend_ipc_payload_transport_parse);
     RUN_TEST(test_backend_ipc_payload_bounds);
 
+    std::fprintf(stderr, "\n── Backend IPC ──\n");
+    RUN_TEST(test_backend_ipc_rejects_file_work_dir);
+    RUN_TEST(test_backend_ipc_payload_pipe_round_trip);
+    RUN_TEST(test_backend_ipc_payload_transport_parse);
+    RUN_TEST(test_backend_ipc_payload_bounds);
+
     std::fprintf(stderr, "\n── Jinja chat template ──\n");
     RUN_TEST(test_jinja_render_basic);
     RUN_TEST(test_jinja_render_no_gen_prompt);
