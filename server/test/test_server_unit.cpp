@@ -4464,7 +4464,7 @@ static void test_daemon_io_cancel_callback_stops_emit_before_token_callback() {
 
     io.emit(123);
 
-    TEST_ASSERT(io.cancelled);
+    TEST_ASSERT(io.cancelled.load());
     TEST_ASSERT(!token_callback_called);
 }
 
@@ -4489,7 +4489,7 @@ static void test_daemon_io_with_token_callback_preserves_cancel_callback() {
 
     cancelled = true;
     out.emit(8);
-    TEST_ASSERT(out.cancelled);
+    TEST_ASSERT(out.cancelled.load());
     TEST_ASSERT(callback_score == 11);
 }
 
@@ -4506,7 +4506,7 @@ static void test_daemon_compute_result_prefers_failure_over_cancel() {
 
     TEST_ASSERT(result == DaemonComputeResult::Failed);
     TEST_ASSERT(cancel_polls == 0);
-    TEST_ASSERT(!io.cancelled);
+    TEST_ASSERT(!io.cancelled.load());
 }
 
 static void test_daemon_compute_result_reports_cancel_after_success() {
@@ -4522,24 +4522,24 @@ static void test_daemon_compute_result_reports_cancel_after_success() {
 
     TEST_ASSERT(result == DaemonComputeResult::Cancelled);
     TEST_ASSERT(cancel_polls == 1);
-    TEST_ASSERT(io.cancelled);
+    TEST_ASSERT(io.cancelled.load());
 }
 
 static void test_tokenizer_encode_honors_cancel_callback() {
     Tokenizer tok;
-    bool callback_called = false;
+    int cancel_polls = 0;
     bool cancelled = false;
 
     try {
         tok.encode("large request body", [&]() {
-            callback_called = true;
-            return true;
+            cancel_polls++;
+            return cancel_polls >= 2;
         });
     } catch (const TokenizationCancelled &) {
         cancelled = true;
     }
 
-    TEST_ASSERT(callback_called);
+    TEST_ASSERT(cancel_polls >= 2);
     TEST_ASSERT(cancelled);
 }
 
