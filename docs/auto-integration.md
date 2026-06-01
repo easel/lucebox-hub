@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T07:51:03-04:00`
+Last refresh: `2026-06-01T08:04:49-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `0e49b765`
-Current integration source tip before this refresh: `0e49b765`
+Previous integration tip: `easel/auto-integration` `f65f1c7c`
+Current integration source tip before this refresh: `f65f1c7c`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 27 exact current open non-draft PR heads. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT` and Qwen35MoE gallocr/full-chunk FFN work, #237's common MTP helper scaffold, and #135's diagnostic/control-plane multi-request scheduler scaffolds; the remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run reconfirmed direct-merge conflicts for all six remaining candidates and attempted an additional tmux-driven #135 feasibility pass; Codex produced a large conflicted-file inspection without a final recommendation and Claude exited at max turns with no useful report, so no new source slice was promoted.
+The current stack contains 27 exact current open non-draft PR heads. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and now the PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run reconfirmed direct-merge conflicts for all six remaining candidates and used a tmux-driven Codex #305 feasibility pass to identify/promote the small current-layout prefill graph allocator reuse slice while deferring the broader common/Laguna MoE refactor.
 
 ## Included in the current non-draft stack
 
@@ -50,6 +50,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T08:04:49-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `f65f1c7c`, and reconcile tip `f65f1c7c`; `origin/main` was already represented.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 27 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
+- Fresh worktree direct-merge probes were run for #305, #237, #221, #154, #153, and #135 under `/tmp/luce-auto-cron-20260601-0804/`. Conflict counts remain #305 (61 status / 38 unmerged), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Codex session `luce305-codex-0804` in `/tmp/luce-auto-cron-20260601-0804/probe-pr-305` completed with transcript `/tmp/luce-codex-pr305-0804.txt`. It reconfirmed the broad common/Laguna PR305 refactor is not safe to promote now, but identified one small qwen35moe current-layout slice: keep the prefill `StepGraph` outside the chunk/layer loop, reset it with `step_graph_free(...)`, and destroy it once after prefill so the persistent gallocr buffer is reused across chunks/layers. That slice was promoted in `server/src/qwen35moe/qwen35moe_backend.cpp` while preserving current cancellation/error cleanup.
+- Validation for this source/manifest refresh: `git diff --check` passed, conflict-marker search in `server/src/qwen35moe/qwen35moe_backend.cpp` found none, and `.github/auto-integration/stack.yaml` parsed successfully. `cmake -S server -B /tmp/luce-cmake-check-0804 -DCMAKE_CUDA_ARCHITECTURES=89` failed during CUDA compiler identification with the known local `ptxas fatal : Value 'sm_52' is not defined for option 'gpu-name'` toolchain blocker before project compilation; the promoted slice still needs server build/qwen35moe GPU smoke validation in a populated CUDA environment.
 
 - `date -Is` -> `2026-06-01T07:51:03-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `0e49b765`, and reconcile tip `0e49b765`; `origin/main` was already represented.
 - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 27 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.

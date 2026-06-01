@@ -443,7 +443,8 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
     uint64_t build_us_total = 0, compute_us_total = 0, readback_us_total = 0, ffn_us_total = 0;
     Qwen35MoeHybridFfnTelemetry ffn_tel_accum{};
 
-    StepGraph logits_sg;  // Persistent logits graph (used by spec-decode branch)
+    StepGraph logits_sg;   // Persistent logits graph (used by spec-decode branch)
+    StepGraph prefill_sg;  // Persistent prefill graph to reuse GPU buffer across chunks/layers
     ggml_gallocr_t ffn_hot_alloc = nullptr;
     ggml_gallocr_t ffn_cold_alloc = nullptr;
 
@@ -454,6 +455,7 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
 
     auto cleanup_graphs = [&]() {
         step_graph_destroy(logits_sg);
+        step_graph_destroy(prefill_sg);
         cleanup_ffn_allocs();
     };
 
@@ -624,8 +626,10 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
 
             const bool with_mask = (cfg_.kq_stride_pad > KQ_MASK_PAD) || (chunk_len > 1);
 
-            // Build pre-FFN graph for this chunk
-            StepGraph prefill_sg;
+            // Build pre-FFN graph for this chunk.  Reuse the gallocr buffer
+            // across prefill chunks/layers; the graph context and tensor
+            // handles are reset before each rebuild.
+            step_graph_free(prefill_sg);
             if (!build_layer_prefn_step(prefill_sg, target_weights(), target_cache(), target_backend(),
                                         il, /*kv_start=*/chunk_start, /*n_tokens=*/chunk_len,
                                         with_mask, /*fa_window=*/0, cfg_.kq_stride_pad)) {
@@ -769,10 +773,9 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
             }
             const auto t4 = HybridClock::now();
             ffn_us_total += elapsed_us(t3, t4);
-
-            step_graph_destroy(prefill_sg);
         }
     }
+    step_graph_destroy(prefill_sg);
 
     // Copy last token's output to act_cur for decode
     std::memcpy(act_cur.data(), embed_all.data() + (size_t)(prompt_len - 1) * (size_t)hidden,
