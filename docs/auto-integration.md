@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T01:08:00-04:00`
+Last refresh: `2026-06-01T01:34:00-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `e772c05b`
-Current integration source tip before this refresh: `e772c05b`
+Previous integration tip: `easel/auto-integration` `ccc8ee09`
+Current integration source tip before this refresh: `ccc8ee09`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -33,7 +33,7 @@ The current stack contains 25 exact current open non-draft PR heads, including #
 | #291 | `feat-gemma4-draft-residency-followup` | `91ff48fa` | included | Current head is carried exactly. Adds draft residency policy (`auto` / `persistent` / `request-scoped`), `--draft-residency` CLI and `/props.runtime` surfacing, PFlash and decode-draft request-scoped release actions, and Gemma4 draft-only park/unpark helpers while preserving current stack passthrough PFlash, transitive compression, cancellation, visible-empty retry, and status behavior. |
 | #290 | `feat-server-draft-residency-policy` | `ddcf3005` | included | Current head is carried exactly; #291 no longer strictly contains the latest #290 head, so both current heads are merged. |
 | #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
-| #285 | `feat/lucebox-docker` | `b707e87` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, GPU-power-throttle notes, luce-bench grader fixes, think-vs-nothink baseline summary, Forge grader tests, workdir backup ignore rules, README wording refresh, Qwen closed-think/unit-comment updates, pFlash multi-turn session benchmark helper, Gemma4 call-verb parser fix experiment notes, and the latest Bragi Qwen3.6 pFlash A/B experiment refresh are carried with current-stack conflict resolutions. The current merge preserves the status-dashboard token broadcasts and visible-output retry gating while adopting #285's raw `<|channel>*` Gemma4 thinking-token handling. |
+| #285 | `feat/lucebox-docker` | `fac7e0ff` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, GPU-power-throttle notes, luce-bench grader fixes, think-vs-nothink baseline summary, Forge grader tests, workdir backup ignore rules, README wording refresh, Qwen closed-think/unit-comment updates, pFlash multi-turn session benchmark helper, Gemma4 call-verb parser fix experiment notes, and the latest Bragi Qwen3.6 pFlash A/B experiment refresh are carried with current-stack conflict resolutions. The current merge preserves the status-dashboard token broadcasts and visible-output retry gating while adopting #285's raw `<|channel>*` Gemma4 thinking-token handling. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
 | #274 | `feat/pflash-drafter-ee7` | `8fc961b5` | included | Adaptive pFlash composition, effective-size admission/keep-ratio guard, and opt-in pFlash regime router are carried with current stack conflict resolutions preserved. |
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried exactly. |
@@ -48,6 +48,13 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed:
+
+- `date -Is` -> `2026-06-01T01:19:52-04:00` during this refresh preflight; primary checkout was clean on `auto-integration`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`).
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `ccc8ee09`; `origin/main` was already represented in the stack.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 25 current open non-draft PR heads included and the same 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260601-012043`; `origin/main` was already represented in the stack. Fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries), #321 (23), #305 (61), #237 (33), #221 (88), #154 (13), #153 (10), and #135 (3).
+- Hermes subagent reviews and tmux-driven Codex read-only delegations were run for #321/#325/#135. #321/#325 both converged on the same conclusion: no smaller safe source slice remains before the coupled Qwen35 mixed target-shard runtime wiring (`qwen35_layer_split_adapter`, `layer_split_forward`, and target-shard IPC runtime calls) is ported and human-reviewed together. For #135, the agents disagreed on whether a diagnostic-only `SCHED_BATCH_PROBE` slice is small enough; because it allocates scratch target caches and runs CUDA target graphs, no source change was promoted without build/runtime validation.
+- Validation for this metadata-only refresh: `git diff --check` passed. Full CMake validation was not rerun because no source code changed and this checkout still lacks populated `server/deps/llama.cpp` plus the known CUDA compiler-id `sm_52` environment blocker.
 
 - `date -Is` -> `2026-05-31T08:55:37-04:00` during preflight.
 - `date -Is` -> `2026-05-31T09:06:53-04:00` for this manifest/code refresh.
