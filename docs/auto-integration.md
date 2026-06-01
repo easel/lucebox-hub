@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T11:27:06-04:00`
+Last refresh: `2026-06-01T11:53:30-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `6cfaac8b`
-Current integration source tip before this refresh: `6cfaac8b`
+Previous integration tip: `easel/auto-integration` `8ed4dd46`
+Current integration source tip before this refresh: `8ed4dd46`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack still contains 30 exact current open non-draft PR heads; no open non-draft PR head advanced since the prior pushed refresh. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes reconfirmed conflicts for all six remaining candidates. A tmux-driven Codex read-only pass for #237 completed with a feasibility report: common MTP foundation and `gguf_metadata.h` are already represented, while the Qwen-specific native MTP files/symbols (`Qwen35MtpModule`, `load_qwen35_mtp_weights`, MTP graph builders/loaders, and server wiring) are too coupled to promote without populated `server/deps/llama.cpp` compile evidence and CUDA/ggml runtime validation. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds plus cache-reset seed fix. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation.
+The current stack still contains 30 exact current open non-draft PR heads; no open non-draft PR head advanced since the prior pushed refresh. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes reconfirmed conflicts for all six remaining candidates. A tmux-driven Claude read-only pass for #153/#154 reached max turns without a usable report; the fallback tmux-driven Codex pass completed and found no safe current-layout source/test slice to promote without compile/CUDA runtime validation. It specifically identified coupled conflicts between current `capture_moe_router`/`moe_selected` APIs and PR154's `expose_pre_norm_hidden`/`pre_norm_hidden`, plus the Qwen35/Qwen35MoE loader split, MTP graph namespace/layout port, stale old-`dflash` CMake wiring, and CUDA-executing smoke tests. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds plus cache-reset seed fix. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation.
 
 ## Included in the current non-draft stack
 
@@ -53,6 +53,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T11:41:50-04:00` / `2026-06-01T11:53:30-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`, and `codex --help`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `8ed4dd46`, and source tip `8ed4dd46`; `origin/main` was already represented.
+- Open PR enumeration reported 36 non-draft PRs and 4 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 30 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
+- Fresh worktree direct-merge probes were run under `/tmp/luce-auto-cron-20260601-114150/`. Conflict counts remain #305 (61 status / 38 unmerged), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Claude session `luce1141-pr153154-claude` in `/tmp/luce-auto-cron-20260601-114150/probe-pr-154` exited with `Error: Reached max turns (12)` and produced no usable feasibility report. Fallback tmux-driven Codex session `luce1141-pr153154-codex` completed with report `/tmp/luce-codex-pr153154-114150.txt`; it found no safe small current-layout #153/#154 slice to promote because the native MTP API, loader, graph, build wiring, and smoke tests are coupled to current MoE/router and CUDA runtime validation.
+- Validation for this manifest-only refresh: `git diff --check` passed. Full CMake validation was not rerun because no source code changed and prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - `date -Is` -> `2026-06-01T11:16:49-04:00` / `2026-06-01T11:27:06-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `6cfaac8b`, and source tip `6cfaac8b`; `origin/main` was already represented.
 - Open PR enumeration reported 36 non-draft PRs and 4 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 30 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
