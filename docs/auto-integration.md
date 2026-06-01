@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T04:31:44-04:00`
+Last refresh: `2026-06-01T04:43:00-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `7161baa5`
-Current integration source tip before this refresh: `7161baa5`
+Previous integration tip: `easel/auto-integration` `9cddbd78`
+Current integration source tip before this refresh: `9cddbd78`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -47,9 +47,9 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 
 ## Validation run
 
-This run performed:
+This run performed (latest first):
 
-- `date -Is` -> `2026-06-01T04:23:57-04:00` during this refresh preflight; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and remotes were unchanged.
+- `date -Is` -> `2026-06-01T04:43:00-04:00` during this refresh preflight; primary checkout was clean on `auto-integration` at `9cddbd78`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and remotes were unchanged. Open PR enumeration still showed 33 non-draft PRs and 5 draft/excluded PRs; exact-head containment remained 25 included open non-draft PR heads and the same 8 non-ancestor/selective-port candidates (#325, #321, #305, #237, #221, #154, #153, and #135). Fresh direct-merge probes reconfirmed the same conflict counts on those non-ancestor heads: #325 (16), #321 (15), #305 (38), #237 (27), #221 (25), #154 (12), #153 (10), and #135 (3). No new source changes were required this run because the current stack already contains #326 and the promoted #237 GGUF helper scaffold from the previous pass.
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `7161baa5`; `origin/main` was already represented in the stack.
 - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 25 current open non-draft PR heads included and the same 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
 - A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260601-042458/reconcile`; `origin/main` was already represented. Fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 16 unmerged paths), #321 (23 / 15), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
