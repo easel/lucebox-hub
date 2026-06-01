@@ -1,4 +1,4 @@
-updated_at: 2026-06-01T16:54:57-04:00
+updated_at: 2026-06-01T18:55:10-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: cd658eb3
-  current_integration_head_before_refresh: cd658eb3
+  easel_auto_integration_before_refresh: 5a937242
+  current_integration_head_before_refresh: 5a937242
   refreshed_head: see-git-log
   base_before_run: auto-integration
 stack:
@@ -59,36 +59,36 @@ stack:
     - pr: 305
       head: 1de45e4d
       status: conflicts-selective-port-candidate
-      worktree: /tmp/luce-auto-cron-20260601-164736/probe-pr-305
-      note: "fresh direct merge probe still broad (60 status entries / 39 unmerged paths); existing selective #305 common-MoE/Qwen35MoE/runtime slices remain represented"
+      worktree: /tmp/luce-auto-cron-20260601-184202/probe-pr-305
+      note: "fresh direct merge probe still broad (60 status entries / 39 unmerged paths); Claude reached max turns; Codex report /tmp/luce-auto-cron-20260601-184202/codex-pr305-feasibility.txt returned VERDICT SAFE_SLICE for dense/no-expert-layer byte placement and hybrid-storage guard, which was promoted"
     - pr: 237
       head: 02c6a6c4
       status: conflicts-selective-port-candidate
-      worktree: /tmp/luce-auto-cron-20260601-164736/probe-pr-237
-      note: "fresh direct merge probe still old-layout/native-Qwen MTP conflicts (33 status entries / 29 unmerged paths); Claude reached max turns; tmux Codex report /tmp/luce-auto-cron-20260601-164736/codex-pr237-feasibility.txt returned VERDICT NO_SAFE_SLICE because only already-present common MTP/metadata pieces are independently safe"
+      worktree: /tmp/luce-auto-cron-20260601-184202/probe-pr-237
+      note: "fresh direct merge probe still old-layout/native-Qwen MTP conflicts (33 status entries / 29 unmerged paths); prior NO_SAFE_SLICE findings still apply beyond already-present common MTP/metadata pieces"
     - pr: 221
       head: 05502974
       status: conflicts-suggested-close-superseded
-      worktree: /tmp/luce-auto-cron-20260601-164736/probe-pr-221
+      worktree: /tmp/luce-auto-cron-20260601-184202/probe-pr-221
       note: "fresh direct merge probe still broad (88 status entries / 27 unmerged paths); prior safe tree-mask stride helper slice already promoted; remaining old-layout MTP/prefix-WARM runtime stays coupled to PR237/Qwen MTP reconciliation"
     - pr: 154
       head: 2f4ede79
       status: conflicts-dependency-blocked
-      worktree: /tmp/luce-auto-cron-20260601-164736/probe-pr-154
+      worktree: /tmp/luce-auto-cron-20260601-184202/probe-pr-154
       note: "fresh direct merge probe still conflicts (13 status entries / 12 unmerged paths); prior pre-norm hidden exposure slice is represented; broader speculative loop depends on PR153/PR237 reconciliation"
     - pr: 153
       head: e9b17cb1
       status: conflicts-dependency-blocked
-      worktree: /tmp/luce-auto-cron-20260601-164736/probe-pr-153
+      worktree: /tmp/luce-auto-cron-20260601-184202/probe-pr-153
       note: "fresh direct merge probe still conflicts (10 status entries / 10 unmerged paths); old-layout native Qwen3.6 MTP runtime remains coupled to PR237 foundation"
     - pr: 135
       head: 561b0ac1
       status: conflicts-selective-port-candidate
-      worktree: /tmp/luce-auto-cron-20260601-164736/probe-pr-135
+      worktree: /tmp/luce-auto-cron-20260601-184202/probe-pr-135
       note: "fresh direct merge probe still conflicts in internal.h, qwen35_target_graph.cpp, and test_dflash.cpp (3 status entries / 3 unmerged paths); prior diagnostic/control-plane/bookkeeping slices remain represented; broader live scheduler remains deferred"
   pending: []
   blocked_needs_human:
-    - {pr: 305, reason: remaining Laguna/common-MoE hybrid refactor is broad/non-minimal beyond existing selective ports}
+    - {pr: 305, reason: remaining Laguna/common-MoE hybrid refactor is broad/non-minimal beyond existing selective ports; dense/no-expert guard slice promoted this run}
     - {pr: 237, reason: old-layout native Qwen MTP runtime needs architecture-aware selective port and CUDA/ggml runtime validation beyond already-present common scaffold}
     - {pr: 154, reason: stacked/dependent old-layout MTP speculative-loop work depends on PR153/PR237 reconciliation}
     - {pr: 153, reason: old-layout native Qwen3.6 MTP runtime depends on PR237 foundation and current target graph reconciliation}
@@ -108,16 +108,17 @@ stack:
     - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...
     - git fetch origin pull/<n>/head:refs/pr/<n> for all open non-draft PRs
     - git merge-base --is-ancestor refs/pr/<n> HEAD for all open non-draft PRs
-    - reconcile worktree /tmp/luce-auto-cron-20260601-164736/reconcile merged origin/main and was already up to date
-    - fresh worktree direct merge probes for #305/#237/#221/#154/#153/#135 under /tmp/luce-auto-cron-20260601-164736/probe-pr-*
-    - tmux-driven Claude feasibility review for #237 reached max turns with no usable report
-    - tmux-driven Codex feasibility review for #237 completed with VERDICT NO_SAFE_SLICE
+    - reconcile worktree /tmp/luce-auto-cron-20260601-184202/reconcile merged origin/main and was already up to date
+    - fresh worktree direct merge probes for #305/#237/#221/#154/#153/#135 under /tmp/luce-auto-cron-20260601-184202/probe-pr-*
+    - tmux-driven Claude feasibility review for #305 reached max turns with no usable report
+    - tmux-driven Codex feasibility review for #305 completed with VERDICT SAFE_SLICE
     - git diff --check
-    - targeted conflict-marker search in changed docs
+    - targeted conflict-marker search in changed source/docs
     - .github/auto-integration/stack.yaml YAML lint via file writer
-    - full CMake not rerun; prior local CUDA compiler-id sm_52 ptxas failure and missing server/deps/llama.cpp still block local full configure
+    - cmake -S server -B /tmp/luce-cmake-check-1842 -DCMAKE_CUDA_ARCHITECTURES=89 blocked by local CUDA compiler-id sm_52 ptxas failure
+    - direct g++ syntax-only check for test_qwen35moe_expert_placement.cpp blocked by missing server/deps/llama.cpp / ggml.h
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; direct merge probes happened in /tmp/luce-auto-cron-20260601-164736/probe-pr-*.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; direct merge probes happened in /tmp/luce-auto-cron-20260601-184202/probe-pr-*.
   - origin/main 8305b6c2 remains ancestor of auto-integration.
   - Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs; 29 current non-draft PR heads are exact ancestors plus draft PR329 already represented, and 6 remain blocked/selective-port candidates.
-  - This run promoted no source patch; the manifest documents fresh probes and the #237 Claude/Codex delegation result.
+  - This run promoted a narrow #305 dense/no-expert-layer guard slice in Qwen35MoE placement/storage plus focused placement coverage.

@@ -56,6 +56,16 @@ int main() {
     expect(loaded.hot_expert_ids == placement.hot_expert_ids, "loaded hot ids");
     std::filesystem::remove(tmp);
 
+    Qwen35MoeExpertPlacement byte_placement;
+    expect(Qwen35MoeExpertPlacement::build_from_stats_with_layer_bytes(
+               stats, /*layer_expert_bytes=*/{0, 1024}, /*total_hot_budget_bytes=*/2048,
+               /*min_hot_per_layer=*/1, byte_placement, &err),
+           err.c_str());
+    expect(byte_placement.hot_counts.size() == 2, "byte hot_counts size");
+    expect(byte_placement.hot_counts[0] == 0, "dense layer skipped by byte placement");
+    expect(byte_placement.hot_expert_ids[0].empty(), "dense layer has no hot ids");
+    expect(byte_placement.hot_counts[1] >= 1, "expert layer kept minimum hot slot");
+
     std::printf("OK\n");
     return 0;
 }

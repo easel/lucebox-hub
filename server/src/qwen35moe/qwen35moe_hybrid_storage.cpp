@@ -160,6 +160,12 @@ bool build_qwen35moe_hybrid_storage(const TargetWeights & w,
     for (int il = 0; il < w.n_layer; ++il) {
         const TargetLayer & L = w.layers[(size_t)il];
         Qwen35MoeHybridLayerStorage & dst = out.layers[(size_t)il];
+
+        // Dense layers have no expert tensors; leave their storage empty.
+        if (!L.ffn_gate_exps && !L.ffn_up_exps && !L.ffn_down_exps && !L.ffn_gate_up_exps) {
+            continue;
+        }
+
         dst.hot_expert_ids = placement.hot_expert_ids[(size_t)il];
         dst.hot_local_by_global.assign((size_t)w.n_expert, -1);
         dst.cold_local_by_global.assign((size_t)w.n_expert, -1);
@@ -361,6 +367,12 @@ bool build_qwen35moe_hybrid_storage_from_file(
         const TargetLayer & L = w.layers[(size_t)il];
         const LayerExpertFileData & fd = file_data[(size_t)il];
         Qwen35MoeHybridLayerStorage & dst = out.layers[(size_t)il];
+
+        // Dense layers have no expert tensors; leave their storage empty.
+        if (!L.ffn_gate_exps && !L.ffn_up_exps && !L.ffn_down_exps && !L.ffn_gate_up_exps) {
+            continue;
+        }
+
         dst.hot_expert_ids = placement.hot_expert_ids[(size_t)il];
         dst.hot_local_by_global.assign((size_t)w.n_expert, -1);
         dst.cold_local_by_global.assign((size_t)w.n_expert, -1);
