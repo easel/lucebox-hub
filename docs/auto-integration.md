@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T00:12:02-04:00`
+Last refresh: `2026-06-01T00:28:36-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `0559b412`
-Current integration source tip before this refresh: `0559b412`
+Previous integration tip: `easel/auto-integration` `545048fc`
+Current integration source tip before this refresh: `545048fc`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -779,6 +779,15 @@ This run retained the updated stack worktree, conflicted probe worktrees, and ag
 - Fresh direct-merge probes on top of `49e99ec2` reconfirmed current conflict/status counts for the remaining non-ancestor PRs: #325 (25 status entries / 16 unmerged paths), #321 (23 / 15), #305 (61 / 44), #237 (33 / 27), #221 (88 / 83), #154 (13 / 13), #153 (10 / 10), and #135 (3 / 3).
 - Tmux-driven Codex read-only delegation for #321 in `/tmp/luce-probe-20260601-0005-pr-321` produced `/tmp/luce-codex-pr321-daemon-20260601-0005.txt` with a usable feasibility report. It recommended not promoting live target-shard IPC daemon dispatch yet; the next safe slice is compile-only reconciliation of target-shard IPC pieces behind existing gates, with duplicate CMake/prototype cleanup and current activation/disk-snapshot/cancellation semantics preserved.
 - Validation for this source/manifest refresh: YAML parse of `.github/auto-integration/stack.yaml` passed; `git diff --check` and `git diff --check HEAD~1..HEAD` passed; conflict-marker search found no merge markers in changed files. Full CMake validation was not rerun because this checkout still lacks populated `server/deps/llama.cpp` and the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+
+- `date -Is` -> `2026-06-01T00:28:36-04:00` during this metadata/probe refresh; primary checkout was clean on `auto-integration`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`).
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `545048fc`; `origin/main` remains represented in the stack.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 25 current open non-draft PR heads included and 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260601-002919/reconcile`; fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 16 unmerged paths), #321 (23 / 15), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Hermes subagent review for #321 found that the remaining semantic gap is not the already-ported target-shard IPC client/daemon/control-plane scaffolding, but live Qwen35 mixed-target adapter wiring: `Qwen35LayerSplitAdapter` still lacks `remote_target_shard_`, `use_mixed_target_split()`, `init_mixed_target_split()`, mixed forward dispatch, and remote snapshot/reset routing. The recommendation is not to use a no-content merge for #321 yet.
+- Hermes subagent review for #325 found that the non-#321 same-backend Qwen35 disk-prefix-cache `snapshot_ref` / `snapshot_adopt` behavior and disk-cache adopted-layout validation are represented in the current stack. Remaining #325 value is mixed-target snapshot coordination after #321 live adapter wiring is enabled.
+- Tmux-driven Codex read-only delegation for #321 in session `codex-pr321-002919` failed early on the known Git LFS clean-filter issue against the primary checkout's read-only LFS tmp path (`assets/cards/dflash_card.png`). Tmux-driven Claude read-only delegation for #321 in session `claude-pr321-002919` exited with `Error: Reached max turns (6)` and produced no useful report. No source changes were promoted.
+- Validation for this metadata/probe refresh: YAML parse of `.github/auto-integration/stack.yaml` passed and `git diff --check` passed. No build/CMake validation was rerun because no source code changed and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
 
 ## Notes
 
