@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T08:45:24-04:00`
+Last refresh: `2026-06-01T09:17:47-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `793f9d64`
-Current integration source tip before this refresh: `793f9d64`
+Previous integration tip: `easel/auto-integration` `21196281`
+Current integration source tip before this refresh: `21196281`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 28 exact current open non-draft PR heads. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. This run integrated new PR #312, adding selectable backend IPC payload transport on top of the existing qwen35 target-shard IPC mode; conflicts were manually resolved by preserving the current qwen35 mode wiring and adopting #312's shared-payload transport/error handling. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run reconfirmed direct-merge conflicts for all six remaining candidates after #312 was merged.
+The current stack contains 28 exact current open non-draft PR heads. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. This run found no new upstream base or PR-head changes to merge; it reconfirmed direct-merge conflicts for all six remaining candidates and ran a tmux-driven Codex feasibility pass for #305, which found no new small current-layout source slice safe to promote. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation.
 
 ## Included in the current non-draft stack
 
@@ -51,6 +51,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T09:10:01-04:00` / `2026-06-01T09:17:47-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `21196281`, and reconcile tip `21196281`; `origin/main` was already represented.
+- Open PR enumeration reported 34 non-draft PRs and 4 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 28 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
+- Fresh worktree direct-merge probes were run for #305, #237, #221, #154, #153, and #135 under `/tmp/luce-auto-cron-20260601-0910/`. Conflict counts remain #305 (61 status / 38 unmerged), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Codex session `luce305-codex-0910` in `/tmp/luce-auto-cron-20260601-0910/probe-pr-305` completed with report `/tmp/luce-codex-pr305-20260601-0910.txt`. It found no new small current-layout #305 source slice safe to promote; the remaining work is still coupled across the common MoE helper relocation, Laguna hybrid wiring, backend API surface, layer-split/runtime IPC, cancellation, and runtime validation.
+- Validation for this manifest-only refresh: `git diff --check` passed and `.github/auto-integration/stack.yaml` parsed successfully. Full CMake validation was not rerun because no source code changed and this checkout still lacks populated `server/deps/llama.cpp` plus the known CUDA compiler-id `sm_52` environment blocker.
 
 - `date -Is` -> `2026-06-01T08:45:24-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --help`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `793f9d64`, and reconcile tip `40fc31f7` after merging the advanced #312 head; `origin/main` was already represented.
 - Open PR enumeration reported 34 non-draft PRs and 4 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 28 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
