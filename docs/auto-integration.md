@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T02:54:28-04:00`
+Last refresh: `2026-06-01T03:07:24-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `e548e2a4`
-Current integration source tip before this refresh: `e548e2a4`
+Previous integration tip: `easel/auto-integration` `7f9e45cb`
+Current integration source tip before this refresh: `7f9e45cb`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -826,8 +826,17 @@ This run retained the updated stack worktree, conflicted probe worktrees, and ag
 - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch still showed 25 current open non-draft PR heads included and the same 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
 - A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260601-0248/reconcile`; fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 16 unmerged paths), #321 (23 / 15), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
 - Tmux-driven Codex read-only delegation for #321 in session `codex-pr321-0248` wrote `/tmp/luce-auto-cron-20260601-0248/codex-pr321-0248.txt` but hit the known Git LFS clean-filter issue against the primary checkout's read-only LFS tmp path (`assets/cards/dflash_card.png`) and then streamed broad conflict excerpts without producing a concise final SAFE_PORT recommendation before being stopped. No source changes were promoted.
-- Validation for this metadata/probe refresh: `git diff --check` passed. No build/CMake validation was rerun because no source code changed and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
-- Retained current-run worktrees/transcripts: `/tmp/luce-auto-cron-20260601-0248/reconcile`, `/tmp/luce-auto-cron-20260601-0248/probe-pr325`, `/tmp/luce-auto-cron-20260601-0248/probe-pr321`, `/tmp/luce-auto-cron-20260601-0248/probe-pr305`, `/tmp/luce-auto-cron-20260601-0248/probe-pr237`, `/tmp/luce-auto-cron-20260601-0248/probe-pr221`, `/tmp/luce-auto-cron-20260601-0248/probe-pr154`, `/tmp/luce-auto-cron-20260601-0248/probe-pr153`, `/tmp/luce-auto-cron-20260601-0248/probe-pr135`, and `/tmp/luce-auto-cron-20260601-0248/codex-pr321-0248.txt`.
+- Validation for this metadata/probe refresh: `git diff --check` passed. No build/CMake validation was rerun because no source code changed in this refresh and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+
+- `date -Is` -> `2026-06-01T03:07:24-04:00` during this metadata/probe refresh; primary checkout was clean on `auto-integration` at `7f9e45cb`, remotes were unchanged, and `gh auth status`, `claude auth status --text`, and `codex --version` succeeded using the real user credential home.
+- `git fetch --prune origin`, `git fetch --prune easel`, and explicit PR-ref fetch completed successfully. Current refs remained `origin/main` `8305b6c2` and `easel/auto-integration` `7f9e45cb`; `origin/main` remains represented in the stack.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch still showed 25 current open non-draft PR heads included and the same 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260601-0307/reconcile`; fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 16 unmerged paths), #321 (23 / 15), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Codex read-only delegation for #321 in session `codex-pr321-0307` wrote `/tmp/luce-auto-cron-20260601-0307/codex-pr321-0307.txt` but again streamed broad diff/history output and did not produce a concise final SAFE_PORT recommendation before being stopped. The useful partial evidence matched prior runs: auto-integration already carries the staged target-shard IPC daemon, inactive IPC hooks, and target activation-forward helper; the unported #321 remainder is still the coupled live Qwen35 mixed-target adapter/runtime wiring across adapter, forward, target-shard IPC, daemon/backend IPC, and server admission files. No source changes were promoted.
+- Validation for this metadata/probe refresh: YAML parse of `.github/auto-integration/stack.yaml` passed and `git diff --check` passed. No build/CMake validation was rerun because no source code changed and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+- Retained current-run worktrees/transcripts: `/tmp/luce-auto-cron-20260601-0307/reconcile`, `/tmp/luce-auto-cron-20260601-0307/probe-pr325`, `/tmp/luce-auto-cron-20260601-0307/probe-pr321`, `/tmp/luce-auto-cron-20260601-0307/probe-pr305`, `/tmp/luce-auto-cron-20260601-0307/probe-pr237`, `/tmp/luce-auto-cron-20260601-0307/probe-pr221`, `/tmp/luce-auto-cron-20260601-0307/probe-pr154`, `/tmp/luce-auto-cron-20260601-0307/probe-pr153`, `/tmp/luce-auto-cron-20260601-0307/probe-pr135`, and `/tmp/luce-auto-cron-20260601-0307/codex-pr321-0307.txt`.
+
+- Retained previous-run worktrees/transcripts: `/tmp/luce-auto-cron-20260601-0248/reconcile`, `/tmp/luce-auto-cron-20260601-0248/probe-pr325`, `/tmp/luce-auto-cron-20260601-0248/probe-pr321`, `/tmp/luce-auto-cron-20260601-0248/probe-pr305`, `/tmp/luce-auto-cron-20260601-0248/probe-pr237`, `/tmp/luce-auto-cron-20260601-0248/probe-pr221`, `/tmp/luce-auto-cron-20260601-0248/probe-pr154`, `/tmp/luce-auto-cron-20260601-0248/probe-pr153`, `/tmp/luce-auto-cron-20260601-0248/probe-pr135`, and `/tmp/luce-auto-cron-20260601-0248/codex-pr321-0248.txt`.
 
 ## Notes
 
