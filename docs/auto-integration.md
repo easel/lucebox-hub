@@ -6,8 +6,8 @@ Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
 Last refresh: `2026-05-31T21:20:55-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `09cbdca2`
-Current integration source tip before this refresh: `09cbdca2`
+Previous integration tip: `easel/auto-integration` `fd77b00b`
+Current integration source tip before this refresh: `fd77b00b`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -346,6 +346,9 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 - A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-212144`; direct merge of #321 still conflicted across backend IPC, DFlash draft IPC, layer-split runtime, Gemma4/Laguna/Qwen35 layer-split adapters, backend IPC main, Qwen35 target-shard IPC, and `server_main` (31 status entries / 11 unmerged paths). Tmux-driven Claude (`claude-pr321-212144`) reached max turns with no file changes, and tmux-driven Codex (`codex-pr321-212144`) inspected conflicts but did not complete a safe resolution or final report before this refresh.
 - A separate #325 probe worktree `/tmp/luce-auto-cron-20260531-212144-pr325` reconfirmed conflicts across backend IPC, DFlash draft IPC, layer-split backend/runtime, Gemma4/Laguna/Qwen35 adapters, backend IPC main, target-shard IPC, and `server_main` (34 status entries / 14 unmerged paths). No source changes were promoted this run.
 - Validation for this docs-only refresh: `git diff --check` passed for the manifest update. No build/CMake validation was rerun because no source code changed and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+
+- Post-push re-enumeration found #285 advanced from `b707e876` to `fac7e0ff` while this run was in progress. A fresh worktree `/tmp/luce-auto-cron-20260531-212144-pr285` merged the new head cleanly on top of `fd77b00b`, adding Forge grader updates and relaxed tool parser handling.
+- Validation after the #285 fast-follow merge: `git diff --check HEAD~1..HEAD` passed, `python3 -m py_compile luce-bench/src/lucebench/areas/forge.py` passed, and `uv run --project luce-bench --extra dev pytest luce-bench/tests/test_forge_grader.py` passed (`18 passed`).
 
 ## Retained worktrees / logs
 
