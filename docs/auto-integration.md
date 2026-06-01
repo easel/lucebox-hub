@@ -465,6 +465,7 @@ This run performed (latest first):
 | PR | Head branch | Head | Current status | Evidence / suggested action |
 |---:|---|---:|---|---|
 | #221 | `feat/mtp-prefix-warm-ghost` | `05502974` | superseded for direct integration; mine only after #237 | Fresh direct-merge probe still conflicts across old/current files. The branch is older/broader than #237 and mixes early MTP, prefix-cache warm-hit, PFlash dispatcher/protocol, benches, and docs; #237 remains the better MTP foundation salvage base. |
+| #135 | `xabicasa/dflash-multi-request-scheduler-batched-target-step` | `561b0ac1` | superseded / direct-merge-blocked | Fresh direct-merge probe on the current stack still conflicts only in the old-layout `dflash/src/internal.h`, `dflash/src/qwen35_target_graph.cpp`, and `dflash/test/test_dflash.cpp`. The current tree already carries the useful scheduler control-plane and diagnostic scaffolds (`LIST_TARGET_CACHE_SLOTS`, `LIST_REQUESTS`, `CANCEL`, `SCHED_STEP`, `SCHED_DRAIN`, `SCHED_BATCH_PEEK`, `SCHED_BATCH_PROBE`), so the remaining open PR is best treated as a historical source of ideas rather than a next direct-merge candidate. |
 
 ## Draft / excluded
 
@@ -1000,6 +1001,8 @@ This run retained the updated stack worktree, conflicted probe worktrees, and ag
 - Retained current-run worktrees/transcripts: `/tmp/luce-auto-cron-20260601-0307/reconcile`, `/tmp/luce-auto-cron-20260601-0307/probe-pr325`, `/tmp/luce-auto-cron-20260601-0307/probe-pr321`, `/tmp/luce-auto-cron-20260601-0307/probe-pr305`, `/tmp/luce-auto-cron-20260601-0307/probe-pr237`, `/tmp/luce-auto-cron-20260601-0307/probe-pr221`, `/tmp/luce-auto-cron-20260601-0307/probe-pr154`, `/tmp/luce-auto-cron-20260601-0307/probe-pr153`, `/tmp/luce-auto-cron-20260601-0307/probe-pr135`, and `/tmp/luce-auto-cron-20260601-0307/codex-pr321-0307.txt`.
 
 - Retained previous-run worktrees/transcripts: `/tmp/luce-auto-cron-20260601-0248/reconcile`, `/tmp/luce-auto-cron-20260601-0248/probe-pr325`, `/tmp/luce-auto-cron-20260601-0248/probe-pr321`, `/tmp/luce-auto-cron-20260601-0248/probe-pr305`, `/tmp/luce-auto-cron-20260601-0248/probe-pr237`, `/tmp/luce-auto-cron-20260601-0248/probe-pr221`, `/tmp/luce-auto-cron-20260601-0248/probe-pr154`, `/tmp/luce-auto-cron-20260601-0248/probe-pr153`, `/tmp/luce-auto-cron-20260601-0248/probe-pr135`, and `/tmp/luce-auto-cron-20260601-0248/codex-pr321-0248.txt`.
+
+- Fresh direct-merge probe for PR #135 in `/tmp/luce-auto-cron-20260601-135probe` still produced conflicts in `dflash/src/internal.h`, `dflash/src/qwen35_target_graph.cpp`, and `dflash/test/test_dflash.cpp`; no source changes were promoted from the probe because the current tree already carries the relevant scheduler diagnostics and the PR's remaining diff is largely old-layout churn.
 
 ## Notes
 
