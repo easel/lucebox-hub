@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T03:07:24-04:00`
+Last refresh: `2026-06-01T03:25:07-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `7f9e45cb`
-Current integration source tip before this refresh: `7f9e45cb`
+Previous integration tip: `easel/auto-integration` `5e6177dc`
+Current integration source tip before this refresh: `5e6177dc`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -48,6 +48,13 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed:
+
+- `date -Is` -> `2026-06-01T03:25:07-04:00` during this refresh preflight; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and remotes were unchanged.
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `5e6177dc`; `origin/main` was already represented in the stack.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch again showed 25 current open non-draft PR heads included and the same 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260601-032554`; `origin/main` was already represented. Fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries), #321 (23), #305 (61), #237 (33), #221 (88), #154 (13), #153 (10), and #135 (3).
+- Tmux-driven Claude read-only delegation for #325 in `/tmp/luce-probe-20260601-032554-pr-325` exited with `Error: Reached max turns (10)` and produced no usable report. A tmux-driven Codex read-only delegation in the same probe completed and found that its suggested tiny independent #325 slices (`DaemonIO::should_cancel()` in `layer_split_runtime.cpp`, `LayerSplitBackend::restore_and_generate_impl`, duplicate include/declaration cleanup in `qwen35/layer_split_forward.h`, and duplicate Backend IPC test cleanup) are already present/clean in the current stack. Codex reconfirmed that the remaining #325 conflicts are coupled around Qwen35/Laguna disk-prefix snapshot ownership/adoption, mixed-backend remote shard lifecycle, and disk-cache gating, so no source change was promoted.
+- Validation for this metadata-only refresh: `git diff --check` passed. Full CMake validation was not rerun because no source code changed and this checkout still lacks populated `server/deps/llama.cpp` plus the known CUDA compiler-id `sm_52` environment blocker.
 
 - `date -Is` -> `2026-06-01T01:19:52-04:00` during this refresh preflight; primary checkout was clean on `auto-integration`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`).
 - `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `ccc8ee09`; `origin/main` was already represented in the stack.
