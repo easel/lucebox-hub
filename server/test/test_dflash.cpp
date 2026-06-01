@@ -1035,9 +1035,10 @@ int main(int argc, char ** argv) {
     if (argc < 3) {
         std::fprintf(stderr,
             "usage: %s <target.gguf> <draft.safetensors> [<prompt_ids.bin> <n_gen> <out_ids.bin>] [--daemon] [--stream-tagged] [-ctk <type>] [-ctv <type>] ...\n"
+            "       %s <target.gguf> <draft.safetensors> --synthetic-prompt-tokens N --n-gen N --out out_ids.bin [--synthetic-token ID]\n"
             "       %s --draft-ipc-daemon <draft.safetensors|draft.gguf> --ring-cap=N --stream-fd=FD [--draft-gpu=N]\n"
             "       %s --test-scheduler-buckets\n",
-            argv[0], argv[0], argv[0]);
+            argv[0], argv[0], argv[0], argv[0]);
         return 2;
     }
     // TurboQuant FA kernel requires kv_len aligned to FATTN_KQ_STRIDE=256.
@@ -1083,6 +1084,9 @@ int main(int argc, char ** argv) {
     const char * prompt_path = has_positional_args ? argv[3] : nullptr;
     int          n_gen       = has_positional_args ? std::atoi(argv[4]) : 0;
     const char * out_path    = has_positional_args ? argv[5] : nullptr;
+    int          synthetic_prompt_tokens = 0;
+    int32_t      synthetic_prompt_token  = 1;
+    std::string  out_path_storage;
     // --seq-verify: run the target verify as q_len independent single-token
     // decodes instead of one batched forward with a causal mask. Isolates
     // the correctness-of-batched-verify hypothesis from z-lab issue #57.
@@ -1169,6 +1173,34 @@ int main(int argc, char ** argv) {
             ddtree_chain_seed = false;
         }
         else if (std::strcmp(argv[i], "--test-window") == 0)      { test_window_mode = true; }
+        else if (std::strncmp(argv[i], "--synthetic-prompt-tokens=", 26) == 0) {
+            synthetic_prompt_tokens = std::max(0, std::atoi(argv[i] + 26));
+        }
+        else if (std::strcmp(argv[i], "--synthetic-prompt-tokens") == 0) {
+            if (i + 1 < argc) synthetic_prompt_tokens = std::max(0, std::atoi(argv[++i]));
+        }
+        else if (std::strncmp(argv[i], "--synthetic-token=", 18) == 0) {
+            synthetic_prompt_token = (int32_t)std::atoi(argv[i] + 18);
+        }
+        else if (std::strcmp(argv[i], "--synthetic-token") == 0) {
+            if (i + 1 < argc) synthetic_prompt_token = (int32_t)std::atoi(argv[++i]);
+        }
+        else if (std::strncmp(argv[i], "--n-gen=", 8) == 0) {
+            n_gen = std::atoi(argv[i] + 8);
+        }
+        else if (std::strcmp(argv[i], "--n-gen") == 0) {
+            if (i + 1 < argc) n_gen = std::atoi(argv[++i]);
+        }
+        else if (std::strncmp(argv[i], "--out=", 6) == 0) {
+            out_path_storage = argv[i] + 6;
+            out_path = out_path_storage.c_str();
+        }
+        else if (std::strcmp(argv[i], "--out") == 0) {
+            if (i + 1 < argc) {
+                out_path_storage = argv[++i];
+                out_path = out_path_storage.c_str();
+            }
+        }
         else if (std::strcmp(argv[i], "--draft-feature-mirror") == 0) {
             draft_feature_mirror = true;
         }
@@ -1317,8 +1349,10 @@ int main(int argc, char ** argv) {
     }
     target_cache_slots = daemon_mode ? std::max(1, std::min(target_cache_slots, 16)) : 1;
 
-    if (!is_laguna && !daemon_mode && !test_window_mode && !profile_scaling && !time_breakdown && (!prompt_path || !out_path)) {
-        std::fprintf(stderr, "Missing positional arguments for non-daemon mode.\n");
+    const bool has_prompt_input = prompt_path != nullptr || synthetic_prompt_tokens > 0;
+    if (!is_laguna && !daemon_mode && !test_window_mode && !profile_scaling && !time_breakdown &&
+        (!has_prompt_input || !out_path || n_gen <= 0)) {
+        std::fprintf(stderr, "Missing prompt/n_gen/out arguments for non-daemon mode.\n");
         return 2;
     }
 
@@ -3432,7 +3466,12 @@ int main(int argc, char ** argv) {
             }
         }
 
-        auto prompt = read_int32_file(prompt_path);
+        std::vector<int32_t> prompt;
+        if (!daemon_mode && synthetic_prompt_tokens > 0) {
+            prompt.assign((size_t)synthetic_prompt_tokens, synthetic_prompt_token);
+        } else {
+            prompt = read_int32_file(prompt_path);
+        }
         if (prompt.empty()) {
             std::fprintf(stderr, "empty prompt\n");
             if (daemon_mode) {
