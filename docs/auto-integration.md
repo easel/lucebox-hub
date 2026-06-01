@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T22:26:54-04:00`
+Last refresh: `2026-05-31T23:00:10-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `ff5e3592`
-Current integration source tip before this refresh: `ff5e3592`
+Previous integration tip: `easel/auto-integration` `ed5d1931`
+Current integration source tip before this refresh: `ed5d1931`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -763,6 +763,13 @@ This run retained the updated stack worktree, conflicted probe worktrees, and ag
 - A fresh isolated merge probe of #321 on top of `ff5e3592` still conflicted across `server/src/common/backend_ipc.cpp`, `server/src/common/dflash_draft_ipc.cpp`, `server/src/common/dflash_draft_ipc_daemon.cpp`, `server/src/common/layer_split_backend.cpp`, `server/src/common/layer_split_backend.h`, `server/src/common/layer_split_runtime.cpp`, `server/src/gemma4/gemma4_layer_split_adapter.cpp`, `server/src/ipc/backend_ipc_main.cpp`, `server/src/laguna/laguna_layer_split_adapter.cpp`, `server/src/laguna/laguna_layer_split_adapter.h`, `server/src/qwen35/layer_split_forward.cpp`, `server/src/qwen35/qwen35_layer_split_adapter.cpp`, `server/src/qwen35/qwen35_target_shard_ipc.cpp`, `server/src/qwen35/qwen35_target_shard_ipc.h`, and `server/src/server/server_main.cpp` (14 unmerged paths in the probe worktree), so no new source changes were promoted.
 - A follow-up #325 probe on top of `ff5e3592` still conflicted across `server/src/common/backend_ipc.cpp`, `server/src/common/dflash_draft_ipc.cpp`, `server/src/common/dflash_draft_ipc_daemon.cpp`, `server/src/common/layer_split_backend.cpp`, `server/src/common/layer_split_backend.h`, `server/src/common/layer_split_runtime.cpp`, `server/src/gemma4/gemma4_layer_split_adapter.cpp`, `server/src/ipc/backend_ipc_main.cpp`, `server/src/laguna/laguna_layer_split_adapter.cpp`, `server/src/laguna/laguna_layer_split_adapter.h`, `server/src/qwen35/layer_split_forward.cpp`, `server/src/qwen35/qwen35_layer_split_adapter.cpp`, `server/src/qwen35/qwen35_target_shard_ipc.cpp`, `server/src/qwen35/qwen35_target_shard_ipc.h`, and `server/src/server/server_main.cpp`, confirming it remains a broader follow-on to #321 rather than a clean next merge.
 - Validation for this manifest refresh: `git diff --check` passed. No build/CMake validation was rerun because no source code changed in this refresh and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+
+- `date -Is` -> `2026-05-31T23:00:10-04:00` during this metadata/probe refresh; primary checkout was clean on `auto-integration` at `ed5d1931`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`).
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs remained `origin/main` `8305b6c2` and `easel/auto-integration` `ed5d1931`; `origin/main` was already represented in the stack.
+- Open PR enumeration again reported 32 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 24 current open non-draft PR heads included and 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-225751/reconcile`; fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 16 unmerged paths), #321 (23 / 15), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Claude read-only delegation for #321 in session `claude-pr321-225751` produced an empty redirected report and no file changes before being stopped. Tmux-driven Codex read-only delegation in session `codex-pr321-225751` produced a large incomplete transcript (`/tmp/luce-auto-cron-20260531-225751/codex-pr321-next.txt`) dominated by broad diff/history output and no concise final recommendation. No source changes were promoted this run.
+- Validation for this metadata/probe refresh: `git diff --check` passed after metadata changes. No build/CMake validation was rerun because no source code changed and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
 
 ## Notes
 

@@ -1,4 +1,4 @@
-updated_at: 2026-05-31T22:44:14-04:00
+updated_at: 2026-05-31T23:00:10-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,9 +6,9 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: 5be9653d
-  current_integration_head_before_refresh: 5be9653d
-  refreshed_head: 44f2fea4
+  easel_auto_integration_before_refresh: ed5d1931
+  current_integration_head_before_refresh: ed5d1931
+  refreshed_head: this-metadata-commit
   base_before_run: auto-integration
 stack:
   included:
@@ -51,14 +51,14 @@ stack:
   attempted_this_run:
     - pr: 321
       head: 87fe7655
-      status: selective-port-promoted
-      worktree: /tmp/luce-auto-cron-20260531-223135/reconcile
-      note: "promoted the next mixed-backend target-shard IPC daemon slice: backend_ipc_main now accepts qwen35-target-shard options and dispatches to a POSIX Qwen35 target-shard daemon scaffold supporting boundary activation forwarding, optional shared payload, prefix snapshot commands, and LM-head projection. Higher-level runtime adapter activation remains intentionally separate."
+      status: delegated-readonly-probe-no-source-promoted
+      worktree: /tmp/luce-auto-cron-20260531-225751/reconcile
+      note: "fresh #321 direct merge probe still conflicts (23 status entries / 15 unmerged paths). Claude read-only tmux delegation produced an empty redirected report; Codex produced a large incomplete transcript without a concise final recommendation. No source changes were promoted."
     - pr: 325
       head: b47fb3aa
       status: probed-selective-port-candidate
-      worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-325
-      note: "still non-ancestor; current #321 daemon port is a prerequisite for remaining mixed-backend disk-cache wiring."
+      worktree: /tmp/luce-auto-cron-20260531-225751/probe-pr325
+      note: "still non-ancestor; fresh direct merge probe conflicts (25 status entries / 16 unmerged paths), remaining mixed-backend disk-cache pieces follow #321 daemon/runtime wiring."
     - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-305, note: direct merge remains broad common-MoE/Qwen35MoE/Laguna conflict surface}
     - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-237, note: old-layout MTP foundation still needs architecture-aware selective port}
     - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-223135/probe-pr-221, note: superseded as direct integration candidate by current stack plus PR237 salvage path}
