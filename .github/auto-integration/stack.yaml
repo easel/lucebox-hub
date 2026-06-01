@@ -1,4 +1,4 @@
-updated_at: 2026-06-01T02:09:31-04:00
+updated_at: 2026-06-01T02:23:05-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: 7b708ca6
-  current_integration_head_before_refresh: 7b708ca6
+  easel_auto_integration_before_refresh: 3fe2f8bf
+  current_integration_head_before_refresh: 3fe2f8bf
   refreshed_head: this-source-metadata-commit
   base_before_run: auto-integration
 stack:
@@ -53,8 +53,8 @@ stack:
     - pr: 321
       head: 87fe7655
       status: delegated-readonly-probe-no-source-promoted
-      worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr321
-      note: "fresh #321 direct merge probe still conflicts (23 status entries / 15 unmerged paths). Hermes subagent review found the remaining semantic gap is live Qwen35 mixed-target adapter wiring: Qwen35LayerSplitAdapter still lacks remote_target_shard_ / use_mixed_target_split() / init_mixed_target_split(), mixed forward dispatch, and remote snapshot/reset routing. Tmux Codex failed early on the known Git LFS clean-filter issue; tmux Claude exited at max turns with no useful report."
+      worktree: /tmp/luce-auto-cron-20260601-022305/probe-pr321
+      note: "fresh #321 direct merge probe still conflicts (23 status entries / 15 unmerged paths). Tmux Codex read-only delegation reported SAFE_PORT: no for porting server_main mixed-backend validation/control-plane alone, because exposing --target-shard-ipc-* mixed target admission before reconciling the still-conflicted Qwen35 adapter/forward/target-shard IPC/backend IPC runtime path would be unsafe."
     - pr: 325
       head: b47fb3aa
       status: probed-selective-port-candidate
@@ -72,8 +72,8 @@ stack:
     - pr: 135
       head: 561b0ac1
       status: selective-port-promoted
-      worktree: /tmp/luce-auto-cron-20260601-015834/reconcile
-      note: "diagnostic-only SCHED_BATCH_PROBE [max_batch] promoted in server/test/test_dflash.cpp. The command inspects daemon request/cache-slot state, requires ready target-cache feature buffers, prints batch_probe_ready/batch_probe_miss diagnostics with skipped counters, emits the daemon sentinel, and avoids graph execution, cache copyback, request mutation, or live target-step scheduling. Fresh direct probe still conflicts (3 status entries / 3 unmerged paths)."
+      worktree: /tmp/luce-auto-cron-20260601-022305/probe-pr135
+      note: "diagnostic-only SCHED_BATCH_PROBE [max_batch] is already promoted. Fresh direct probe still conflicts (3 status entries / 3 unmerged paths). Tmux Codex read-only delegation reported SAFE_PORT: no for live scheduler batch target-step/copyback; the live PR-side path remains coupled to internal.h, qwen35_target_graph.cpp, and test_dflash.cpp pending runtime validation of the diagnostic probe."
   pending: []
   blocked_needs_human:
     - {pr: 325, reason: partial selective ports now include same-backend Qwen35 and Laguna disk snapshot export/adopt, disk-cache first-request lookup/adopted-layout validation, backend/DFlash draft IPC robustness, same-backend target layer-split disk-cache validation unlock, and the PR321 target-shard IPC daemon prerequisite; remaining mixed-backend disk-cache pieces still overlap runtime/adapter conflicts}
@@ -108,7 +108,7 @@ stack:
     - tmux-driven Codex review of the PR135 diagnostic SCHED_BATCH_PROBE slice reported no findings and confirmed read-only behavior/pointer lifetimes
     - g++ -std=c++17 -fsyntax-only on qwen35moe_backend.cpp stopped at known missing local headers/submodule materialization (qwen35_backend.h with minimal include path, then ggml.h after adding qwen35 include path)
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; integration work was performed in /tmp/luce-auto-cron-20260601-015834/reconcile, with retained review transcript /tmp/luce-auto-cron-20260601-015834/codex-pr135-probe-review.txt.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; integration work was performed in /tmp/luce-auto-cron-20260601-022305/reconcile, with retained read-only Codex reports /tmp/luce-auto-cron-20260601-022305/codex-pr321-022305b.txt and /tmp/luce-auto-cron-20260601-022305/codex-pr135-022305b.txt.
   - origin/main 8305b6c2 remains ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
   - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs; exact ancestry after this run still has 25 current non-draft PR heads as ancestors and 8 non-ancestor selective-port candidates.
-  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260601-002919/probe-pr* because safe cleanup is left to a supervised pass.
+  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260601-022305/probe-pr* because safe cleanup is left to a supervised pass.
