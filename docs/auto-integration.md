@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T02:23:05-04:00`
+Last refresh: `2026-06-01T02:54:28-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `3fe2f8bf`
-Current integration source tip before this refresh: `3fe2f8bf`
+Previous integration tip: `easel/auto-integration` `e548e2a4`
+Current integration source tip before this refresh: `e548e2a4`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -820,6 +820,14 @@ This run retained the updated stack worktree, conflicted probe worktrees, and ag
 - Tmux-driven Codex read-only delegation for #321 (`/tmp/luce-auto-cron-20260601-022305/codex-pr321-022305b.txt`) reported `SAFE_PORT: no` for the tempting `server_main` mixed-backend validation/control-plane slice by itself; it would expose `--target-shard-ipc-*` mixed target admission before the still-conflicted runtime path is reconciled. The coherent file set remains `server/src/server/server_main.cpp`, Qwen35 layer-split adapter/forward/dflash-target files, target-shard IPC client/daemon files, and backend IPC files.
 - Tmux-driven Codex read-only delegation for #135 (`/tmp/luce-auto-cron-20260601-022305/codex-pr135-022305b.txt`) reported `SAFE_PORT: no` for live scheduler batch target-step/copyback. It confirmed the already-promoted `SCHED_BATCH_PROBE` slice is diagnostic-only and that live PR-side target-step/copyback remains coupled to `server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp` pending runtime validation. An earlier tmux Claude #325 read-only launch exited before a useful capture, so no #325 source changes were promoted.
 - Validation for this metadata/probe refresh: YAML parse of `.github/auto-integration/stack.yaml` passed; `git diff --check` passed. No build/CMake validation was rerun because no source code changed and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+
+- `date -Is` -> `2026-06-01T02:48:08-04:00` during this metadata/probe refresh; primary checkout was clean on `auto-integration` at `e548e2a4`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`).
+- `git fetch --prune origin`, `git fetch --prune easel`, and explicit PR-ref fetch completed successfully. Current refs remained `origin/main` `8305b6c2` and `easel/auto-integration` `e548e2a4`; `origin/main` remains represented in the stack.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch still showed 25 current open non-draft PR heads included and the same 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260601-0248/reconcile`; fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 16 unmerged paths), #321 (23 / 15), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Codex read-only delegation for #321 in session `codex-pr321-0248` wrote `/tmp/luce-auto-cron-20260601-0248/codex-pr321-0248.txt` but hit the known Git LFS clean-filter issue against the primary checkout's read-only LFS tmp path (`assets/cards/dflash_card.png`) and then streamed broad conflict excerpts without producing a concise final SAFE_PORT recommendation before being stopped. No source changes were promoted.
+- Validation for this metadata/probe refresh: `git diff --check` passed. No build/CMake validation was rerun because no source code changed and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+- Retained current-run worktrees/transcripts: `/tmp/luce-auto-cron-20260601-0248/reconcile`, `/tmp/luce-auto-cron-20260601-0248/probe-pr325`, `/tmp/luce-auto-cron-20260601-0248/probe-pr321`, `/tmp/luce-auto-cron-20260601-0248/probe-pr305`, `/tmp/luce-auto-cron-20260601-0248/probe-pr237`, `/tmp/luce-auto-cron-20260601-0248/probe-pr221`, `/tmp/luce-auto-cron-20260601-0248/probe-pr154`, `/tmp/luce-auto-cron-20260601-0248/probe-pr153`, `/tmp/luce-auto-cron-20260601-0248/probe-pr135`, and `/tmp/luce-auto-cron-20260601-0248/codex-pr321-0248.txt`.
 
 ## Notes
 
