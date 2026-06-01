@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T12:55:18-04:00`
+Last refresh: `2026-06-01T13:30:51-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `c518c35e`
-Current integration source tip before this refresh: `c518c35e`
+Previous integration tip: `easel/auto-integration` `e221024b`
+Current integration source tip before this refresh: `e221024b`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 29 exact current open non-draft PR heads plus draft #329, which was already integrated before it became draft. No open non-draft PR head advanced since the prior pushed refresh. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes reconfirmed conflicts for all six remaining candidates. This run promoted one tiny #135 bookkeeping slice: daemon-mode `cache.cur_pos` now records the committed generation boundary instead of total prompt+output length before snapshot accounting. A tmux-driven Codex read-only pass for #135 classified the broader scheduler/batched-target runtime as unsafe without dedicated current-layout validation. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds plus cache-reset seed fix and the new committed-boundary bookkeeping. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation.
+The current stack contains 29 exact current open non-draft PR heads plus draft #329, which was already integrated before it became draft. No open non-draft PR head advanced since the prior pushed refresh. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes reconfirmed conflicts for all six remaining candidates. This run ran a tmux-driven Codex read-only pass for #237; it reconfirmed that the only tiny safe PR237 slice is `server/src/common/gguf_metadata.h`, which is already present in the current stack, while the Qwen-specific native MTP runtime remains coupled to current backend/loader/target-graph reconciliation and needs populated-dependency build plus CUDA runtime validation. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds plus cache-reset seed fix and committed-boundary bookkeeping. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation.
 
 ## Included in the current stack
 
@@ -53,6 +53,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T13:25:36-04:00` / `2026-06-01T13:30:51-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `e221024b`, and source tip `e221024b`; `origin/main` was already represented.
+- Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs (#329 remains draft after earlier integration). Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
+- Fresh worktree direct-merge probes were run under `/tmp/luce-auto-cron-20260601-132536/`. Conflict counts remain #305 (61 status / 38 unmerged), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Codex session `luce1325-pr237-codex` in `/tmp/luce-auto-cron-20260601-132536/probe-pr-237` completed with report `/tmp/luce-codex-pr237-20260601-132536.txt` and `VERDICT: SAFE_SLICE` only for `server/src/common/gguf_metadata.h`. That helper slice is already present in the current stack, so no source patch was promoted. Codex reconfirmed that #237's Qwen-specific native MTP runtime remains coupled to current backend contracts, hidden-capture APIs, target graph/loader changes, MoE/Qwen35MoE integration, and runtime validation.
+- Validation for this manifest-only refresh: `git diff --check` passed and `.github/auto-integration/stack.yaml` parsed with Python `yaml.safe_load`. Full CMake validation was not rerun because no source code changed and prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - `date -Is` -> `2026-06-01T12:53:58-04:00` / `2026-06-01T12:55:18-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --help`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `c518c35e`, and source tip `c518c35e`; `origin/main` was already represented.
 - Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs (#329 remains draft after earlier integration). Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
