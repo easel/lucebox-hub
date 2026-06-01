@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T19:49:02-04:00`
+Last refresh: `2026-05-31T20:12:19-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `567963c5`
-Current integration source tip before this refresh: `567963c5`
+Previous integration tip: `easel/auto-integration` `be8396fb`
+Current integration source tip before this refresh: `be8396fb`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -312,6 +312,13 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 - A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-1949/reconcile`; `origin/main` was already represented in the stack. Fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 15 unmerged paths), #321 (23 / 14), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
 - Hermes subagent reviews identified two plausible next slices: #321 target-shard daemon entrypoint dispatch and #325 Laguna layer-split disk-prefix-cache snapshot export/adopt support. The orchestrator attempted the #321 daemon-dispatch slice in the reconcile worktree by adding `backend_ipc_main` option parsing/dispatch, CMake source registration, and the PR-side `qwen35_target_shard_ipc_daemon.cpp`, but did not promote it: a tmux-driven Codex review (`codex-pr321-review-1949`) found that the daemon implementation calls `run_qwen35_layer_split_forward_from_activation`, a symbol not yet declared or defined in the current stack. A tmux-driven Claude review (`claude-pr321-review-1949`) reached max turns without useful findings.
 - Validation for this metadata-only refresh: `git diff --check` passed; conflict-marker search on the attempted #321 files found no merge markers; lightweight syntax probes for the attempted files still stop at the known missing local headers (`dflash27b.h` / `ggml-backend.h`) before reaching project compilation. No source changes were promoted this run; the attempted #321 daemon-dispatch worktree is retained for audit and the next source run should either first port/adapt the missing current-layout `run_qwen35_layer_split_forward_from_activation` equivalent, or choose the narrower #325 Laguna disk-snapshot backend slice.
+- `date -Is` -> `2026-05-31T20:12:19-04:00` during this refresh preflight; primary checkout was clean on `auto-integration` at `be8396fb`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`).
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `be8396fb`; `origin/main` was already represented in the stack.
+- Open PR enumeration again reported 32 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed the same 24 current open non-draft PR heads included and the same 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-2012/reconcile`; fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 15 unmerged paths), #321 (23 / 14), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Hermes subagent reviews recommended #321 additive forward-from-activation support before daemon dispatch, #325 Laguna same-backend disk snapshot/adopt support, and #135 diagnostic-only `SCHED_BATCH_PROBE`. This run promoted only the #325 Laguna slice in `server/src/laguna/laguna_layer_split_adapter.{h,cpp}`: the adapter now exports CPU-backed disk snapshots for Laguna layer-split slots, adopts deserialized shard/logit tensors from disk cache, preserves the current activation-precision policy, and leaves mixed-backend target-shard/Laguna runtime hooks pending.
+- Tmux-driven Codex review for the #325 Laguna diff (`/tmp/luce-auto-cron-20260531-2012/codex-pr325-laguna-review.txt`) found a high-risk adopt failure/double-free path. The orchestrator fixed it before commit by validating into temporary `LagunaCacheSnapshot` storage and only transferring `ctx`/`buf` ownership to the adapter after all tensor/logit/layout checks pass.
+- Validation for this source/manifest refresh: `git diff --check` passed; conflict-marker search found no merge markers in promoted source/metadata files; YAML parse of `.github/auto-integration/stack.yaml` passed. A lightweight `g++ -std=c++17 -Iserver/src -Iserver/src/common -fsyntax-only server/src/laguna/laguna_layer_split_adapter.cpp` probe still stops at the known missing local dependency `ggml.h`; full CMake validation was not rerun because this checkout still lacks populated `server/deps/llama.cpp` and the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
 
 - `date -Is` -> `2026-05-31T20:20:00-04:00` during this probe-only follow-up; the primary checkout remained clean on `auto-integration` at `be8396fb`.
 - Exact-head containment against the current stack still leaves six open non-draft PR heads as non-ancestors: #325, #321, #305, #237, #221, and #154.
@@ -321,6 +328,17 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 ## Retained worktrees / logs
 
 This run retained the updated stack worktree, conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+
+- `/tmp/luce-auto-cron-20260531-2012/reconcile` (current source/manifest refresh worktree; #325 Laguna same-backend disk snapshot/adopt slice promoted here)
+- `/tmp/luce-auto-cron-20260531-2012/probe-pr-325`
+- `/tmp/luce-auto-cron-20260531-2012/probe-pr-321`
+- `/tmp/luce-auto-cron-20260531-2012/probe-pr-305`
+- `/tmp/luce-auto-cron-20260531-2012/probe-pr-237`
+- `/tmp/luce-auto-cron-20260531-2012/probe-pr-221`
+- `/tmp/luce-auto-cron-20260531-2012/probe-pr-154`
+- `/tmp/luce-auto-cron-20260531-2012/probe-pr-153`
+- `/tmp/luce-auto-cron-20260531-2012/probe-pr-135`
+- `/tmp/luce-auto-cron-20260531-2012/codex-pr325-laguna-review.txt` (Codex review transcript; found adopt-failure double-free risk fixed before commit)
 
 - `/tmp/luce-auto-cron-20260531-1949/reconcile` (current metadata refresh worktree; #321 daemon-dispatch attempt retained but not promoted because the PR-side daemon depends on an unported current-layout forward-from-activation symbol)
 - `/tmp/luce-auto-cron-20260531-1949/probe-pr-325`

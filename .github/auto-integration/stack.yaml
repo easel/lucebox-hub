@@ -1,4 +1,4 @@
-updated_at: 2026-05-31T19:14:14-04:00
+updated_at: 2026-05-31T20:12:19-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: babe432e
-  current_integration_head_before_metadata_commit: babe432e
+  easel_auto_integration_before_refresh: be8396fb
+  current_integration_head_before_metadata_commit: be8396fb
   base_before_run: auto-integration
 stack:
   included:
@@ -48,23 +48,23 @@ stack:
     - {pr: 298, note: Gemma4 destructor-link fix}
     - {pr: 292, note: backend IPC payload-pipe support}
   attempted_this_run:
-    - pr: 321
-      head: 87fe7655
+    - pr: 325
+      head: b47fb3aa
       status: partial-selective-port-promoted
-      worktree: /tmp/luce-auto-cron-20260531-1909/probe-pr-321
-      unmerged_files: 13
-      note: "promoted the next inert target-shard IPC implementation surface: server/src/qwen35/qwen35_target_shard_ipc.cpp copied from the current PR321 head and CMake registration in dflash_common. The client implements POSIX process launch, stream/shared payload forward, projection, reset_request_state, and prefix snapshot save/free/restore commands, but remains unactivated because no runtime adapter path instantiates it and backend_ipc_main still has no qwen35-target-shard dispatch."
-      delegation: "Tmux-driven Codex review reported no obvious BackendIpcProcess API mismatch and confirmed runtime activation remains inert; lightweight syntax probing was blocked by the known missing vendored ggml-backend.h dependency."
-    - {pr: 325, head: b47fb3aa, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-1909/probe-pr-325, unmerged_files: 14, note: remaining Laguna same-backend disk snapshot/adopt and mixed-backend disk-cache pieces still depend on careful current-layout reconciliation}
-    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-1909/probe-pr-305, unmerged_files: 38}
-    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-1909/probe-pr-237, unmerged_files: 27}
-    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-1909/probe-pr-221, unmerged_files: 25}
-    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-1909/probe-pr-154, unmerged_files: 12}
-    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-1909/probe-pr-153, unmerged_files: 10}
-    - {pr: 135, head: 561b0ac1, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-1909/probe-pr-135, unmerged_files: 3}
+      worktree: /tmp/luce-auto-cron-20260531-2012/reconcile
+      unmerged_files: 15
+      note: "promoted a narrow Laguna same-backend layer-split disk-prefix-cache snapshot/adopt slice: LagunaLayerSplitAdapter now exports CPU-backed disk snapshots, adopts deserialized shard/logit tensors, and preserves current activation-precision behavior. Mixed-backend target-shard and broader Laguna runtime hooks remain pending."
+      delegation: "Hermes subagent identified the Laguna disk snapshot/adopt slice. Tmux-driven Codex review found a high-risk adopt failure/double-free path; the orchestrator fixed snapshot_adopt to validate into temporary shard snapshots and only take ctx/buf ownership after all validation succeeds."
+    - {pr: 321, head: 87fe7655, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-2012/probe-pr-321, unmerged_files: 14, note: subagent recommended additive forward-from-activation support before daemon dispatch; not promoted this run}
+    - {pr: 305, head: 1de45e4d, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-2012/probe-pr-305, unmerged_files: 38}
+    - {pr: 237, head: 02c6a6c, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-2012/probe-pr-237, unmerged_files: 27}
+    - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260531-2012/probe-pr-221, unmerged_files: 25}
+    - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-2012/probe-pr-154, unmerged_files: 12}
+    - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260531-2012/probe-pr-153, unmerged_files: 10}
+    - {pr: 135, head: 561b0ac1, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260531-2012/probe-pr-135, unmerged_files: 3, note: subagent recommended diagnostic-only SCHED_BATCH_PROBE after SCHED_BATCH_PEEK; not promoted this run}
   pending: []
   blocked_needs_human:
-    - {pr: 325, reason: partial selective ports now include same-backend Qwen35 disk snapshot export/adopt plus disk-cache first-request lookup/adopted-layout validation; remaining Laguna and mixed-backend disk-cache pieces depend on/overlap PR321 runtime and still have broad IPC/runtime/adapter conflicts}
+    - {pr: 325, reason: partial selective ports now include same-backend Qwen35 disk snapshot export/adopt, Laguna same-backend disk snapshot export/adopt, disk-cache first-request lookup/adopted-layout validation, and backend/DFlash draft IPC robustness; remaining mixed-backend disk-cache pieces depend on/overlap PR321 runtime and still have broad IPC/runtime/adapter conflicts}
     - {pr: 321, reason: placement-config foundation, target-shard IPC control-plane staging, layer-split runtime per-shard backend metadata/null-safe diagnostics, Qwen35 config propagation for remote_target_shard, the required LayerSplitShardMeta placement_backend field, target-shard IPC mode/client contract header, and this refresh's client implementation translation unit plus CMake registration were selectively ported; daemon/client dispatch, runtime adapter wiring, state reset/snapshot/save/restore execution, and mixed-backend execution remain unactivated and still conflict broadly with current carried layer-split runtime and adapters}
     - {pr: 305, reason: direct merge has large common-MoE/Qwen35MoE/Laguna conflicts and remaining value requires staged selective port}
     - {pr: 237, reason: old-layout MTP foundation needs architecture-aware selective port}
@@ -87,13 +87,13 @@ stack:
     - explicit git fetch origin pull/<n>/head:refs/pr/<n> for all open PRs
     - git merge-base --is-ancestor refs/pr/<n> easel/auto-integration for all open non-draft PRs
     - direct merge probes for PRs 325, 321, 305, 237, 221, 154, 153, and 135 from refreshed integration head
-    - promoted inert PR321 qwen35_target_shard_ipc.cpp client implementation and CMake registration
-    - tmux-driven Codex review of the PR321 client implementation slice
+    - promoted Laguna same-backend PR325 disk-prefix-cache snapshot/adopt slice with temporary-validation ownership fix
+    - tmux-driven Codex review of the PR325 Laguna slice; reviewer-found adopt double-free risk fixed before commit
     - git diff --check for source and metadata refresh
     - conflict-marker search in promoted files
     - YAML parse of .github/auto-integration/stack.yaml
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start and remained untouched; this source/metadata refresh was prepared in /tmp/luce-auto-cron-20260531-1909/reconcile.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start and remained untouched; this source/metadata refresh was prepared in /tmp/luce-auto-cron-20260531-2012/reconcile.
   - origin/main 8305b6c2 is already ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
-  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry includes 24 current non-draft heads, with 8 remaining non-ancestor/selective-port candidates before the promoted narrow PR321 IPC client implementation slice.
-  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-1909/ because safe cleanup is left to a supervised pass.
+  - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs; exact ancestry includes 24 current non-draft heads, with 8 remaining non-ancestor/selective-port candidates before the promoted narrow PR325 Laguna disk snapshot/adopt slice.
+  - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260531-2012/ because safe cleanup is left to a supervised pass.
