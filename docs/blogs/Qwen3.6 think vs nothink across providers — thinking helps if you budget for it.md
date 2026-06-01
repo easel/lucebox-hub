@@ -2,64 +2,77 @@
 
 *May 2026 · by [Davide Ciffa](https://x.com/davideciffa) and [Erik LaBianca](https://x.com/easel)*
 
-We ran the same Qwen3.6-27B on ds4-eval-92 across four serving stacks, think and
-nothink. Three things came out of it. On the two lucebox 4-bit serves, nothink
-lands around 56%, while the 8-bit MLX serve scored 77% nothink, an outlier we
-flag below. Thinking helps when you give it room: a full budget adds 7–8 points,
-a starved one does worse than not thinking at all. And the part we did not expect
-going in, controlling thinking is not portable: the same nothink request that MLX
-and lucebox honored, OpenRouter quietly ignored, which is its own lesson about
-benchmarking reasoning models across providers.
+We ran the same Qwen3.6-27B on ds4-eval-92 across four serving stacks, in both
+think and nothink mode, graded on one pinned grader. Nothink is steady: a tight
+71 to 74 percent band across all four stacks, no outliers. Thinking helps, but
+only when the reasoning budget is enforced. Left unbounded, think mode runs its
+reasoning straight into the token cap, the visible answer gets truncated, and the
+score lands *below* nothink (48.9 percent on OpenRouter). Bound the reasoning and
+force the close and it recovers to above nothink: OpenRouter went from 48.9 to
+76.1, and the MLX serve hit 83.7 against its own 73.9 nothink. The part we did not
+expect going in is that the controls are not portable. The same nothink request
+that MLX and lucebox honored, OpenRouter quietly ignored until we forced the issue
+client-side.
 
 > [Hero image: Qwen3.6 ds4-eval bars, nothink flat across providers, think split high/low]
 
+## TL;DR
+
+- Nothink is stable across stacks: 70.7 (5090 Laptop), 71.7 (3090 Ti), 72.8
+  (OpenRouter), 73.9 (MLX 8-bit). Verified zero thinking tokens on all four.
+- Unbudgeted think on OpenRouter scored 48.9, below nothink. The reasoning ran to
+  the cap and the answer got cut: 84 of 92 rows reasoned, 32 hit the length cap.
+- Budgeted think recovers it. OpenRouter with a client-side force-close hit 76.1;
+  MLX 8-bit with the same hit 83.7 (+10 over its nothink).
+- Disabling thinking and limiting it are different problems. Limiting needs
+  enforcement, not a hint: OpenRouter ignored `reasoning_effort` and
+  `budget_tokens` outright.
+- lucebox think is pending (a server-side thinking-channel bug is being fixed);
+  that cell is not in the table yet.
+
 ## The numbers
+
+All rows are ds4-eval-92, single seed, one grader (v0.2.7.dev0), committed in
+`Luce-Org/luce-bench-baselines`.
 
 | Serving | Mode | ds4-eval-92 | Note |
 |---|---|---|---|
-| RTX 3090 Ti (lucebox) | nothink | 57.6% | |
-| RTX 5090 Laptop (lucebox) | nothink | 55.4% | |
-| OpenRouter | nothink (ignored) | 55.4% | provider reasoned on 83/92, 27 truncated |
-| Mac Studio M2 Ultra (MLX 8-bit) | nothink | 77.2% | 8-bit; outlier, see below |
-| OpenRouter | think | **63.0%** | full 16k budget |
-| RTX 5090 Laptop (lucebox) | think | 32.6% | clamped 4k budget |
-| Mac Studio M2 Ultra (MLX 8-bit) | think | _pending (run in flight)_ | |
+| RTX 5090 Laptop (lucebox, Q4_K_M) | nothink | 70.7 | 0 thinking tokens |
+| RTX 3090 Ti (lucebox, Q4_K_M) | nothink | 71.7 | 0 thinking tokens |
+| OpenRouter (opaque quant) | nothink | 72.8 | nothink enforced client-side |
+| Mac Studio M2 Ultra (MLX 8-bit) | nothink | 73.9 | 0 thinking tokens |
+| OpenRouter (opaque quant) | think, unbudgeted | 48.9 | 84/92 reasoned, 32 hit cap |
+| OpenRouter (opaque quant) | think, budgeted | **76.1** | force-close on 44/92 |
+| Mac Studio M2 Ultra (MLX 8-bit) | think, budgeted | **83.7** | force-close on 50/92 |
+| lucebox (bragi/sindri) | think | _pending_ | channel bug being fixed |
 
-<!-- TODO: fill the MLX think row from vidar-m2ultra-qwen3.6-27b-mlx8bit-ds4eval-think-2026-05-27 when the run completes (~30/92 as of last check). nothink backfilled: 77.2% (71/92). -->
+The earlier version of this post reported different nothink numbers (a ~56 band
+with an 8-bit MLX serve at 77 flagged as an outlier). Those were old-grader and
+old-server runs. Re-run on the single pinned grader, the four nothink scores
+collapse into the 71 to 74 band above and MLX is no longer the odd one out. We
+are using only the v0.2.7.dev0 numbers here.
 
-## Nothink, on the serves that honored it
+## Nothink is the same everywhere
 
-The clean nothink comparison is narrower than four rows, because one of them is
-not a nothink result at all. The OpenRouter row is set aside here and explained in
-the next section: its provider reasoned on 83 of 92 cases despite the nothink
-request, so its 55.4% is a starved-think score wearing a nothink label.
+The clean nothink comparison is the stable result. All four stacks land within
+about three points of each other (70.7, 71.7, 72.8, 73.9), and the thinking-token
+count is 0 on every one, so the control was honored on all four (more on how we
+got OpenRouter to honor it below). Run Qwen3.6 nothink and the score does not move
+much with the stack or the quant, which is a useful contrast with Gemma 4, where
+[think and nothink are a wash](<Think vs nothink on Gemma 4 — same accuracy, 10x the latency.md>)
+but the score swung a few points by provider.
 
-That leaves three genuine nothink runs, all with zero thinking tokens. The two
-lucebox 4-bit serves land within noise of each other: a desktop 3090 Ti at 57.6%
-and a laptop 5090 at 55.4%. Run Qwen3.6 at 4-bit and nothink scores about the same
-on either card, a useful contrast with Gemma 4, which swung ~5 points by provider.
-
-The 8-bit MLX serve on the Mac is the exception, and a large one: 77.2% nothink,
-roughly 20 points clear of the 4-bit pair and higher even than the best think
-score below. We checked the obvious confounder first. It is a genuine nothink run,
-zero thinking tokens on all 92 cases, and its answers are not longer than the
-others (a ~1.6k-token median, in line with the lucebox runs), so the MLX serve is
-not quietly reasoning its way to a better score. The leading suspect is the quant,
-8-bit MLX against the others' 4-bit, which would make weight precision worth more
-on this set than we'd assumed. We are not asserting that yet, because a serving or
-sampling difference could also be in play, and a cross-provider gap cannot isolate
-the quant from the stack. The queued
-[model-quant quality sweep](<Tuning Qwen3.6-27B decode on a 3090 Ti — the knobs that moved throughput.md>)
-varies quant on one fixed stack, which is what it takes to settle this. For now,
-read the 4-bit pair as the stable result and the 8-bit number as an open lead.
+The 8-bit MLX serve is at the top of the band at 73.9, not the 20-point outlier we
+read off the old runs. Whatever that earlier gap was, it lived in the grader and
+server versions, not in the weights.
 
 ## Controlling thinking across providers
 
-The OpenRouter row taught us something we should have checked sooner: the request
-that turns thinking off is not honored everywhere, and a server that ignores it
-fails quietly. The benchmark sends the same nothink request to every endpoint and
-trusts the score. That trust is misplaced unless you verify the model actually
-stopped thinking.
+The OpenRouter nothink row taught us something we should have checked sooner: the
+request that turns thinking off is not honored everywhere, and a server that
+ignores it fails quietly. The benchmark sends the same nothink request to every
+endpoint and trusts the score. That trust is misplaced unless you verify the model
+actually stopped thinking.
 
 There is no single field that disables thinking across stacks, so luce-bench sends
 three in every request and lets each server take the one it understands:
@@ -76,59 +89,93 @@ Disabling thinking is a template-level switch: `enable_thinking: false` makes th
 chat template skip the thinking opener so the model never starts a `<think>`
 block. `mlx_lm` applied it and produced clean nothink (zero thinking tokens, terse
 answers, every case finishing on `stop`), and lucebox honored its own shape the
-same way. OpenRouter's routed provider honored none of the three: 83 of 92 cases
-reasoned anyway, 27 of them ran straight into the length cap. So nothink held on
-two of the three stacks and silently did not on the third.
+same way. OpenRouter's routed provider honored none of the three and reasoned
+anyway. We only got a clean nothink out of it by injecting `/no_think` into the
+prompt client-side, which is a chat-template token Qwen recognizes regardless of
+what the request body says. With that injection the returned thinking-token count
+dropped to 0 and the score settled into the band at 72.8.
 
-The practical rule that falls out of this: do not trust the flag you sent, check
-the thinking-token count that came back. A nothink run with thinking tokens on
-most of its rows is not a nothink run.
+The practical rule that falls out of this: do not trust the flag you sent, verify
+the thinking-token count that came back. A nothink run with thinking tokens on most
+of its rows is not a nothink run.
 
-Disabling thinking and limiting thinking are different problems, and the second
-one also varies by stack. Limiting lives server-side, and it is lucebox-specific
-here: count the output tokens, force the `</think>` close before the cap, and
-reserve room for the visible answer. MLX has none of that machinery. In think mode
-it runs to `max_tokens` with no force-close, which is why its hard cases pile up at
-the 16k cap. The
-[thinking-budget machinery](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>)
-post covers how lucebox does the limiting; the next section is what it buys you.
+## Budgeting thinking is a separate problem
 
-## Thinking helps, when you give it room
+Disabling thinking and limiting thinking are not the same lever, and the second one
+is where the headline result lives. Limiting needs *enforcement*. A budget the model
+is merely asked to respect does nothing, because the reasoning is trained in, not
+instruction-gated. There are two ways to actually enforce it:
 
-Turn thinking on with a full 16k budget and Qwen3.6 reaches 63.0% on OpenRouter,
-about 7 points over the clean 4-bit nothink baseline of ~56%. That's a real
-dividend, and it's the opposite of what we found on Gemma 4, where
-[think and nothink are a wash](<Think vs nothink on Gemma 4 — same accuracy, 10x the latency.md>).
-Qwen actually uses the reasoning tokens.
+- Server-side force-close, which is what lucebox does in its generation loop:
+  count the output tokens, force the close before the cap, and reserve room for the
+  visible answer. The
+  [thinking-budget machinery](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>)
+  post covers the mechanism.
+- Client-side force-close, which is new in luce-bench for providers we cannot
+  reach into. It watches the streamed reasoning, detects when it goes over budget,
+  aborts the request, and re-prompts the model with its own trained terminator so it
+  wraps up instead of trailing off. The budget was ~8k reasoning tokens inside a 32k
+  `max_tokens` cap with a 4k reply reserve.
 
-The catch is in the budget. The same model on the laptop with a 4k thinking
-budget scored **32.6%**, well below nothink. It isn't that thinking hurt; it's
-that 4k tokens wasn't enough room to reason *and* answer, so the model got cut
-off mid-derivation with nothing to show. A starved thinking budget is worse than
-no thinking, because you pay for the reasoning and lose the reply.
+The terminator is not a bare `</think>`. For Qwen3.x it is the trained wrap-up
+phrase from the [Qwen3 technical report (arXiv 2505.09388)](https://arxiv.org/abs/2505.09388),
+the same `thinking_terminator_hint` the model card carries, which the model learned
+to treat as "thinking is done, answer now."
 
-That failure is exactly why the [thinking-budget machinery](<Putting Qwen's thinking on a budget — counting tokens and forcing the close.md>)
-exists: count the output tokens, force the `</think>` close before the cap, and
-reserve enough room for the answer. Give Qwen a generous effort tier (or a server
-that force-closes cleanly with a real reply reserve) and the 63% is what you get;
-clamp it without reserving reply room and you get the 32%.
+Native budget hints do not substitute for this on every provider. OpenRouter
+ignored `reasoning_effort` (medium scored about the same as high) and did not honor
+`budget_tokens` at all, which is exactly why the client-side force-close is the
+lever for providers like it. With it engaged on 44 of 92 rows and 0 continuation
+failures, OpenRouter think recovered from 48.9 to 76.1. On MLX the same enforcement
+engaged on 50 of 92 rows, also 0 failures, and lifted think to 83.7.
+
+## Why unbudgeted think scores below nothink
+
+Turn thinking on with no enforced cap and Qwen3.6 on OpenRouter scored 48.9, more
+than 20 points below its own nothink. It is not that thinking hurt the reasoning.
+It is that the reasoning ran to the token cap and the answer got truncated: 84 of
+92 rows reasoned, and 32 of those ran straight into the length cap with nothing
+parseable left for the reply. You pay for the reasoning and lose the answer.
+
+The per-area breakdown shows the truncation hit short-answer formats hardest. These
+are the OpenRouter runs, nothink against unbudgeted and budgeted think:
+
+| Area | nothink | think, unbudgeted | think, budgeted |
+|---|---|---|---|
+| hellaswag | 86 | 34 | 88 |
+| longctx | 100 | 33 | 100 |
+| gsm8k | 93 | 77 | 96 |
+| truthfulqa | 80 | 51 | 77 |
+
+The formats that want a short, committed answer (hellaswag, longctx) cratered worst
+under unbudgeted think, because a multiple-choice or extraction answer is a few
+tokens that never get emitted once the reasoning eats the cap. gsm8k held up better
+since its answers are longer and the reasoning is doing real work. Enforce the
+budget and every area recovers to nothink or above. The MLX budgeted run lands in
+the same place (gsm8k 95, hellaswag 91, truthfulqa 79, longctx 100), so the
+recovery is a property of the enforcement, not one provider.
 
 ## Takeaway
 
-For Qwen3.6, turn thinking on, but the budget is load-bearing. Pick
-an effort tier with headroom, make sure the reply reserve is set, and thinking
-buys you several points. Set it too tight and you'd have been better off with it
-off. And whatever mode you ask for, verify the server delivered it: check the
-thinking-token count that comes back, not just the flag you sent, because a
-provider that ignores it will hand you the wrong run with no error. (The MLX
-nothink number is in the table now; the MLX think run is still in flight and goes
-in when it finishes.)
+For Qwen3.6, turn thinking on, but enforce a reasoning budget with a reply reserve.
+Unbudgeted think truncates and scores below nothink. Bound the reasoning, force the
+close (server-side on lucebox, or client-side for providers that ignore the budget
+hints), and leave room for the answer, and thinking buys you several points over
+nothink (48.9 to 76.1 on OpenRouter, 83.7 on MLX against 73.9). And whatever mode
+you ask for, verify the server delivered it by checking the returned thinking-token
+count, because a provider that ignores the flag will hand you the wrong run with no
+error. The lucebox think numbers are not in the table yet; a server-side
+thinking-channel bug is being fixed and the cell goes in once those runs land.
 
 ---
 
-*ds4-eval-92 from antirez/ds4 (MIT), run via luce-bench, single seed. Qwen3.6-27B
-Q4_K_M via lucebox (RTX 3090 Ti, RTX 5090 Laptop), MLX 8-bit (Mac Studio M2
-Ultra; nothink in, think run in flight), and OpenRouter. Methodology:
+*ds4-eval-92 from antirez/ds4 (MIT), run via luce-bench, single seed, one grader
+(v0.2.7.dev0), committed in `Luce-Org/luce-bench-baselines`. Qwen3.6-27B Q4_K_M via
+lucebox (RTX 3090 Ti, RTX 5090 Laptop), MLX 8-bit (Mac Studio M2 Ultra), and
+OpenRouter (opaque quant). Budgeted-think runs used luce-bench's client-side
+force-close (over-budget reasoning aborted and re-prompted with the model's trained
+terminator); OpenRouter nothink used client-side `/no_think` injection. lucebox
+think pending a thinking-channel fix. Methodology:
 [Running the benchmarks](<Running the benchmarks — an intro to luce-bench.md>).
 Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-hub).*
 
@@ -138,3 +185,5 @@ Project: [github.com/Luce-Org/lucebox-hub](https://github.com/Luce-Org/lucebox-h
 - [Think vs nothink on Gemma 4: same accuracy, 10x the latency](<Think vs nothink on Gemma 4 — same accuracy, 10x the latency.md>)
 - [Every model we've run on ds4-eval-92](<Every model we've run on ds4-eval-92.md>)
 - [What `/props` tells you about a lucebox server](<What props tells you about a lucebox server.md>)
+</content>
+</invoke>
