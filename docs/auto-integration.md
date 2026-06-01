@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T07:22:04-04:00`
+Last refresh: `2026-06-01T07:51:03-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `5c61f44e`
-Current integration source tip before this refresh: `5c61f44e`
+Previous integration tip: `easel/auto-integration` `0e49b765`
+Current integration source tip before this refresh: `0e49b765`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 27 exact current open non-draft PR heads. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT` and Qwen35MoE gallocr/full-chunk FFN work, #237's common MTP helper scaffold, and #135's diagnostic/control-plane multi-request scheduler scaffolds; the remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run reconfirmed direct-merge conflicts for all six remaining candidates and attempted an additional tmux-driven #221 feasibility pass; Codex produced a large conflicted-file inspection without a final recommendation and Claude exited at max turns with no useful report, so no new source slice was promoted.
+The current stack contains 27 exact current open non-draft PR heads. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT` and Qwen35MoE gallocr/full-chunk FFN work, #237's common MTP helper scaffold, and #135's diagnostic/control-plane multi-request scheduler scaffolds; the remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run reconfirmed direct-merge conflicts for all six remaining candidates and attempted an additional tmux-driven #135 feasibility pass; Codex produced a large conflicted-file inspection without a final recommendation and Claude exited at max turns with no useful report, so no new source slice was promoted.
 
 ## Included in the current non-draft stack
 
@@ -50,6 +50,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T07:51:03-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `0e49b765`, and reconcile tip `0e49b765`; `origin/main` was already represented.
+- Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 27 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
+- Fresh worktree direct-merge probes were run for #305, #237, #221, #154, #153, and #135 under `/tmp/luce-auto-cron-20260601-074319/`. Conflict counts remain #305 (61 status / 38 unmerged), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Claude session `luce135-claude-074319` in `/tmp/luce-auto-cron-20260601-074319/probe-pr-135` exited with `Error: Reached max turns (12)` and produced no useful report. Tmux-driven Codex session `luce135-codex-074319` wrote transcript `/tmp/luce-codex-pr135-074319.txt` but was stopped after emitting a large conflicted-file inspection rather than a final feasibility report; it left the three conflicted #135 files unmerged. Manual status inspection confirmed no new source slice was safe to promote without runtime validation.
+- Validation for this manifest-only refresh: `git diff --check` passed. Full CMake validation was not rerun because no source code changed and this checkout still lacks populated `server/deps/llama.cpp` plus the known CUDA compiler-id `sm_52` environment blocker.
 
 - `date -Is` -> `2026-06-01T07:22:04-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `5c61f44e`, and reconcile tip `5c61f44e`; `origin/main` was already represented.
 - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 27 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
