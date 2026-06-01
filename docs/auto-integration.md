@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T20:12:19-04:00`
+Last refresh: `2026-05-31T20:45:00-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `be8396fb`
-Current integration source tip before this refresh: `be8396fb`
+Previous integration tip: `easel/auto-integration` `5f261a85`
+Current integration source tip before this refresh: `5f261a85`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -325,9 +325,26 @@ Draft PRs remain outside the primary non-draft integration target except for dep
 - Fresh isolated merge probes for #321 and #325 both still conflicted across the current backend IPC, DFlash draft IPC, layer-split runtime/adapters, `server_main`, and target-shard IPC surface, so no promotable source slice was extracted in this pass.
 - Validation for this manifest-only follow-up: `git diff --check` passed after this docs update; full CMake validation was not rerun because this checkout still lacks populated `server/deps/llama.cpp` and the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
 
+- `date -Is` -> `2026-05-31T20:40:35-04:00` during this refresh preflight; primary checkout was clean on `auto-integration` at `5f261a85`, remotes were unchanged, and auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`).
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs were `origin/main` `8305b6c2` and `easel/auto-integration` `5f261a85`; `origin/main` was already represented in the stack.
+- Open PR enumeration again reported 32 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed the same 24 current open non-draft PR heads included and 8 non-ancestor/selective-port candidates before this run's narrow source slice: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A reconcile worktree from `easel/auto-integration` was created at `/tmp/luce-auto-cron-20260531-204104/reconcile`; `origin/main` was already represented in the stack. Fresh direct-merge probes reconfirmed current conflict/status counts: #325 (25 status entries / 15 unmerged paths), #321 (23 / 14), #305 (61 / 38), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Hermes subagent reviews recommended the next safe slices as #321 DFlash feature-ring capture bounds hardening, #325 `server_main` same-backend target layer-split disk-cache validation unlock while keeping mixed-backend disk cache blocked, and #135 diagnostic-only `SCHED_BATCH_PROBE` after `SCHED_BATCH_PEEK`. This run promoted only the localized #321 guard in `server/src/common/dflash_feature_ring.cpp`: `copy_capture_slice_to_draft_ring` now returns failure for invalid capture layer index, negative start position, non-positive ring capacity, or invalid hidden size, while keeping missing-ring and zero-token copies as no-op success.
+- Validation for this source/metadata refresh: `git diff --check` passed; conflict-marker search found no merge markers in the promoted file; YAML parse of `.github/auto-integration/stack.yaml` passed. Full CMake validation was not rerun because the change is localized and this checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
+
 ## Retained worktrees / logs
 
 This run retained the updated stack worktree, conflicted probe worktrees, and agent transcripts for audit; earlier conflicted probe worktrees remain from prior runs because safe cleanup is left to a supervised pass:
+
+- `/tmp/luce-auto-cron-20260531-204104/reconcile` (current source/metadata refresh worktree)
+- `/tmp/luce-auto-cron-20260531-204104/probe-pr325`
+- `/tmp/luce-auto-cron-20260531-204104/probe-pr321`
+- `/tmp/luce-auto-cron-20260531-204104/probe-pr305`
+- `/tmp/luce-auto-cron-20260531-204104/probe-pr237`
+- `/tmp/luce-auto-cron-20260531-204104/probe-pr221`
+- `/tmp/luce-auto-cron-20260531-204104/probe-pr154`
+- `/tmp/luce-auto-cron-20260531-204104/probe-pr153`
+- `/tmp/luce-auto-cron-20260531-204104/probe-pr135`
 
 - `/tmp/luce-auto-cron-20260531-2012/reconcile` (current source/manifest refresh worktree; #325 Laguna same-backend disk snapshot/adopt slice promoted here)
 - `/tmp/luce-auto-cron-20260531-2012/probe-pr-325`

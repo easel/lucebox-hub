@@ -390,8 +390,12 @@ bool copy_capture_slice_to_draft_ring(
     int chunk_start,
     int start_pos,
     int n_tokens) {
-    if (!feature_ring.target_feat || capture_idx < 0 || n_tokens <= 0 || start_pos < 0) return true;
-    if (feature_ring.cap <= 0) return false;
+    if (!feature_ring.target_feat || n_tokens <= 0) return true;
+    if (capture_idx < 0 || capture_idx >= feature_ring.n_target_layers ||
+        start_pos < 0 || feature_ring.cap <= 0 ||
+        feature_ring.hidden_size <= 0) {
+        return false;
+    }
     const int hidden = feature_ring.hidden_size;
     const size_t dst_stride = feature_ring.target_feat->nb[1];
     const size_t src_stride = act_out->nb[1];
