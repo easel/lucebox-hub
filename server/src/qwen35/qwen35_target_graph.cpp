@@ -1261,6 +1261,14 @@ QwenGraphOutputs build_qwen35_graph(
         inpL = cur;
     }
 
+    QwenGraphOutputs og = std::move(og_early);
+    if (in.expose_pre_norm_hidden) {
+        ggml_set_name(inpL, "pre_norm_hidden");
+        ggml_set_output(inpL);
+        ggml_build_forward_expand(gf, inpL);
+        og.pre_norm_hidden = inpL;
+    }
+
     // 2. Final norm
     ggml_tensor * out = rms_norm_mul(ctx, inpL, w.out_norm, w.rms_eps);
 
@@ -1281,7 +1289,6 @@ QwenGraphOutputs build_qwen35_graph(
         ggml_build_forward_expand(gf, out);
     }
 
-    QwenGraphOutputs og = std::move(og_early);
     og.logits = logits;
     return og;
 }

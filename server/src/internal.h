@@ -545,6 +545,7 @@ struct QwenGraphInputs {
     bool          capture_layers; // if true, write captured layer features into cache.target_feat
     bool          capture_delta_intermediate = false; // if true, populate out_delta_captures
     bool          capture_moe_router = false; // if true, expose selected expert ids for MoE layers
+    bool          expose_pre_norm_hidden = false; // if true, expose the final hidden before output norm
     int           fa_window = 0;  // sliding window for FA layers: 0 = full attention
     bool          last_token_logits_only = false; // if true, only compute logits for last token (prefill optimization)
     ggml_tensor * parent_ids = nullptr; // [n_tokens] i32; tree mode when non-null
@@ -560,6 +561,9 @@ struct QwenGraphOutputs {
     // One entry per target layer. Populated only when capture_moe_router is
     // true; qwen35 dense layers and non-MoE models leave entries null.
     std::vector<ggml_tensor *> moe_selected;
+    // Final hidden state before output norm. Populated only when
+    // QwenGraphInputs::expose_pre_norm_hidden is true.
+    ggml_tensor * pre_norm_hidden = nullptr;
 };
 
 struct QwenLayerPrefnOutputs {
