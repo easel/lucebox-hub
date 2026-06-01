@@ -131,7 +131,8 @@ protected:
                                     const DaemonIO & io,
                                     const BudgetHook & budget_hook = {},
                                     bool * forced_close_out = nullptr,
-                                    bool * degenerate_close_out = nullptr);
+                                    bool * degenerate_close_out = nullptr,
+                                    bool * soft_forced_close_out = nullptr);
     virtual bool should_capture_moe_router() const { return false; }
     virtual void after_target_compute(StepGraph &,
                                       int /*kv_start*/,
@@ -235,7 +236,8 @@ private:
                         const std::vector<int32_t> * stall_skip_tokens = nullptr,
                         const BudgetHook * budget_hook = nullptr,
                         bool * forced_close_out = nullptr,
-                        bool * degenerate_close_out = nullptr);
+                        bool * degenerate_close_out = nullptr,
+                        bool * soft_forced_close_out = nullptr);
 
     // AR decode fallback (no draft model or sampling mode).
     // budget_hook (when close_token_ids is non-empty) overrides the next
@@ -255,7 +257,8 @@ private:
                       const DaemonIO & io,
                       const BudgetHook & budget_hook = {},
                       bool * forced_close_out = nullptr,
-                      bool * degenerate_close_out = nullptr);
+                      bool * degenerate_close_out = nullptr,
+                      bool * soft_forced_close_out = nullptr);
 
     bool sync_remote_draft_features(int start_pos, int n_tokens);
 

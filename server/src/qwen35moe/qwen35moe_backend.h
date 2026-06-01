@@ -34,7 +34,8 @@ protected:
                             const DaemonIO & io,
                             const BudgetHook & budget_hook = {},
                             bool * forced_close_out = nullptr,
-                            bool * degenerate_close_out = nullptr) override;
+                            bool * degenerate_close_out = nullptr,
+                            bool * soft_forced_close_out = nullptr) override;
     bool should_capture_moe_router() const override { return routing_stats_ != nullptr; }
     void after_target_compute(StepGraph & sg, int kv_start, int n_tokens) override;
 

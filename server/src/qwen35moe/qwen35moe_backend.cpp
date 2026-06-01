@@ -248,15 +248,18 @@ bool Qwen35MoeBackend::run_ar_decode_path(int committed, int n_gen,
                                           const DaemonIO & io,
                                           const BudgetHook & budget_hook,
                                           bool * forced_close_out,
-                                          bool * degenerate_close_out) {
+                                          bool * degenerate_close_out,
+                                          bool * soft_forced_close_out) {
     if (!target_weights().moe_hybrid) {
         return Qwen35Backend::run_ar_decode_path(committed, n_gen, out_tokens, io,
                                                 budget_hook, forced_close_out,
-                                                degenerate_close_out);
+                                                degenerate_close_out,
+                                                soft_forced_close_out);
     }
     (void)budget_hook;
     (void)forced_close_out;
     (void)degenerate_close_out;
+    (void)soft_forced_close_out;
     if (n_gen <= 0) return true;
 
     return run_pipelined_decode_path(committed, n_gen, out_tokens, io);
