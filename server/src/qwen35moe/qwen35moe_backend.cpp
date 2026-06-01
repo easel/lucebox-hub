@@ -288,7 +288,7 @@ bool Qwen35MoeBackend::run_pipelined_decode_path(int committed, int n_gen,
 
     // Persistent logits graph (built once, reused per token)
     StepGraph logits_sg;
-    auto project_logits = [&]() -> bool {
+    auto project_logits = [&](ggml_tensor * gpu_src = nullptr) -> bool {
         if (!logits_sg.ctx) {
             ggml_init_params ip{};
             ip.mem_size   = 64 * 1024 * 1024;
@@ -315,7 +315,13 @@ bool Qwen35MoeBackend::run_pipelined_decode_path(int committed, int n_gen,
                 return false;
             }
         }
-        ggml_backend_tensor_set(logits_sg.hidden_input, act_cur.data(), 0, sizeof(float) * (size_t)hidden);
+        if (gpu_src) {
+            ggml_backend_tensor_copy_async(target_backend(), target_backend(),
+                                           gpu_src, logits_sg.hidden_input);
+        } else {
+            ggml_backend_tensor_set(logits_sg.hidden_input, act_cur.data(), 0,
+                                    sizeof(float) * (size_t)hidden);
+        }
         auto st = ggml_backend_graph_compute(target_backend(), logits_sg.gf);
         if (st != GGML_STATUS_SUCCESS) return false;
         ggml_backend_tensor_get(logits_sg.logits, logits_buf.data(), 0, sizeof(float) * (size_t)vocab);
@@ -360,9 +366,9 @@ bool Qwen35MoeBackend::run_pipelined_decode_path(int committed, int n_gen,
             return false;
         }
 
-        ggml_backend_tensor_get(pipe_state_->gpu_state.act_cur, act_cur.data(), 0,
-                                sizeof(float) * (size_t)hidden);
-        if (!project_logits()) {
+        // Keep the decoded activation GPU-resident and project logits with a
+        // GPU→GPU copy into the persistent logits graph input.
+        if (!project_logits(pipe_state_->gpu_state.act_cur)) {
             step_graph_destroy(logits_sg);
             return false;
         }
@@ -539,7 +545,7 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
     };
 
     // Helper: compute logits from act_cur (persistent graph, built once)
-    auto compute_logits = [&]() -> bool {
+    auto compute_logits = [&](ggml_tensor * gpu_src = nullptr) -> bool {
         if (!logits_sg.ctx) {
             // First call: build the logits graph
             ggml_init_params ip{};
@@ -567,7 +573,13 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
                 return false;
             }
         }
-        ggml_backend_tensor_set(logits_sg.hidden_input, act_cur.data(), 0, sizeof(float) * (size_t)hidden);
+        if (gpu_src) {
+            ggml_backend_tensor_copy_async(target_backend(), target_backend(),
+                                           gpu_src, logits_sg.hidden_input);
+        } else {
+            ggml_backend_tensor_set(logits_sg.hidden_input, act_cur.data(), 0,
+                                    sizeof(float) * (size_t)hidden);
+        }
         auto st = ggml_backend_graph_compute(target_backend(), logits_sg.gf);
         if (st != GGML_STATUS_SUCCESS) return false;
         ggml_backend_tensor_get(logits_sg.logits, logits_buf.data(), 0, sizeof(float) * (size_t)vocab);
@@ -902,9 +914,9 @@ GenerateResult Qwen35MoeBackend::generate_impl(const GenerateRequest & req,
                         decode_tel_accum.total_layers += tel.total_layers;
                     }
 
-                    ggml_backend_tensor_get(pipe_state_->gpu_state.act_cur, act_cur.data(), 0,
-                                            sizeof(float) * (size_t)hidden);
-                    if (!compute_logits()) {
+                    // Keep act_cur GPU-resident after pipelined decode and copy it
+                    // directly into the logits graph input on the same backend.
+                    if (!compute_logits(pipe_state_->gpu_state.act_cur)) {
                         result.error = "decode_logits";
                         cleanup_graphs();
                         return result;
