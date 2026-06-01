@@ -4868,7 +4868,7 @@ int main(int argc, char ** argv) {
         // Both fields are otherwise unused by the prefill/decode hot path
         // (kv_start is tracked separately, last_tok is a local) — they exist
         // for cross-request snapshot accounting.
-        cache.cur_pos  = (int)out_all.size();
+        cache.cur_pos  = committed;
         cache.last_tok = last_tok;
         update_daemon_request_state("done", "generation-complete");
         stream_emit(-1);
