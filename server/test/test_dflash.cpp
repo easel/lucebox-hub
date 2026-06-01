@@ -2788,6 +2788,94 @@ int main(int argc, char ** argv) {
             }
             std::fflush(stdout);
         };
+        auto print_scheduler_batch_probe = [&](int max_batch) {
+            std::vector<SchedulerBucketSelftestCache> probe_caches;
+            std::vector<SchedulerBucketSelftestCandidate> candidates;
+            probe_caches.reserve(daemon_requests.size());
+            candidates.reserve(daemon_requests.size());
+
+            int skipped_cancelled = 0;
+            int skipped_error = 0;
+            int skipped_bad_slot = 0;
+            int skipped_cache_not_ready = 0;
+            for (const DaemonRequestState & req : daemon_requests) {
+                if (req.status == "cancelled") {
+                    skipped_cancelled++;
+                    continue;
+                }
+                if (req.status == "error") {
+                    skipped_error++;
+                    continue;
+                }
+                if (req.cache_slot < 0 || req.cache_slot >= target_cache_slots) {
+                    skipped_bad_slot++;
+                    continue;
+                }
+                TargetCache * slot_cache = cache_for_daemon_slot(req.cache_slot);
+                if (slot_cache == nullptr
+                    || slot_cache->base_ctx == nullptr
+                    || slot_cache->target_feat == nullptr
+                    || slot_cache->target_feat_cap <= 0
+                    || slot_cache->cur_pos <= 0
+                    || slot_cache->last_tok < 0) {
+                    skipped_cache_not_ready++;
+                    continue;
+                }
+                probe_caches.push_back(SchedulerBucketSelftestCache{
+                    slot_cache->cur_pos,
+                    slot_cache->last_tok,
+                });
+                candidates.push_back(SchedulerBucketSelftestCandidate{
+                    req.request_id,
+                    req.cache_slot,
+                    1,
+                    1,
+                    1,
+                    &probe_caches.back(),
+                });
+            }
+
+            SchedulerBucketSelftestSelection sel =
+                select_scheduler_bucket_selftest(candidates, max_batch, true);
+            if (sel.batch.empty()) {
+                std::printf("[scheduler] batch_probe_miss diagnostic-only considered=%d eligible=%d ineligible=%d buckets=%d singleton_buckets=%d front_kv=%d front_size=%d blocked_singleton=%d max_batch=%d skipped_cancelled=%d skipped_error=%d skipped_bad_slot=%d skipped_cache_not_ready=%d\n",
+                            sel.considered, sel.eligible, sel.ineligible,
+                            sel.buckets, sel.singleton_buckets,
+                            sel.front_kv_start, sel.front_bucket_size,
+                            sel.blocked_by_front_singleton, max_batch,
+                            skipped_cancelled, skipped_error, skipped_bad_slot,
+                            skipped_cache_not_ready);
+            } else {
+                std::printf("[scheduler] batch_probe_ready diagnostic-only count=%zu kv_start=%d considered=%d eligible=%d buckets=%d max_batch=%d\n",
+                            sel.batch.size(), sel.kv_start, sel.considered,
+                            sel.eligible, sel.buckets, max_batch);
+                std::printf("[scheduler] batch_probe ");
+                for (size_t i = 0; i < sel.batch.size(); i++) {
+                    const SchedulerBucketSelftestCandidate & c = sel.batch[i];
+                    const DaemonRequestState * req_state = nullptr;
+                    TargetCache * slot_cache = cache_for_daemon_slot(c.slot_id);
+                    for (const DaemonRequestState & req : daemon_requests) {
+                        if (req.request_id == c.request_id
+                            && req.cache_slot == c.slot_id) {
+                            req_state = &req;
+                            break;
+                        }
+                    }
+                    std::printf("%sreq=%d:slot=%d:status=%s:cur=%d:last=%d:target_feat_cap=%d:base=%s:target_feat=%s",
+                                i == 0 ? "" : ",",
+                                c.request_id,
+                                c.slot_id,
+                                (req_state && !req_state->status.empty()) ? req_state->status.c_str() : "unknown",
+                                slot_cache ? slot_cache->cur_pos : 0,
+                                slot_cache ? slot_cache->last_tok : -1,
+                                slot_cache ? slot_cache->target_feat_cap : 0,
+                                (slot_cache && slot_cache->base_ctx) ? "ready" : "missing",
+                                (slot_cache && slot_cache->target_feat) ? "ready" : "missing");
+                }
+                std::printf("\n");
+            }
+            std::fflush(stdout);
+        };
 
         if (daemon_mode) {
             std::string line;
@@ -2862,6 +2950,24 @@ int main(int argc, char ** argv) {
                     max_batch = (int)parsed;
                 }
                 print_scheduler_batch_peek(max_batch);
+                stream_emit(-1);
+                continue;
+            }
+            if (line == "SCHED_BATCH_PROBE" || line.rfind("SCHED_BATCH_PROBE ", 0) == 0) {
+                int max_batch = target_cache_slots;
+                if (line.rfind("SCHED_BATCH_PROBE ", 0) == 0) {
+                    std::string arg = line.substr(std::strlen("SCHED_BATCH_PROBE "));
+                    char * endp = nullptr;
+                    long parsed = std::strtol(arg.c_str(), &endp, 10);
+                    while (endp != nullptr && *endp != '\0' && std::isspace((unsigned char)*endp)) endp++;
+                    if (endp == arg.c_str() || (endp != nullptr && *endp != '\0') || parsed <= 0 || parsed > INT32_MAX) {
+                        std::fprintf(stderr, "[daemon] SCHED_BATCH_PROBE bad max_batch\n");
+                        stream_emit(-1);
+                        continue;
+                    }
+                    max_batch = (int)parsed;
+                }
+                print_scheduler_batch_probe(max_batch);
                 stream_emit(-1);
                 continue;
             }

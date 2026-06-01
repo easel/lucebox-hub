@@ -1,4 +1,4 @@
-updated_at: 2026-06-01T01:08:00-04:00
+updated_at: 2026-06-01T02:09:31-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,8 +6,8 @@ remotes:
   writable: easel
 heads:
   upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: e772c05b
-  current_integration_head_before_refresh: e772c05b
+  easel_auto_integration_before_refresh: 7b708ca6
+  current_integration_head_before_refresh: 7b708ca6
   refreshed_head: this-source-metadata-commit
   base_before_run: auto-integration
 stack:
@@ -69,7 +69,11 @@ stack:
     - {pr: 221, head: 05502974, status: probed-suggested-superseded, worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr221, note: superseded as direct integration candidate by current stack plus PR237 salvage path (88 status entries / 25 unmerged paths)}
     - {pr: 154, head: 2f4ede79, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr154, note: stacked old-layout MTP speculative-loop work depends on PR153/PR237 reconciliation (13 status entries / 12 unmerged paths)}
     - {pr: 153, head: e9b17cb1, status: probed-dependency-blocked, worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr153, note: old-layout native Qwen3.6 MTP runtime requires staged selective port (10 status entries / 10 unmerged paths)}
-    - {pr: 135, head: 561b0ac1, status: probed-selective-port-candidate, worktree: /tmp/luce-auto-cron-20260601-002919/probe-pr135, note: diagnostic-only SCHED_BATCH_PROBE remains next safe slice after target-shard IPC foundation (3 status entries / 3 unmerged paths)}
+    - pr: 135
+      head: 561b0ac1
+      status: selective-port-promoted
+      worktree: /tmp/luce-auto-cron-20260601-015834/reconcile
+      note: "diagnostic-only SCHED_BATCH_PROBE [max_batch] promoted in server/test/test_dflash.cpp. The command inspects daemon request/cache-slot state, requires ready target-cache feature buffers, prints batch_probe_ready/batch_probe_miss diagnostics with skipped counters, emits the daemon sentinel, and avoids graph execution, cache copyback, request mutation, or live target-step scheduling. Fresh direct probe still conflicts (3 status entries / 3 unmerged paths)."
   pending: []
   blocked_needs_human:
     - {pr: 325, reason: partial selective ports now include same-backend Qwen35 and Laguna disk snapshot export/adopt, disk-cache first-request lookup/adopted-layout validation, backend/DFlash draft IPC robustness, same-backend target layer-split disk-cache validation unlock, and the PR321 target-shard IPC daemon prerequisite; remaining mixed-backend disk-cache pieces still overlap runtime/adapter conflicts}
@@ -78,7 +82,7 @@ stack:
     - {pr: 237, reason: old-layout MTP foundation needs architecture-aware selective port}
     - {pr: 154, reason: stacked/dependent old-layout MTP speculative-loop work}
     - {pr: 153, reason: stacked/dependent old-layout MTP integrated work}
-    - {pr: 135, reason: multi-request scheduler conflicts with current daemon/backend architecture and needs selective port; diagnostic scaffolds are partially ported, with SCHED_BATCH_PROBE next before live mutation}
+    - {pr: 135, reason: multi-request scheduler conflicts with current daemon/backend architecture and needs selective port; diagnostic scaffolds are partially ported, including the read-only SCHED_BATCH_PROBE diagnostics, while live target-step/copyback mutation remains deferred pending runtime validation}
   suggested_close_or_superseded:
     - {pr: 221, reason: older broader MTP/prefix-warm branch is superseded as a direct integration candidate by current stack plus PR237 salvage path}
   draft_excluded:
@@ -92,7 +96,7 @@ stack:
     - git fetch --prune origin
     - git fetch --prune easel
     - git fetch origin '+refs/pull/*/head:refs/pr/*'
-    - fresh direct-merge probes for non-ancestor candidates on top of the promoted PR305 slice
+    - fresh direct-merge probes for non-ancestor candidates on top of the promoted PR135 slice
     - gh pr list --repo Luce-Org/lucebox-hub --state open --limit 200 --json ... --jq ...
     - git merge-base --is-ancestor refs/pr/<n> HEAD for all open non-draft PRs
     - git diff --check
@@ -101,10 +105,10 @@ stack:
     - YAML parse of .github/auto-integration/stack.yaml
     - lightweight backend_ipc_main/qwen35 target-shard daemon fsyntax-only attempt stopped at known missing vendored headers dflash27b.h and ggml-backend.h
     - git grep in the populated gitlink module confirmed ggml_backend_tensor_copy_async and ggml_backend_tensor_set_async declarations in ggml/include/ggml-backend.h
-    - tmux-driven Codex review of the PR305 slice identified a blocking async-upload ordering risk; host uploads were kept synchronous and only GPU-to-GPU logits copy_async was retained
+    - tmux-driven Codex review of the PR135 diagnostic SCHED_BATCH_PROBE slice reported no findings and confirmed read-only behavior/pointer lifetimes
     - g++ -std=c++17 -fsyntax-only on qwen35moe_backend.cpp stopped at known missing local headers/submodule materialization (qwen35_backend.h with minimal include path, then ggml.h after adding qwen35 include path)
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; integration work was performed in /tmp/luce-auto-cron-20260601-0050/reconcile, with retained review transcripts under /tmp/luce-auto-cron-20260601-0050/.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; integration work was performed in /tmp/luce-auto-cron-20260601-015834/reconcile, with retained review transcript /tmp/luce-auto-cron-20260601-015834/codex-pr135-probe-review.txt.
   - origin/main 8305b6c2 remains ancestor of auto-integration, so no upstream-base reconciliation commit was needed.
   - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs; exact ancestry after this run still has 25 current non-draft PR heads as ancestors and 8 non-ancestor selective-port candidates.
   - Conflict probe worktrees are retained under /tmp/luce-auto-cron-20260601-002919/probe-pr* because safe cleanup is left to a supervised pass.
