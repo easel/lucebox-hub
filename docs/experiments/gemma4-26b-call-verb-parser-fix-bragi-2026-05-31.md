@@ -99,7 +99,7 @@ The new image (`14432393`) contains TWO relevant fixes vs the prior baseline:
 1. **call:<verb>{} server-side parser** (easel merge `5ca695cd`): converts
    `call:read_file{...}` model output into proper OpenAI `tool_calls`. Primarily
    targets forge (which uses the Messages API and expects structured tool_calls).
-   
+
 2. **`<|channel>thought` routing fix** (`4b757d10` + `14432393`): correctly routes
    Gemma4's `<|channel>thought` channel tokens to `reasoning_content` (via
    `<think>` emission). Before this fix: `<|channel>thought` leaked as literal

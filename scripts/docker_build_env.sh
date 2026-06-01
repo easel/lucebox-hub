@@ -102,4 +102,4 @@ cmake -S /workspace/server -B /workspace/${BUILD_DIR} \
 if [ "\${DO_BUILD}" = 1 ]; then
     cmake --build /workspace/${BUILD_DIR} --target ${TARGETS} --parallel
 fi
-" 
+"
