@@ -4,15 +4,15 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T17:13:01-04:00`
+Last refresh: `2026-06-01T17:26:41-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `7054850a`
-Current integration source tip before this refresh: `7054850a`
+Previous integration tip: `21c3b50d`
+Current integration source tip before this refresh: `21c3b50d`
 refreshed_head: `see git log`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 29 exact current open non-draft PR heads plus draft #329, which was already integrated before it became draft. No new non-draft PR head was found outside the existing stack in this refresh. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260601-171301/probe-pr-*` reconfirmed conflicts for all six remaining candidates: #305 (60 status / 39 unmerged), #237 (33 / 29), #221 (88 / 27), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3). Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, PR305 persistent prefill `StepGraph` reuse slice, GPU-resident logits projection, and common-MoE planning helpers; #237's common MTP helper scaffold plus destination-view chain-verify fix; #153/#154's pre-norm hidden exposure; #135's diagnostic/control-plane multi-request scheduler scaffolds plus cache-reset seed fix and committed-boundary bookkeeping; and #221's tree-mask stride helper. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. No new source patch was promoted in this refresh.
+The current stack contains 29 exact current open non-draft PR heads plus draft #329, which was already integrated before it became draft. No new non-draft PR head was found outside the existing stack in this refresh. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260601-172641/probe-pr-*` reconfirmed conflicts for all six remaining candidates: #305 (60 status / 39 unmerged), #237 (33 / 29), #221 (88 / 27), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3). Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, PR305 persistent prefill `StepGraph` reuse slice, GPU-resident logits projection, and common-MoE planning helpers; #237's common MTP helper scaffold plus destination-view chain-verify fix; #153/#154's pre-norm hidden exposure; #135's diagnostic/control-plane multi-request scheduler scaffolds plus cache-reset seed fix and committed-boundary bookkeeping; and #221's tree-mask stride helper. A tmux-driven Codex feasibility attempt for #237 this run was stopped after it streamed conflicted fixture/manifest excerpts and did not produce a usable final verdict, so no new source patch was promoted.
 
 ## Included in the current stack
 
@@ -54,6 +54,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T17:26:41-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `21c3b50d`, and source tip `21c3b50d`; `origin/main` was already represented.
+- Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs (#329 remains draft after earlier integration). Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
+- Reconcile worktree `/tmp/luce-auto-cron-20260601-172641/reconcile` merged `origin/main` and was already up to date. Fresh worktree direct-merge probes were run under `/tmp/luce-auto-cron-20260601-172641/probe-pr-*`. Conflict counts remain #305 (60 status / 39 unmerged), #237 (33 / 29), #221 (88 / 27), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- Tmux-driven Codex session `luce1726-pr237-codex` in `/tmp/luce-auto-cron-20260601-172641/probe-pr-237` was stopped after streaming conflicted fixture/manifest excerpts into `/tmp/luce-auto-cron-20260601-172641/codex-pr237-feasibility.txt` without a usable final verdict. No source slice was promoted.
+- Validation for this manifest refresh: `git diff --check` passed and targeted conflict-marker search in changed docs found none. Full CMake validation was not rerun because this checkout still lacks populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - `date -Is` -> `2026-06-01T17:08:56-04:00` / `2026-06-01T17:13:49-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `7054850a`, and source tip `7054850a`; `origin/main` was already represented.
 - Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs (#329 remains draft after earlier integration). Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
