@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T08:04:49-04:00`
+Last refresh: `2026-06-01T08:22:54-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `f65f1c7c`
-Current integration source tip before this refresh: `f65f1c7c`
+Previous integration tip: `easel/auto-integration` `5ecff128`
+Current integration source tip before this refresh: `5ecff128`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 27 exact current open non-draft PR heads. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and now the PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run reconfirmed direct-merge conflicts for all six remaining candidates and used a tmux-driven Codex #305 feasibility pass to identify/promote the small current-layout prefill graph allocator reuse slice while deferring the broader common/Laguna MoE refactor.
+The current stack contains 28 exact current open non-draft PR heads. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. This run integrated new PR #312, adding selectable backend IPC payload transport on top of the existing qwen35 target-shard IPC mode; conflicts were manually resolved by preserving the current qwen35 mode wiring and adopting #312's shared-payload transport/error handling. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT`, Qwen35MoE gallocr/full-chunk FFN work, and PR305 persistent prefill `StepGraph` reuse slice; #237's common MTP helper scaffold; and #135's diagnostic/control-plane multi-request scheduler scaffolds. The remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run reconfirmed direct-merge conflicts for all six remaining candidates after #312 was merged.
 
 ## Included in the current non-draft stack
 
@@ -25,6 +25,7 @@ The current stack contains 27 exact current open non-draft PR heads. Six current
 | #319 | `codex/pr314-restore-default` | `de1c77fe` | included | Adds default empty-spec-decode retry through backend wrapper methods so successful zero-token speculative paths retry once via AR decode while preserving timing/metadata, and the latest visible-output tracking for empty DFlash retry/cache-save behavior. |
 | #316 | `fix/issue-233` | `d28eb1fb` | included | Captures daemon stderr in `DflashClient` error messages by redirecting child stderr to stdout for both Windows and POSIX subprocess launches. |
 | #315 | `codex/dflash-spec-tool-recovery` | `3ba401f0` | included | Recovers spec-decode agent stalls with env-gated tool-prefix floor injection, bounded residual stall/repetition guards, invalid draft-seed AR fallback, and qwen35 empty-output / C2 `fa_window` AR fallbacks. |
+| #312 | `feat-backend-ipc-payload-transport` | `5cf31184` | included | Adds selectable backend IPC payload transport with stream/shared/auto modes, shared-payload fd/size plumbing, DFlash draft shared-payload commands, and unit coverage; merge resolution preserved the current stack's `qwen35-target-shard` backend IPC mode while adopting #312's shared-payload capacity/error handling. |
 | #310 | `feat-backend-activation-precision-policy-after-306` | `bf9f4b57` | included | Backend activation precision policy / graph tensor precision helpers are carried exactly. |
 | #309 | `experiment-dflash-feature-dtype` | `ea6ac481` | included | Feature mirror dtype policy is carried exactly. |
 | #308 | `fix/qwen-think-channel` | `9d4defe1` | included | Qwen3.6/Laguna think-mode reasoning is routed to `reasoning_content`; stack carries the replay HTTP stub harness and regression scenarios exactly. |
@@ -50,6 +51,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T08:22:54-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `5ecff128`, and reconcile tip `bcbbd680` after merging #312; `origin/main` was already represented.
+- Open PR enumeration reported 34 non-draft PRs and 4 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 28 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
+- Reconcile worktree `/tmp/luce-auto-cron-20260601-0817/reconcile` merged new PR #312 (`5cf31184`) with conflicts in backend IPC files resolved manually: the current-stack `qwen35-target-shard` mode/parsing was preserved while #312's shared-payload fd/byte parsing, transport selection, DFlash draft shared-payload commands, and unit coverage were adopted. A duplicate `feature_slice_shared` daemon handler created by the textual merge was removed before committing.
+- Fresh worktree direct-merge probes were run for #305, #237, #221, #154, #153, and #135 under `/tmp/luce-auto-cron-20260601-0817/`. Conflict counts remain #305 (61 status / 38 unmerged), #237 (33 / 27), #221 (88 / 25), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3). No additional delegated agent pass was run this cycle because the newly integrable head was #312 and its conflicts were locally resolved; prior tmux-driven Claude/Codex attempts remain the basis for deferring the six broad selective-port candidates.
+- Validation for this source/manifest refresh: `git diff --check HEAD~1..HEAD` passed before manifest edits, final `git diff --check` passed, conflict-marker search across the #312 conflict files found none, and `.github/auto-integration/stack.yaml` parsed successfully. `cmake -S server -B /tmp/luce-cmake-check-0817 -DCMAKE_CUDA_ARCHITECTURES=89` failed during CUDA compiler identification with the known local `ptxas fatal : Value 'sm_52' is not defined for option 'gpu-name'` toolchain blocker before project compilation.
 
 - `date -Is` -> `2026-06-01T08:04:49-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `f65f1c7c`, and reconcile tip `f65f1c7c`; `origin/main` was already represented.
 - Open PR enumeration reported 33 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 27 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
