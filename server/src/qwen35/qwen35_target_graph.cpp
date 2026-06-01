@@ -307,6 +307,7 @@ void free_target_cache(TargetCache & c) {
 
 void reset_target_cache(TargetCache & c) {
     c.cur_pos = 0;
+    c.last_tok = -1;
     std::vector<uint8_t> zeros(1 * 1024 * 1024, 0);
     ggml_context * ctx_list[] = { c.base_ctx, c.rollback_ctx };
     for (int ci = 0; ci < 2; ci++) {
