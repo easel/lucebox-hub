@@ -4,10 +4,11 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T14:50:23-04:00`
+Last refresh: `2026-06-01T15:06:09-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `74570594`
-Current integration source tip before this refresh: `74570594`
+Previous integration tip: `easel/auto-integration` `d0a3ef7d`
+Current integration source tip before this refresh: `d0a3ef7d`
+refreshed_head: `post-commit-see-git-log`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -53,6 +54,10 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-01T15:06:09-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `d0a3ef7d`, and source tip `d0a3ef7d`; `origin/main` was already represented.
+- Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135. Fresh worktree direct-merge probes were rerun for those six candidates under `/tmp/luce-auto-cron-20260601-150513/`, and the conflict counts remained unchanged: #305 (60 status / 39 unmerged), #237 (33 / 28), #221 (88 / 26), #154 (13 / 12), #153 (10 / 10), and #135 (3 / 3).
+- No new source patch was promoted in this refresh. Validation for this manifest refresh: `git diff --check` passed, targeted conflict-marker search in changed files found none, and `.github/auto-integration/stack.yaml` parsed via file-tool YAML lint. Full CMake validation was not rerun because this checkout still lacks populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - `date -Is` -> `2026-06-01T14:43:15-04:00` / `2026-06-01T14:50:23-04:00` during this refresh; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, and `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `74570594`, and source tip `74570594`; `origin/main` was already represented.
 - Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs (#329 remains draft after earlier integration). Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included; remaining non-ancestor/selective-port candidates remain #305, #237, #221, #154, #153, and #135.
