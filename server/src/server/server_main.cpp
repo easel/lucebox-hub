@@ -222,10 +222,12 @@ static bool validate_server_placement(const BackendArgs & bargs,
                          placement_error.c_str());
             return false;
         }
-        if (!sconfig.disk_cache_dir.empty()) {
+        if (bargs.device.is_mixed_layer_split() &&
+            !sconfig.disk_cache_dir.empty()) {
             std::fprintf(stderr,
-                "[server] --kv-cache-dir is not supported with --target-devices yet; "
-                "sharded disk snapshot/restore will be added separately\n");
+                "[server] --kv-cache-dir is not supported with mixed-backend "
+                "target layer split yet; remote shard disk snapshot/restore "
+                "needs IPC export/import support\n");
             return false;
         }
     }
