@@ -176,6 +176,10 @@ void Qwen35LayerSplitAdapter::reset_request_state() {
     prefill_last_logits_.clear();
 }
 
+int Qwen35LayerSplitAdapter::prefill_chunk_tokens() const {
+    return cfg_.chunk > 0 ? cfg_.chunk : 0;
+}
+
 bool Qwen35LayerSplitAdapter::prefill(const std::vector<int32_t> & prompt,
                                       int base_pos, int & last_tok) {
     if (prompt.empty()) return false;
