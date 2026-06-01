@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-01T06:40:00-04:00`
+Last refresh: `2026-06-01T06:46:00-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `c6a9f251`
-Current integration source tip before this refresh: `c6a9f251`
+Previous integration tip: `easel/auto-integration` `089cb776`
+Current integration source tip before this refresh: `089cb776`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 28 exact current open non-draft PR heads after post-push enumeration detected #322 advanced during the run and the new head merged cleanly. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT` and Qwen35MoE gallocr/full-chunk FFN work, #237's common MTP helper scaffold, and #135's diagnostic/control-plane multi-request scheduler scaffolds; the remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run added a fresh tmux-driven Codex feasibility review for #305, which found no safe Laguna/common-MoE extraction slice and recommended deferring its remaining runtime work.
+The current stack contains 27 exact current open non-draft PR heads after post-push enumeration detected #322 advanced during the run and the new head merged cleanly. Six current non-draft PRs remain non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. Existing selective salvage still covers #305's `DFLASH_EXPERT_BUDGET_PCT` and Qwen35MoE gallocr/full-chunk FFN work, #237's common MTP helper scaffold, and #135's diagnostic/control-plane multi-request scheduler scaffolds; the remaining live runtime paths are blocked on broad current-layout reconciliation and runtime validation. This run added a fresh tmux-driven Codex feasibility review for #305, which found no safe Laguna/common-MoE extraction slice and recommended deferring its remaining runtime work.
 
 ## Included in the current non-draft stack
 
