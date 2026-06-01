@@ -4,10 +4,10 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-05-31T21:44:29-04:00`
+Last refresh: `2026-05-31T22:26:54-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `easel/auto-integration` `f41ed593`
-Current integration source tip before this refresh: `f41ed593`
+Previous integration tip: `easel/auto-integration` `ff5e3592`
+Current integration source tip before this refresh: `ff5e3592`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This unattended run started from a clean primary checkout on `auto-integration`, verified GitHub/Claude/Codex auth using the real user credential home, fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
@@ -756,6 +756,13 @@ This run retained the updated stack worktree, conflicted probe worktrees, and ag
 - `/tmp/luce-auto-cron-20260531-063024` and its probe/log set from the previous #305 PCT refresh
 - `/tmp/luce-auto-cron-20260531-060921` and its probe/log set from the previous refresh
 - `/tmp/luce-auto-cron-20260531-051332` and its probe/log set from the previous #237/#135 feasibility refresh
+
+- `date -Is` -> `2026-05-31T22:26:54-04:00` during the latest preflight; the primary checkout remained clean on `auto-integration` at `ff5e3592`, and `gh auth status`, `claude auth status --text`, and `codex --version` all succeeded using the real user credential home.
+- `git fetch --prune origin` and `git fetch --prune easel` completed successfully. Current refs remained `origin/main` `8305b6c2` and `easel/auto-integration` `ff5e3592`.
+- Open PR enumeration again reported 32 non-draft PRs and 5 draft/excluded PRs. Exact-head containment after explicit PR ref fetch still showed the same 24 current open non-draft PR heads included and the same 8 non-ancestor/selective-port candidates: #325, #321, #305, #237, #221, #154, #153, and #135.
+- A fresh isolated merge probe of #321 on top of `ff5e3592` still conflicted across `server/src/common/backend_ipc.cpp`, `server/src/common/dflash_draft_ipc.cpp`, `server/src/common/dflash_draft_ipc_daemon.cpp`, `server/src/common/layer_split_backend.cpp`, `server/src/common/layer_split_backend.h`, `server/src/common/layer_split_runtime.cpp`, `server/src/gemma4/gemma4_layer_split_adapter.cpp`, `server/src/ipc/backend_ipc_main.cpp`, `server/src/laguna/laguna_layer_split_adapter.cpp`, `server/src/laguna/laguna_layer_split_adapter.h`, `server/src/qwen35/layer_split_forward.cpp`, `server/src/qwen35/qwen35_layer_split_adapter.cpp`, `server/src/qwen35/qwen35_target_shard_ipc.cpp`, `server/src/qwen35/qwen35_target_shard_ipc.h`, and `server/src/server/server_main.cpp` (14 unmerged paths in the probe worktree), so no new source changes were promoted.
+- A follow-up #325 probe on top of `ff5e3592` still conflicted across `server/src/common/backend_ipc.cpp`, `server/src/common/dflash_draft_ipc.cpp`, `server/src/common/dflash_draft_ipc_daemon.cpp`, `server/src/common/layer_split_backend.cpp`, `server/src/common/layer_split_backend.h`, `server/src/common/layer_split_runtime.cpp`, `server/src/gemma4/gemma4_layer_split_adapter.cpp`, `server/src/ipc/backend_ipc_main.cpp`, `server/src/laguna/laguna_layer_split_adapter.cpp`, `server/src/laguna/laguna_layer_split_adapter.h`, `server/src/qwen35/layer_split_forward.cpp`, `server/src/qwen35/qwen35_layer_split_adapter.cpp`, `server/src/qwen35/qwen35_target_shard_ipc.cpp`, `server/src/qwen35/qwen35_target_shard_ipc.h`, and `server/src/server/server_main.cpp`, confirming it remains a broader follow-on to #321 rather than a clean next merge.
+- Validation for this manifest refresh: `git diff --check` passed. No build/CMake validation was rerun because no source code changed in this refresh and the checkout still lacks populated `server/deps/llama.cpp` while the known CUDA compiler-id `sm_52` toolchain blocker remains for full project configure.
 
 ## Notes
 
