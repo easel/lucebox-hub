@@ -5,9 +5,9 @@ Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
 Last refresh: `2026-06-02T07:27:24-04:00`
-Current base: `origin/main` `a81128bd`
-Previous integration tip: `017dbe05`
-Current integration source tip before this refresh: `017dbe05`
+Current base: `origin/main` `99916f28`
+Previous integration tip: `ed00f2f8`
+Current integration source tip before this refresh: `ed00f2f8`
 Post-push integration tip: `branch tip after this refresh`
 refreshed_head: `branch tip containing this manifest`
 
@@ -54,6 +54,9 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- Second post-push fetch found `origin/main` advanced from `a81128bd` to `99916f28` after the #274 refresh push. Worktree `/tmp/luce-auto-cron-20260602-072724/postpush-main-99916f28` merged the new upstream base cleanly; the upstream change updated `server/scripts/run.py` only.
+- Post-push upstream-base validation: `git diff --check -- server/scripts/run.py docs/auto-integration.md` passed, targeted conflict-marker search in changed files found none, exact-head containment showed 26 current non-draft PR heads included with the same six non-ancestor candidates (#305, #237, #221, #154, #153, #135), and `origin/main` `99916f28` is represented. Full CMake validation was not rerun because the local checkout remains blocked by missing populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - Post-push re-enumeration after `0130a3e1` found PR #274 advanced from `d670d661` to `7e1bdf53`, with no other non-draft head advances and no new non-draft PRs. Worktree `/tmp/luce-auto-cron-20260602-072724/postpush-pr274` merged the advanced head with no tree changes, so it was recorded as a no-content merge commit; exact-head containment now returns #274 to the included set.
 - Post-push #274 validation: `git diff --check -- docs/auto-integration.md` passed, targeted conflict-marker search in changed docs found none, and exact-head containment showed 26 current non-draft PR heads included with the same six non-ancestor candidates (#305, #237, #221, #154, #153, #135).
