@@ -150,7 +150,7 @@ def test_multi_turn_case_messages_alternate_roles_after_collapse(tmp_path: Path,
     # alternating role list.
     final = cases[-1]
     roles = [m["role"] for m in final["messages"]]
-    for a, b in zip(roles, roles[1:]):
+    for a, b in zip(roles, roles[1:], strict=False):
         assert a != b, f"adjacent same-role messages survived collapse: {roles}"
 
 

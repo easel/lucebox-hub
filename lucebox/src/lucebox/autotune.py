@@ -31,8 +31,8 @@ should follow when there's a second workload worth profiling.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
-from typing import Callable
+from collections.abc import Callable
+from dataclasses import dataclass, replace
 
 from lucebox.types import DflashRuntime, HostFacts
 
