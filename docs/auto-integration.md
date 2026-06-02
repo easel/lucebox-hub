@@ -4,15 +4,15 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-02T04:57:07-04:00`
+Last refresh: `2026-06-02T05:13:30-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `09573135`
-Current integration source tip before this refresh: `09573135`
+Previous integration tip: `8080f3d6`
+Current integration source tip before this refresh: `8080f3d6`
 refreshed_head: `branch tip containing this manifest`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 29 exact current open non-draft PR heads plus promoted selective salvage slices. This refresh found no new or advanced non-draft PR heads: `origin/main` remained `8305b6c2`, `easel/auto-integration` was `09573135`, and the six current non-draft PRs still requiring selective-port/manual work are #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-045017/probe-pr*` reconfirmed conflicts for all six candidates: #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). A fresh tmux-driven Codex pass for #305 stalled in verbose diff inspection without producing the requested report after hitting the known LFS clean-filter noise; the session was stopped and no edits were accepted. A fresh tmux-driven Claude pass for #135 exited at `--max-turns 8` without the requested report and left only the original three unmerged files. Existing selective salvage remains #305's isolated benchmark scripts and runtime slices, #237/#221's common MTP/metadata helpers plus #221's F32 GGUF NaN fail-fast slice, #153/#154's pre-norm hidden exposure and superseded converter path, and #135's diagnostic/control-plane scheduler scaffolds plus the F16 rollback-intermediate slice. Draft PRs remain excluded from non-draft target accounting: #329, #304, #275, #249, and #193.
+The current stack contains 29 exact current open non-draft PR heads plus promoted selective salvage slices. This refresh found no new or advanced non-draft PR heads: `origin/main` remained `8305b6c2`, `easel/auto-integration` was `8080f3d6`, and the six current non-draft PRs still requiring selective-port/manual work are #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-051118-pr*` reconfirmed conflicts for all six candidates: #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). A fresh tmux-driven Claude pass for #305 exited with `Error: Reached max turns (12)` and no usable feasibility report; no edits were accepted. A fresh tmux-driven Codex pass for #135 streamed a very large conflict transcript without a verdict report and was stopped; no edits were accepted. Existing selective salvage remains #305's isolated benchmark scripts and runtime slices, #237/#221's common MTP/metadata helpers plus #221's F32 GGUF NaN fail-fast slice, #153/#154's pre-norm hidden exposure and superseded converter path, and #135's diagnostic/control-plane scheduler scaffolds plus the F16 rollback-intermediate slice. Draft PRs remain excluded from non-draft target accounting: #329, #304, #275, #249, and #193.
 
 ## Included in the current stack
 
@@ -54,6 +54,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-02T05:10:05-04:00` / `2026-06-02T05:13:30-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `8080f3d6`, and source tip `8080f3d6`; `origin/main` was already represented.
+- Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included and six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. No non-draft PR head advanced in this run.
+- Reconcile worktree `/tmp/luce-auto-cron-20260602-051118` was branched from `easel/auto-integration`; `origin/main` was already included. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-051118-pr*` reconfirmed unmerged conflict counts: #305 (37), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3).
+- Tmux-driven Claude session `luce-pr305-051118` in `/tmp/luce-auto-cron-20260602-051118-pr305` exited with `Error: Reached max turns (12)` and no usable feasibility report. Tmux-driven Codex session `luce-pr135-codex-051118` in `/tmp/luce-auto-cron-20260602-051118-pr135` streamed a large conflict transcript without a verdict report and was stopped; no probe edits were promoted.
+- Validation for this manifest refresh: `git diff --check -- docs/auto-integration.md` passed, targeted conflict-marker search in changed docs found none, and exact-head containment still showed the same 29 current non-draft PR heads included. Full CMake validation was not rerun because no source code changed and prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - `date -Is` -> `2026-06-02T04:49:15-04:00` / `2026-06-02T04:57:07-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `09573135`, and source tip `09573135`; `origin/main` was already represented.
 - Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included and six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. No non-draft PR head advanced in this run.
