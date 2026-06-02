@@ -33,6 +33,7 @@ from lucebench.areas import (
 )
 from lucebench.model_cards import (
     card_is_thinking_capable,
+    card_sampling,
     normalize_model_card_stem,
     resolve_card,
 )
@@ -53,6 +54,72 @@ def _summarize_injection(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if isinstance(info, dict):
             return info
     return {"active": False, "token": None, "source": "none"}
+
+# Sampling fields threaded into run_case. The first three are also exposed as
+# explicit CLI flags (per-field override); the rest are card-only knobs the
+# CLI never surfaces but still forces from the card by default.
+_SAMPLING_FIELDS = (
+    "temperature",
+    "top_p",
+    "top_k",
+    "min_p",
+    "presence_penalty",
+    "repetition_penalty",
+)
+# CLI-overridable subset — these map to --temperature / --top-p / --top-k.
+_CLI_SAMPLING_FIELDS = ("temperature", "top_p", "top_k")
+
+
+def resolve_sampling(
+    *,
+    card: dict[str, Any] | None,
+    no_card_sampling: bool,
+    cli_temperature: float | None,
+    cli_top_p: float | None,
+    cli_top_k: int | None,
+) -> tuple[dict[str, Any], str]:
+    """Compute the effective per-field sampling dict + its provenance source.
+
+    Precedence, per field:
+      1. explicit CLI flag (not None) → use it (per-field override), else
+      2. resolved card's ``sampling[field]`` when a card resolved and has it
+         AND ``--no-card-sampling`` was not passed → use it, else
+      3. omit (None).
+
+    Returns ``(sampling, source)`` where ``sampling`` carries only the fields
+    that resolved (missing key = omit on the wire) and ``source`` is:
+      * ``"none"``  — nothing resolved (no card / opted out, no CLI flags)
+      * ``"cli"``   — every resolved field came from a CLI flag
+      * ``"card"``  — every resolved field came from the card
+      * ``"mixed"`` — a blend of CLI overrides and card values
+    """
+    card_block = {} if no_card_sampling else card_sampling(card)
+    cli_values = {
+        "temperature": cli_temperature,
+        "top_p": cli_top_p,
+        "top_k": cli_top_k,
+    }
+    sampling: dict[str, Any] = {}
+    saw_cli = False
+    saw_card = False
+    for field_name in _SAMPLING_FIELDS:
+        cli_val = cli_values.get(field_name)
+        if cli_val is not None:
+            sampling[field_name] = cli_val
+            saw_cli = True
+        elif field_name in card_block and card_block[field_name] is not None:
+            sampling[field_name] = card_block[field_name]
+            saw_card = True
+    if saw_cli and saw_card:
+        source = "mixed"
+    elif saw_cli:
+        source = "cli"
+    elif saw_card:
+        source = "card"
+    else:
+        source = "none"
+    return sampling, source
+
 
 # Threshold below which we'll auto-pick the first model and surface the
 # full list. Gateways with hundreds of models still need an explicit
@@ -655,9 +722,8 @@ def _run_standard_area_to_dir(
     timeout: int,
     max_tokens: int | None,
     think: bool | None,
-    temperature: float | None,
-    top_p: float | None,
-    top_k: int | None,
+    sampling: dict[str, Any] | None,
+    sampling_source: str | None,
     questions: int | None,
     no_fail_fast: bool,
     prompt_thinking_control: str,
@@ -692,6 +758,7 @@ def _run_standard_area_to_dir(
         prompt_thinking_control if card_is_thinking_capable(model_card) else "off"
     )
 
+    sampling = sampling or {}
     rows: list[dict[str, Any]] = []
     for idx, case in enumerate(cases, start=1):
         row = run_case(
@@ -702,9 +769,13 @@ def _run_standard_area_to_dir(
             think=chosen_think,
             model=model,
             auth_header=auth_header,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
+            temperature=sampling.get("temperature"),
+            top_p=sampling.get("top_p"),
+            top_k=sampling.get("top_k"),
+            min_p=sampling.get("min_p"),
+            presence_penalty=sampling.get("presence_penalty"),
+            repetition_penalty=sampling.get("repetition_penalty"),
+            sampling_source=sampling_source,
             thinking_control_flag=effective_thinking_control,
             server_honors_api_flags=server_honors_api_flags,
             reasoning_effort=reasoning_effort,
@@ -911,9 +982,8 @@ def _run_sweep(args) -> int:
             timeout=args.timeout,
             max_tokens=args.max_tokens,
             think=args.think,
-            temperature=args.temperature,
-            top_p=args.top_p,
-            top_k=args.top_k,
+            sampling=getattr(args, "sampling", {}),
+            sampling_source=getattr(args, "sampling_source", "none"),
             questions=args.questions,
             no_fail_fast=args.no_fail_fast,
             prompt_thinking_control=getattr(args, "prompt_thinking_control", "off"),
@@ -1118,6 +1188,12 @@ def main() -> int:
     ap.add_argument("--temperature", type=float, default=None)
     ap.add_argument("--top-p", type=float, default=None)
     ap.add_argument("--top-k", type=int, default=None)
+    ap.add_argument(
+        "--no-card-sampling",
+        action="store_true",
+        help="Do not apply the model card's sampling block; use only explicit "
+        "--temperature/--top-p/--top-k or omit.",
+    )
     ap.add_argument("--timeout", type=int, default=300, help="Per-request wall timeout (s).")
     ap.add_argument(
         "--auth-env",
@@ -1309,6 +1385,27 @@ def main() -> int:
         flush=True,
     )
 
+    # ── Effective sampling. By default we FORCE the resolved card's sampling
+    # block (so card-less servers — OpenRouter / MLX — run with the model's
+    # recommended decode params instead of the provider's defaults); explicit
+    # --temperature/--top-p/--top-k override per field, and --no-card-sampling
+    # opts out entirely (CLI-flags-or-omit). Threaded into both run_case call
+    # sites below. See resolve_sampling for the precedence.
+    sampling, sampling_source = resolve_sampling(
+        card=resolved_card,
+        no_card_sampling=getattr(args, "no_card_sampling", False),
+        cli_temperature=args.temperature,
+        cli_top_p=args.top_p,
+        cli_top_k=args.top_k,
+    )
+    args.sampling = sampling
+    args.sampling_source = sampling_source
+    print(
+        f"[lucebench] sampling: source={sampling_source} "
+        f"{sampling if sampling else '(server defaults)'}",
+        flush=True,
+    )
+
     # ── Multi-area dispatch: anything > 1 area in args.areas_list runs
     # through the sweep path, which writes per-area JSON + a combined
     # summary under <out-dir>/<name>/. Single-area runs use the slimmer
@@ -1424,9 +1521,13 @@ def main() -> int:
             think=think,
             model=args.model,
             auth_header=auth_header,
-            temperature=args.temperature,
-            top_p=args.top_p,
-            top_k=args.top_k,
+            temperature=args.sampling.get("temperature"),
+            top_p=args.sampling.get("top_p"),
+            top_k=args.sampling.get("top_k"),
+            min_p=args.sampling.get("min_p"),
+            presence_penalty=args.sampling.get("presence_penalty"),
+            repetition_penalty=args.sampling.get("repetition_penalty"),
+            sampling_source=args.sampling_source,
             thinking_control_flag=effective_thinking_control,
             server_honors_api_flags=getattr(args, "server_honors_api_flags", False),
             reasoning_effort=getattr(args, "reasoning_effort", "high"),

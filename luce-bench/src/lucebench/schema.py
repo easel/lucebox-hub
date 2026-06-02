@@ -187,6 +187,14 @@ class CanonicalRow:
     # ``card_stem`` is the normalized model id used for the bundled lookup.
     card_source: str | None = None
     card_stem: str | None = None
+    # Effective sampling provenance (see lucebench.cli.resolve_sampling). The
+    # CLI forces the resolved card's sampling block by default, with explicit
+    # --temperature/--top-p/--top-k overriding per field. ``sampling_source`` ∈
+    # {"card","cli","mixed","none"}; ``sampling`` is the actual dict sent on the
+    # wire (only the fields that resolved). Nullable for back-compat: rows
+    # predating card-driven sampling load with both None.
+    sampling_source: str | None = None
+    sampling: dict[str, Any] | None = None
     # Tier-2 client-thinking-budget block (see ClientThinking). Nullable for
     # back-compat: rows predating the feature (and runs without the flag, which
     # the runner stamps with mode="off") load with None when the key is absent.
