@@ -638,6 +638,9 @@ bool load_target_gguf_partial(const std::string & path,
     size_t total = 0;
     size_t tok_embd_off = 0, tok_embd_sz = 0;
     ggml_type tok_embd_type = GGML_TYPE_COUNT;
+    int corrupt_f32_count = 0;
+    std::string first_corrupt_name;
+    size_t first_corrupt_nan = 0;
     for (int64_t tid = 0; tid < n_tensors; tid++) {
         const char * tname = gguf_get_tensor_name(gctx, tid);
         ggml_tensor * t = ggml_get_tensor(meta_ctx, tname);
@@ -659,8 +662,37 @@ bool load_target_gguf_partial(const std::string & path,
         if (!should_load_target_tensor(tname, plan.layer_begin, plan.layer_end, plan.load_output, plan.skip_expert_tensors)) {
             continue;
         }
+        if (gguf_get_tensor_type(gctx, tid) == GGML_TYPE_F32) {
+            const float * fp = reinterpret_cast<const float *>((const uint8_t *)mm.addr + off);
+            const size_t n_elem = sz / sizeof(float);
+            size_t n_nan = 0;
+            for (size_t i = 0; i < n_elem; i++) {
+                uint32_t u;
+                std::memcpy(&u, fp + i, sizeof(u));
+                if ((u & 0x7F800000u) == 0x7F800000u && (u & 0x007FFFFFu) != 0u) {
+                    n_nan++;
+                }
+            }
+            if (n_nan > 0) {
+                if (corrupt_f32_count == 0) {
+                    first_corrupt_name = tname;
+                    first_corrupt_nan = n_nan;
+                }
+                corrupt_f32_count++;
+            }
+        }
         ggml_backend_tensor_set(t, (const uint8_t *)mm.addr + off, 0, sz);
         total += sz;
+    }
+    if (corrupt_f32_count > 0) {
+        char buf[384];
+        std::snprintf(buf, sizeof(buf),
+            "GGUF has %d F32 weight tensor(s) with NaN values (first: '%s' with %zu NaN). "
+            "This GGUF is corrupt; re-download it or use a different quantization.",
+            corrupt_f32_count, first_corrupt_name.c_str(), first_corrupt_nan);
+        set_last_error(buf);
+        gguf_free(gctx);
+        return false;
     }
 
     // ── 4b. Read NVFP4 per-tensor weight scales (optional; 1.0 for non-NVFP4).
