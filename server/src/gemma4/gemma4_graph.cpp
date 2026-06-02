@@ -43,6 +43,48 @@ static ggml_tensor * gemma4_rms_norm_mul(ggml_context * ctx, ggml_tensor * x,
     return ggml_mul(ctx, n, weight);
 }
 
+static void gemma4_capture_mtp_h_prev(ggml_context * ctx, ggml_cgraph * gf,
+                                      Gemma4Cache & cache,
+                                      ggml_tensor * final_hidden,
+                                      int n_embd,
+                                      int n_tokens) {
+    if (!cache.mtp_h_prev_enabled || !final_hidden || n_embd <= 0 || n_tokens <= 0) {
+        return;
+    }
+
+    // PR #183 fix: the assistant's h_prev is the post-final-RMSNorm hidden
+    // vector, i.e. the same representation consumed by lm_head, not an
+    // intermediate layer output or DFlash capture feature.
+    if (cache.mtp_h_prev_capture_mode == 1 && cache.mtp_h_prev_batch
+            && cache.mtp_h_prev_batch->ne[0] == n_embd
+            && n_tokens <= cache.mtp_h_prev_batch->ne[1]) {
+        ggml_tensor * dst = ggml_view_2d(
+            ctx, cache.mtp_h_prev_batch, n_embd, n_tokens,
+            cache.mtp_h_prev_batch->nb[1], 0);
+        ggml_build_forward_expand(gf, ggml_cpy(ctx, final_hidden, dst));
+        return;
+    }
+
+    if (!cache.mtp_h_prev || cache.mtp_h_prev->ne[0] != n_embd) {
+        return;
+    }
+
+    const int capture_row = cache.mtp_h_prev_row >= 0
+        ? cache.mtp_h_prev_row
+        : n_tokens - 1;
+    if (capture_row < 0 || capture_row >= n_tokens) {
+        return;
+    }
+
+    ggml_tensor * src = final_hidden;
+    if (n_tokens != 1 || capture_row != 0) {
+        src = ggml_view_2d(ctx, final_hidden, n_embd, 1,
+                           final_hidden->nb[1],
+                           (size_t)capture_row * final_hidden->nb[1]);
+    }
+    ggml_build_forward_expand(gf, ggml_cpy(ctx, src, cache.mtp_h_prev));
+}
+
 // Dense GELU-gated FFN (layer 0 / lead dense layers).
 // Gemma4 uses GELU not SiLU: cur = down( gelu(gate(x)) * up(x) )
 static ggml_tensor * build_gemma4_dense_ffn(ggml_context * ctx, ggml_tensor * cur,
@@ -726,6 +768,7 @@ bool gemma4_step(
 
     // Final norm
     cur = gemma4_rms_norm_mul(ctx, cur, w.out_norm, w.norm_eps);
+    gemma4_capture_mtp_h_prev(ctx, gf, cache, cur, w.n_embd, n_tokens);
 
     // Extract last token only for logits
     if (n_tokens > 1) {
@@ -901,6 +944,7 @@ bool gemma4_verify_batch(
 
     // Final norm
     cur = gemma4_rms_norm_mul(ctx, cur, w.out_norm, w.norm_eps);
+    gemma4_capture_mtp_h_prev(ctx, gf, cache, cur, w.n_embd, n_tokens);
 
     // lm_head for ALL tokens (no slicing)
     cur = ggml_mul_mat(ctx, w.output, cur);  // [n_vocab, n_tokens]

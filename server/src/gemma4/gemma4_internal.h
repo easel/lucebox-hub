@@ -73,6 +73,8 @@ struct Gemma4Layer {
     ggml_tensor * rope_freqs      = nullptr;
 };
 
+struct Gemma4Cache;
+
 struct Gemma4Weights {
     ggml_context *        ctx     = nullptr;
     ggml_backend_t        backend = nullptr;
@@ -148,6 +150,80 @@ inline int gemma4_n_head_kv(const Gemma4Weights & w, int il) {
     return w.n_head_kv;
 }
 
+// Gemma4 MTP (Multi-Token Prediction) assistant weights.  These are loaded
+// from gemma4_assistant GGUFs and cross-attend to donor target-layer K/V.
+struct MtpLayerWeights {
+    ggml_tensor * attn_norm      = nullptr;
+    ggml_tensor * wq             = nullptr;
+    ggml_tensor * attn_q_norm    = nullptr;
+    ggml_tensor * wo             = nullptr;
+    ggml_tensor * attn_post_norm = nullptr;
+    ggml_tensor * ffn_norm       = nullptr;
+    ggml_tensor * ffn_up         = nullptr;
+    ggml_tensor * ffn_gate       = nullptr;
+    ggml_tensor * ffn_down       = nullptr;
+    ggml_tensor * ffn_post_norm  = nullptr;
+    ggml_tensor * out_scale      = nullptr;
+
+    // Resolved per MTP layer: the last target layer whose attention type
+    // (SWA vs full) matches this assistant layer.
+    int32_t       donor_target_layer = -1;
+    bool          is_swa             = false;
+};
+
+struct MtpDrafterWeights {
+    ggml_tensor * pre_projection  = nullptr;  // [2*n_embd_backbone, n_embd]
+    ggml_tensor * post_projection = nullptr;  // [n_embd, n_embd_backbone]
+    ggml_tensor * output_norm     = nullptr;  // [n_embd]
+    ggml_tensor * tok_embd        = nullptr;  // [n_embd, n_vocab]
+    ggml_tensor * rope_freqs      = nullptr;  // [head_dim/2]
+    ggml_tensor * centroids       = nullptr;
+    ggml_tensor * token_ordering  = nullptr;
+
+    std::vector<MtpLayerWeights> layers;
+
+    int32_t  n_embd                 = 0;
+    int32_t  n_embd_backbone        = 0;
+    int32_t  n_centroids            = 0;
+    int32_t  centroid_top_k         = 0;
+    bool     use_ordered_embeddings = false;
+    bool     attention_k_eq_v       = false;
+    std::string requires_target_arch;
+
+    ggml_backend_t        backend = nullptr;
+    ggml_context        * ctx     = nullptr;
+    ggml_backend_buffer_t buffer  = nullptr;
+};
+
+struct MtpStepGraph {
+    ggml_context * ctx = nullptr;
+    ggml_cgraph  * gf  = nullptr;
+    ggml_tensor  * in_tok = nullptr;
+    ggml_tensor  * in_tok_embd = nullptr;
+    ggml_tensor  * in_h_prev = nullptr;
+    ggml_tensor  * in_pos = nullptr;
+    ggml_tensor  * fa_mask = nullptr;
+    int64_t        fa_mask_kv_seq_len = 0;
+    ggml_tensor  * out_logits = nullptr;
+    ggml_tensor  * out_h_post = nullptr;
+    ggml_tensor  * out_argmax = nullptr;
+};
+
+bool load_gemma4_mtp_assistant(const std::string & gguf_path,
+                               ggml_backend_t backend,
+                               MtpDrafterWeights & out);
+void free_gemma4_mtp_assistant(MtpDrafterWeights & w);
+bool get_mtp_swa_pattern(const std::string & gguf_path,
+                         std::vector<bool> & out_mtp_swa_layers);
+void resolve_mtp_donor_layers(MtpDrafterWeights & mtp,
+                              const std::vector<bool> & target_swa_layers);
+bool build_mtp_step_graph(const MtpDrafterWeights & w,
+                          const Gemma4Cache & target_cache,
+                          const Gemma4Weights & target,
+                          MtpStepGraph & out,
+                          int attn_pos);
+void free_mtp_step_graph(MtpStepGraph & g);
+
 bool load_gemma4_gguf(const std::string & path,
                        ggml_backend_t backend,
                        Gemma4Weights & out);
@@ -180,6 +256,19 @@ struct Gemma4Cache {
     int                   n_capture_layers = 0;
     std::vector<int>      capture_layer_ids;
 
+    // MTP assistant h_prev capture.  Allocated only when an MTP assistant is
+    // enabled; the target graph writes post-final-norm hidden states here so
+    // the assistant consumes the same hidden representation it was trained on.
+    ggml_tensor *         mtp_h_prev = nullptr;        // [n_embd_backbone, 1] F32
+    bool                  mtp_h_prev_enabled = false;
+    int                   mtp_last_full_layer = -1;
+    int                   mtp_h_prev_row = -1;         // >=0 selects accepted row
+    ggml_tensor *         mtp_h_prev_batch = nullptr;  // [n_embd_backbone, gamma_cap]
+    int                   mtp_h_prev_capture_mode = 0; // 0 = single-row, 1 = batch
+
+    ggml_context *        mtp_ctx = nullptr;
+    ggml_backend_buffer_t mtp_buf = nullptr;
+
     ggml_context *        ctx = nullptr;
     ggml_backend_buffer_t buf = nullptr;
 
@@ -202,6 +291,13 @@ void  free_gemma4_cache(Gemma4Cache & c);
 void  free_gemma4_target_feat(Gemma4Cache & c);
 bool  create_gemma4_target_feat(ggml_backend_t backend, Gemma4Cache & cache,
                                  int n_capture_layers, int hidden_size, int cap);
+
+// Allocate/free MTP h_prev capture buffers after the assistant loader determines
+// n_embd_backbone.  gamma_cap > 1 enables batch capture storage for future
+// multi-token accept paths while keeping gamma=1 cheap.
+void  free_gemma4_mtp_h_prev(Gemma4Cache & cache);
+bool  create_gemma4_mtp_h_prev(ggml_backend_t backend, Gemma4Cache & cache,
+                                int n_embd_backbone, int gamma_cap = 1);
 
 // Snapshot
 struct Gemma4Snapshot {

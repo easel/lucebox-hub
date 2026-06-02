@@ -566,6 +566,7 @@ bool create_gemma4_cache_partial(ggml_backend_t backend,
 }
 
 void free_gemma4_cache(Gemma4Cache & c) {
+    free_gemma4_mtp_h_prev(c);
     if (c.feat_buf) { ggml_backend_buffer_free(c.feat_buf); c.feat_buf = nullptr; }
     if (c.feat_ctx) { ggml_free(c.feat_ctx); c.feat_ctx = nullptr; }
     c.target_feat = nullptr;
@@ -576,6 +577,54 @@ void free_gemma4_cache(Gemma4Cache & c) {
     if (c.ctx) { ggml_free(c.ctx); c.ctx = nullptr; }
     c.k.clear(); c.v.clear(); c.kv_source.clear();
     c.cur_pos = 0;
+}
+
+void free_gemma4_mtp_h_prev(Gemma4Cache & c) {
+    if (c.mtp_buf) { ggml_backend_buffer_free(c.mtp_buf); c.mtp_buf = nullptr; }
+    if (c.mtp_ctx) { ggml_free(c.mtp_ctx); c.mtp_ctx = nullptr; }
+    c.mtp_h_prev = nullptr;
+    c.mtp_h_prev_batch = nullptr;
+    c.mtp_h_prev_enabled = false;
+    c.mtp_last_full_layer = -1;
+    c.mtp_h_prev_row = -1;
+    c.mtp_h_prev_capture_mode = 0;
+}
+
+bool create_gemma4_mtp_h_prev(ggml_backend_t backend, Gemma4Cache & cache,
+                               int n_embd_backbone, int gamma_cap) {
+    if (!backend || n_embd_backbone <= 0) return false;
+    if (gamma_cap < 1) gamma_cap = 1;
+
+    free_gemma4_mtp_h_prev(cache);
+
+    ggml_init_params ip{};
+    ip.mem_size = ggml_tensor_overhead() * (gamma_cap > 1 ? 2 : 1) + 4096;
+    ip.no_alloc = true;
+    cache.mtp_ctx = ggml_init(ip);
+    if (!cache.mtp_ctx) return false;
+
+    cache.mtp_h_prev = ggml_new_tensor_2d(cache.mtp_ctx, GGML_TYPE_F32,
+                                           n_embd_backbone, 1);
+    ggml_set_name(cache.mtp_h_prev, "gemma4_mtp_h_prev");
+
+    if (gamma_cap > 1) {
+        cache.mtp_h_prev_batch = ggml_new_tensor_2d(cache.mtp_ctx, GGML_TYPE_F32,
+                                                     n_embd_backbone, gamma_cap);
+        ggml_set_name(cache.mtp_h_prev_batch, "gemma4_mtp_h_prev_batch");
+    }
+
+    cache.mtp_buf = ggml_backend_alloc_ctx_tensors(cache.mtp_ctx, backend);
+    if (!cache.mtp_buf) {
+        ggml_free(cache.mtp_ctx); cache.mtp_ctx = nullptr;
+        cache.mtp_h_prev = nullptr;
+        cache.mtp_h_prev_batch = nullptr;
+        return false;
+    }
+
+    cache.mtp_h_prev_enabled = true;
+    cache.mtp_h_prev_row = -1;
+    cache.mtp_h_prev_capture_mode = gamma_cap > 1 ? 1 : 0;
+    return true;
 }
 
 void free_gemma4_target_feat(Gemma4Cache & c) {
