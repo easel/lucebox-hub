@@ -4,14 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-02T09:27:38-04:00`
+Last refresh: `2026-06-02T09:47:50-04:00`
 Current base: `origin/main` `99916f28`
-Previous integration tip: `6f6af498`
-Current integration source tip before this refresh: `6f6af498`
+Previous integration tip: `5acde2b6`
+Current integration source tip before this refresh: `5acde2b6`
 Post-push integration tip: `see current branch tip`
 refreshed_head: `see current branch tip`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
+
+Latest 09:47 refresh: fetched `origin` and `easel` separately; `origin/main` remains `99916f28` and already represented. Open PR accounting remains 32 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment showed 26 current open non-draft PR heads integrated, with the same six non-ancestor selective-port candidates remaining: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-094750/probe-pr*` reconfirmed conflicts #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). Tmux-driven Codex session `luce0947-pr221-codex` in `/tmp/luce-auto-cron-20260602-094750/probe-pr221` was stopped after it ignored the requested narrow live-file scope, streamed prior manifest/probe transcript material, and produced no final `VERDICT`; no probe edits were promoted. The current stack source tip therefore remains `5acde2b6` with no source changes this refresh.
 
 Latest 09:27 refresh: fetched `origin` and `easel` separately; `origin/main` remains `99916f28` and already represented. Open PR accounting remains 32 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment showed 26 current open non-draft PR heads integrated, with six non-ancestor selective-port candidates remaining: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-092738/probe-pr*` reconfirmed conflicts #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). Tmux-driven Codex session `luce0927-pr305-codex` in `/tmp/luce-auto-cron-20260602-092738/probe-pr305` wrote `/tmp/luce-auto-cron-20260602-092738/codex-pr305-feasibility.txt` with `VERDICT SAFE_SLICE`; the promoted slice adds `server/scripts/bench_daemon.py`, a standalone HumanEval `/v1/chat/completions` SSE benchmark that reuses current `bench_he.py` prompts and does not touch C++ runtime/build inputs. Broader #305 MoE extraction, Laguna hybrid, layer-split/backend IPC, and props/docs changes remain too coupled or stale relative to the current stack.
 
@@ -68,6 +70,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-02T09:47:50-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `99916f28`, `easel/auto-integration` `5acde2b6`, and source tip `5acde2b6`; `origin/main` was already represented.
+- Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 26 current open non-draft PR heads included and the same six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135.
+- Reconcile worktree `/tmp/luce-auto-cron-20260602-094750/stack` was branched from `easel/auto-integration`; `origin/main` was already included. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-094750/probe-pr*` reconfirmed unmerged conflict counts: #305 (37), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3).
+- Tmux-driven Codex session `luce0947-pr221-codex` in `/tmp/luce-auto-cron-20260602-094750/probe-pr221` produced `/tmp/luce-auto-cron-20260602-094750/codex-pr221-feasibility.txt` but streamed prior manifest/probe transcript material despite the narrow live-file scope and produced no final feasibility verdict, so it was stopped. No source edits were promoted from the conflicted probe.
+- Validation for this manifest refresh: `git diff --check -- docs/auto-integration.md` passed, targeted conflict-marker search in changed docs found none, and exact-head containment still showed 26 current non-draft PR heads included with the same six remaining non-ancestor candidates. Full CMake validation was not rerun because no source files changed and prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - `date -Is` -> `2026-06-02T09:27:38-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `99916f28`, `easel/auto-integration` `6f6af498`, and source tip `6f6af498`; `origin/main` was already represented.
 - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 26 current open non-draft PR heads included and the same six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135.
