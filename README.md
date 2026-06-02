@@ -274,8 +274,30 @@ All launchers spawn the native C++ HTTP server (`dflash_server`). Override defau
 
 ```bash
 DFLASH_SERVER_BIN=server/build/dflash_server \
+DFLASH_TARGET=server/models/Qwen3.6-27B-Q4_K_M.gguf \
+DFLASH_DRAFT=server/models/draft/dflash-draft-3.6-q4_k_m.gguf \
 MAX_CTX=32768 BUDGET=22 VERIFY_MODE=ddtree \
 harness/clients/run_codex.sh
+```
+
+For no-draft targets such as Gemma, set only `DFLASH_TARGET` or pass
+`DRAFT=none`; the harness will not attach the default Qwen draft to a custom
+target.
+
+Launcher scripts install missing real-client CLIs automatically under
+`.harness-work/`. To preinstall them yourself:
+
+```bash
+python3 harness/client_test_runner.py install --clients codex,hermes,openwebui
+```
+
+For direct TPS/TTFT numbers against a running server:
+
+```bash
+python3 harness/client_test_runner.py bench \
+  --url http://127.0.0.1:8000 \
+  --suite he,agent \
+  --n-sample 3
 ```
 
 ## 01 · Megakernel Qwen3.5 0.8B on RTX 3090
