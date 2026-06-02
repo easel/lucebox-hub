@@ -4,15 +4,15 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-02T03:20:48-04:00`
+Last refresh: `2026-06-02T03:26:51-04:00`
 Current base: `origin/main` `8305b6c2`
-Previous integration tip: `cbc515c4`
-Current integration source tip before this refresh: `cbc515c4`
+Previous integration tip: `986af643`
+Current integration source tip before this refresh: `986af643`
 refreshed_head: `branch tip containing this manifest`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-The current stack contains 29 exact current open non-draft PR heads plus promoted selective salvage slices. This refresh found no new or advanced non-draft PR heads: `origin/main` remained `8305b6c2`, `easel/auto-integration` was `cbc515c4`, and the six current non-draft PRs still requiring selective-port/manual work are #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-031554/probe-pr*` reconfirmed conflicts for all six candidates: #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). A fresh tmux-driven Codex pass for #237 completed with `VERDICT NO_SAFE_SLICE`: the only standalone helper-looking candidate (`gguf_metadata.h`) is already represented exactly as blob `2f2b321a0`, while the remaining MTP interface, chain runner, orchestrator, qwen35 MTP module/loader/graph, CMake wiring, and `test_common_mtp_orchestrator` changes are one coupled runtime contract. Existing selective salvage remains #305's isolated benchmark scripts and runtime slices, #237/#221's common MTP/metadata helpers where already represented, #153/#154's pre-norm hidden exposure and superseded converter path, and #135's diagnostic/control-plane scheduler scaffolds plus the F16 rollback-intermediate slice. Draft PRs remain excluded from non-draft target accounting: #329, #304, #275, #249, and #193.
+The current stack contains 29 exact current open non-draft PR heads plus promoted selective salvage slices. This refresh found no new or advanced non-draft PR heads: `origin/main` remained `8305b6c2`, `easel/auto-integration` was `986af643`, and the six current non-draft PRs still requiring selective-port/manual work are #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-031554/probe-pr*` reconfirmed conflicts for all six candidates: #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). A fresh tmux-driven Codex pass for #237 completed with `VERDICT NO_SAFE_SLICE`: the only standalone helper-looking candidate (`gguf_metadata.h`) is already represented exactly as blob `2f2b321a0`, while the remaining MTP interface, chain runner, orchestrator, qwen35 MTP module/loader/graph, CMake wiring, and `test_common_mtp_orchestrator` changes are one coupled runtime contract. Existing selective salvage remains #305's isolated benchmark scripts and runtime slices, #237/#221's common MTP/metadata helpers where already represented, #153/#154's pre-norm hidden exposure and superseded converter path, and #135's diagnostic/control-plane scheduler scaffolds plus the F16 rollback-intermediate slice. Draft PRs remain excluded from non-draft target accounting: #329, #304, #275, #249, and #193.
 
 ## Included in the current stack
 
@@ -54,6 +54,10 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-02T03:26:51-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `986af643`, and source tip `986af643`; `origin/main` was already represented.
+- Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included and six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. No non-draft PR head advanced in this run.
+- Reconcile worktree `/tmp/luce-auto-cron-20260602-032651/stack` was branched from `easel/auto-integration`; `origin/main` was already included. Fresh direct-merge probes were not needed because the current non-draft open-PR set and containment results matched the latest recorded stack refresh exactly. Validation for this manifest refresh: `git diff --check -- docs/auto-integration.md` passed, targeted conflict-marker search in changed docs found none, and exact-head containment still showed the same 29 current non-draft PR heads included. Full CMake validation was not rerun because no source code changed and prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - `date -Is` -> `2026-06-02T03:15:19-04:00` / `2026-06-02T03:20:48-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `8305b6c2`, `easel/auto-integration` `cbc515c4`, and source tip `cbc515c4`; `origin/main` was already represented.
 - Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 29 current open non-draft PR heads included and six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135. No non-draft PR head advanced in this run.
