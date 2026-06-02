@@ -4945,6 +4945,10 @@ int main(int argc, char ** argv) {
         free_target_cache(slot->cache);
     }
     daemon_extra_slots.clear();
+    if (drafter_loaded) {
+        dflash::common::free_drafter(drafter_ctx);
+        drafter_loaded = false;
+    }
     draft_feature_mirror_free(feature_mirror);
     step_graph_destroy(proj_sg);
     step_graph_destroy(draft_sg);
