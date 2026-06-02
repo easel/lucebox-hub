@@ -4,7 +4,7 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-02T09:12:31-04:00`
+Last refresh: `2026-06-02T09:16:00-04:00`
 Current base: `origin/main` `99916f28`
 Previous integration tip: `4bf20941`
 Current integration source tip before this refresh: `4bf20941`
@@ -12,6 +12,8 @@ Post-push integration tip: `see current branch tip`
 refreshed_head: `see current branch tip`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
+
+Latest 09:16 post-push refresh: after pushing `cfcdb534`, re-enumeration found PR #274 advanced from `7e1bdf53` to `81891bba` with no other non-draft head advances and no new non-draft PRs. Worktree `/tmp/luce-auto-cron-20260602-090416/postpush-pr274` merged the advanced #274 head cleanly, adding a `spec_fa_ref(0) -> 2048` C2 gate budget fallback plus unit coverage while preserving full-attention `fa_window=0` tool-call semantics. Validation for the post-push merge: `git diff --check -- server/src/qwen35/c2_gate.h server/src/qwen35/qwen35_backend.cpp server/test/test_server_unit.cpp docs/auto-integration.md` passed and changed-file conflict-marker search found none. Full CMake validation was not rerun because local project compilation remains blocked as described below.
 
 Latest 09:12 refresh: fetched `origin` and `easel` separately; `origin/main` remains `99916f28` and already represented. Open PR accounting remains 32 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment showed 26 current open non-draft PR heads integrated, with six non-ancestor selective-port candidates remaining: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-090416/probe-pr*` reconfirmed conflicts #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). Tmux-driven Claude session `luce0904-pr237-claude` in `/tmp/luce-auto-cron-20260602-090416/probe-pr237` stayed blank and produced an empty report. Fallback tmux-driven Codex session `luce0904-pr237-codex` wrote `/tmp/luce-auto-cron-20260602-090416/codex-pr237-feasibility.txt` with `VERDICT SAFE_SLICE`; the promoted slice teaches current `server/src/qwen35/gguf_target_loader.cpp` to subtract `nextn_predict_layers` from GGUF `block_count` so appended Qwen3.6 NextN/MTP head blocks are not counted as target backbone layers during partitioning. Broader #237 MTP runtime conflicts remain unresolved.
 
@@ -51,7 +53,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
 | #285 | `feat/lucebox-docker` | `93959170` | included | Docker stack / `lucebox` CLI / harness / `luce-bench`, Bragi sweep docs, autotune/sweep updates, shell harness tests, long-context grader coverage, GPU-power-throttle notes, luce-bench grader fixes, think-vs-nothink baseline summary, Forge grader tests, workdir backup ignore rules, README wording refresh, Qwen closed-think/unit-comment updates, pFlash multi-turn session benchmark helper, Gemma4 call-verb parser fix experiment notes, Bragi Qwen3.6 pFlash A/B refresh, soft-close config/docker propagation, and the latest `--debug-thinking-logits` trajectory diagnostic are carried with current-stack conflict resolutions. This refresh merged advanced head `93959170`, adding debug-thinking-logits CLI/config plumbing through `lucebox`, entrypoint env propagation, backend request/options plumbing, HTTP server wiring, and Qwen35 diagnostic logging while preserving current-stack soft-close, cancellation, status, and visible-output behavior. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
-| #274 | `feat/pflash-drafter-ee7` | `7e1bdf53` | included | Advanced adaptive pflash composition, effective-size admission/keep-ratio guard, and opt-in pflash regime router are carried exactly. The refreshed stack merged the current PR head cleanly after first fast-forwarding to the latest upstream `main`, preserving the current `force_ar_decode || !fa_within_budget` AR fallback and budget hook threading. |
+| #274 | `feat/pflash-drafter-ee7` | `81891bba` | included | Current head is carried exactly after the 09:16 post-push advance. Adds advanced adaptive pflash composition, effective-size admission/keep-ratio guard, opt-in pflash regime router, and the latest `spec_fa_ref(0) -> 2048` C2 gate fallback so production full-attention `fa_window=0` does not collapse spec-decode admission budget while preserving tool-call context. |
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried exactly. |
 | #152 | `main` | `cf735bee` | included | Gemma 4 RTX 4090 backend helpers are carried exactly. |
 | #142 | `xabicasa/dflash-safetensors-draft-fp16` | `f2fbf62f` | included | FP16 safetensors drafter support is carried exactly. |
@@ -64,6 +66,9 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- Post-push re-enumeration after `cfcdb534` found PR #274 advanced from `7e1bdf53` to `81891bba`, with no other non-draft head advances and no new non-draft PRs. Worktree `/tmp/luce-auto-cron-20260602-090416/postpush-pr274` merged the advanced #274 head cleanly; the merge adds `spec_fa_ref(0) -> 2048` C2 gate admission fallback in `server/src/qwen35/c2_gate.h`, threads it through `server/src/qwen35/qwen35_backend.cpp`, and adds unit coverage in `server/test/test_server_unit.cpp`.
+- Post-push #274 validation: `git diff --check -- server/src/qwen35/c2_gate.h server/src/qwen35/qwen35_backend.cpp server/test/test_server_unit.cpp docs/auto-integration.md` passed, targeted conflict-marker search in changed files found none, and exact-head containment after the #274 merge showed 27 current non-draft PR heads included with the same six remaining non-ancestor candidates (#305, #237, #221, #154, #153, #135).
 
 - `date -Is` -> `2026-06-02T09:04:16-04:00` / `2026-06-02T09:12:31-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `99916f28`, `easel/auto-integration` `4bf20941`, and source tip `4bf20941`; `origin/main` was already represented.
 - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 26 current open non-draft PR heads included and the same six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135.
