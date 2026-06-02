@@ -4,14 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-02T07:13:25-04:00`
-Current base: `origin/main` `d3b793f0`
-Previous integration tip: `a31e4d52`
-Current integration source tip before this refresh: `a31e4d52`
-Post-push integration tip: `2f00de8a`
+Last refresh: `2026-06-02T07:27:24-04:00`
+Current base: `origin/main` `a81128bd`
+Previous integration tip: `017dbe05`
+Current integration source tip before this refresh: `017dbe05`
+Post-push integration tip: `branch tip after this refresh`
 refreshed_head: `branch tip containing this manifest`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
+
+Latest 07:27 refresh: merged new upstream `origin/main` `a81128bd` into the stack, deleting retired `thoughts/2026-05-21_pflash_mvp_plan.md`; open PR accounting remained 32 non-draft plus 5 draft/excluded. Exact-head containment on the refreshed stack shows 26 current open non-draft PR heads integrated, with the same six non-ancestor selective-port candidates still pending manual work: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-072724/probe-pr*` reconfirmed conflict counts #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). A tmux-driven Codex check in `/tmp/luce-auto-cron-20260602-072724/probe-pr135` wrote `/tmp/luce-auto-cron-20260602-072724/codex-pr135-feasibility.txt` with `VERDICT NO_SAFE_SLICE`, finding the remaining scheduler/runtime pieces coupled to current `TargetLoadPlan`, layer-split/MoE/runtime-hparam/K-rotation, cache-copy, and test harness internals; no probe edits were promoted.
 
 The current stack contains 26 exact current open non-draft PR heads plus promoted selective salvage slices. This refresh found `origin/main` `d3b793f0` already represented and initially pushed docs-only status commit `ce095b23`; post-push re-enumeration found PR #274 had advanced to `d670d661`, so `/tmp/luce-auto-cron-20260602-064530/postpush-pr274` recorded the new #274 head with a no-content merge because its tree was already represented by the stack. GitHub currently reports 32 open non-draft PRs and 5 draft/excluded PRs. Exact-head containment shows the same six current non-draft PRs still requiring selective-port/manual work: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-064530/probe-pr*` reconfirmed conflicts for all six candidates: #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). A tmux-driven Codex pass for #154/#153 completed with `VERDICT NO_SAFE_SLICE`: the remaining native-MTP runtime remains coupled across current-layout server internals, Qwen35 target loading/graphs, test harness, MTP smoke tests, and old-layout build/docs; it rejected docs/script/CUDA-helper near-candidates as misleading or unwired without the conflicted runtime. Existing selective salvage remains #305's isolated benchmark scripts and runtime slices, #237/#221's common MTP/metadata helpers plus #221's F32 GGUF NaN fail-fast slice, #153/#154's pre-norm hidden exposure and superseded converter path, and #135's diagnostic/control-plane scheduler scaffolds plus the F16 rollback-intermediate slice and final drafter cleanup. Draft PRs remain excluded from non-draft target accounting: #329, #304, #275, #249, and #193. The 07:06 refresh found no new or advanced non-draft PR heads since `a31e4d52`; fresh direct-merge probes reconfirmed the same six conflicted candidates and a tmux-driven Codex recheck for #237 again returned `VERDICT NO_SAFE_SLICE` with no probe edits. Post-push re-enumeration found #290 advanced to `2890525f`; `/tmp/luce-auto-cron-20260602-070632/postpush-pr290` merged it with a README-only conflict resolution that preserved the current numbered README layout while adopting #290's harness env/install/bench documentation.
 
@@ -52,6 +54,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-02T07:27:24-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `a81128bd`, `easel/auto-integration` `017dbe05`, and source tip `017dbe05`; `origin/main` was not yet represented, so reconcile worktree `/tmp/luce-auto-cron-20260602-072724/stack` merged it cleanly. The upstream merge deleted retired `thoughts/2026-05-21_pflash_mvp_plan.md`.
+- Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 26 current open non-draft PR heads included and the same six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135.
+- Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-072724/probe-pr*` reconfirmed unmerged conflict counts: #305 (37), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3).
+- Tmux-driven Codex session `luce0727-pr135-codex` in `/tmp/luce-auto-cron-20260602-072724/probe-pr135` completed with report `/tmp/luce-auto-cron-20260602-072724/codex-pr135-feasibility.txt` and `VERDICT NO_SAFE_SLICE`: the remaining #135 changes would remove or conflict with current `TargetLoadPlan`, `create_target_cache_partial`, MoE/scale/shared EOS APIs, layer-split/MoE/runtime-hparam/K-rotation graph behavior, native scheduler runtime, batch cache copy/commit helpers, CUDA conversion launchers, and duplicated test utilities. Codex made no probe edits.
+- Validation for this source/manifest refresh: `git diff --check -- docs/auto-integration.md thoughts/2026-05-21_pflash_mvp_plan.md` passed, targeted conflict-marker search in changed files found none, and exact-head containment still showed 26 current non-draft PR heads included with the same six remaining non-ancestor candidates. Full CMake validation was not rerun because source changes were limited to upstream deletion plus manifest, and prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - Final post-push re-enumeration after `849c5707` found #290 no longer open; open PR accounting is now 32 non-draft plus 5 draft/excluded. Exact-head containment on `easel/auto-integration` `849c5707` showed 26 current open non-draft PR heads integrated and the same six non-ancestor candidates (#305, #237, #221, #154, #153, #135).
 
