@@ -598,7 +598,7 @@ GenerateResult Qwen35Backend::generate(const GenerateRequest & req,
         // generation. Most requests never hit the tail because the
         // model closes </think> naturally well before the budget edge.
         bool decode_ok = false;
-        if (req.force_ar_decode) or (!fa_within_budget) {
+        if (req.force_ar_decode || !fa_within_budget) {
             decode_ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
                                      req.budget_hook,
                                      &result.budget_forced_close,
