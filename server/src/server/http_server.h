@@ -19,6 +19,7 @@
 #include "prefix_cache.h"
 #include "disk_prefix_cache.h"
 #include "api_types.h"
+#include "placement/draft_residency.h"
 #include "placement/remote_draft_config.h"
 #include "common/pflash_drafter_ipc.h"
 #include "model_card.h"
@@ -150,7 +151,8 @@ struct ServerConfig {
     bool        pflash_remote_drafter = false; // use IPC drafter for mixed backends
     RemoteDraftConfig pflash_remote;        // IPC binary/work-dir for remote PFlash drafter
     bool        pflash_skip_park = false;   // skip park/unpark for >=32GB GPUs
-    bool        lazy_draft      = false;   // park decode draft when idle to save VRAM
+    bool        lazy_draft      = false;   // legacy alias for request-scoped draft residency
+    DraftResidencyPolicy draft_residency = DraftResidencyPolicy::Auto;
 
     // TYPE-gate compression router (v2).
     // Default: disabled (exact no-op, correct-by-construction).
