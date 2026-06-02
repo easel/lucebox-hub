@@ -4,14 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-02T07:27:24-04:00`
+Last refresh: `2026-06-02T07:48:37-04:00`
 Current base: `origin/main` `99916f28`
-Previous integration tip: `ed00f2f8`
-Current integration source tip before this refresh: `ed00f2f8`
-Post-push integration tip: `branch tip after this refresh`
+Previous integration tip: `10fccb96`
+Current integration source tip before this refresh: `10fccb96`
+Post-push integration tip: `pending push from this refresh`
 refreshed_head: `branch tip containing this manifest`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
+
+Latest 07:48 refresh: no new upstream base or open non-draft PR heads were found after fetching `origin` and `easel` separately. Open PR accounting is 32 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment on the stack still shows 26 current open non-draft PR heads integrated, with six non-ancestor selective-port candidates remaining: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-074837/probe-pr*` reconfirmed conflicts #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). Tmux-driven Codex session `luce0748-pr305-codex` in `/tmp/luce-auto-cron-20260602-074837/probe-pr305` wrote `/tmp/luce-auto-cron-20260602-074837/codex-pr305-feasibility.txt` with `VERDICT NO_SAFE_SLICE`: remaining PR305 hunks are either older than current stack behavior or coupled across Laguna hybrid MoE, common MoE, backend IPC, layer-split, placement, docs/specs, tests, and CMake; no probe edits were promoted.
 
 Latest 07:27 refresh: merged new upstream `origin/main` `a81128bd` into the stack, deleting retired `thoughts/2026-05-21_pflash_mvp_plan.md`; open PR accounting remained 32 non-draft plus 5 draft/excluded. Exact-head containment on the refreshed stack shows 26 current open non-draft PR heads integrated, with the same six non-ancestor selective-port candidates still pending manual work: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-072724/probe-pr*` reconfirmed conflict counts #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). A tmux-driven Codex check in `/tmp/luce-auto-cron-20260602-072724/probe-pr135` wrote `/tmp/luce-auto-cron-20260602-072724/codex-pr135-feasibility.txt` with `VERDICT NO_SAFE_SLICE`, finding the remaining scheduler/runtime pieces coupled to current `TargetLoadPlan`, layer-split/MoE/runtime-hparam/K-rotation, cache-copy, and test harness internals; no probe edits were promoted.
 
@@ -54,6 +56,12 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `date -Is` -> `2026-06-02T07:48:37-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --version`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `99916f28`, `easel/auto-integration` `10fccb96`, and source tip `10fccb96`; `origin/main` was already represented.
+- Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 26 current open non-draft PR heads included and the same six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135.
+- Reconcile worktree `/tmp/luce-auto-cron-20260602-074837/stack` was branched from `easel/auto-integration`; `origin/main` was already included. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-074837/probe-pr*` reconfirmed unmerged conflict counts: #305 (37), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3).
+- Tmux-driven Codex session `luce0748-pr305-codex` in `/tmp/luce-auto-cron-20260602-074837/probe-pr305` completed with report `/tmp/luce-auto-cron-20260602-074837/codex-pr305-feasibility.txt` and `VERDICT NO_SAFE_SLICE`: remaining #305 changes are either stale relative to current stack behavior or coupled across Laguna hybrid MoE, common MoE, backend IPC, layer-split/placement, specs/docs, tests, and CMake. Codex made no probe edits.
+- Validation for this manifest refresh: `git diff --check -- docs/auto-integration.md` passed, targeted conflict-marker search in changed docs found none, and exact-head containment still showed 26 current non-draft PR heads included with the same six remaining non-ancestor candidates. Full CMake validation was not rerun because no source files changed and prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 
 - Refreshed this branch from `origin/main`, merged PR #274 cleanly, and then merged the latest `easel/auto-integration` docs-only records. `git diff --check` passed after the doc refresh, and exact-head containment on the refreshed stack still shows 26 current open non-draft PR heads integrated, with the same held non-ancestor candidates (#305, #237, #221, #154, #153, #135) and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Local CMake/CTest validation was attempted but this WSL checkout lacks the configured Ninja/C/C++/CUDA toolchain; the preexisting `.docker-build/*` trees also point at `/workspace`, so both `ctest -N` and a fresh `cmake -S server -B .docker-build/local-server -G Ninja` fail here before project compilation.
 - Second post-push fetch found `origin/main` advanced from `a81128bd` to `99916f28` after the #274 refresh push. Worktree `/tmp/luce-auto-cron-20260602-072724/postpush-main-99916f28` merged the new upstream base cleanly; the upstream change updated `server/scripts/run.py` only.
