@@ -1092,6 +1092,7 @@ std::vector<ChatMessage> normalize_chat_messages(
             cm.role = m.value("role", "user");
 
             bool replayed = false;
+            // OpenAI format: assistant message with tool_calls field.
             if (cm.role == "assistant" && m.contains("tool_calls") &&
                 m["tool_calls"].is_array() && !m["tool_calls"].empty()) {
                 std::vector<std::string> call_ids;
@@ -1106,6 +1107,43 @@ std::vector<ChatMessage> normalize_chat_messages(
                 }
             }
 
+            // Anthropic format: assistant message with tool_use content blocks.
+            // IDs in tool_use blocks match the IDs stored in tool_memory when
+            // this server emitted the tool calls. Look them up to get the raw
+            // model output (already formatted for the model's chat template).
+            if (!replayed && cm.role == "assistant" &&
+                m.contains("content") && m["content"].is_array()) {
+                std::vector<std::string> call_ids;
+                for (const auto & part : m["content"]) {
+                    if (part.value("type", "") == "tool_use") {
+                        std::string id = part.value("id", "");
+                        if (!id.empty()) call_ids.push_back(id);
+                    }
+                }
+                if (!call_ids.empty()) {
+                    std::string raw = tool_memory.lookup(call_ids);
+                    if (!raw.empty()) {
+                        cm.content = raw;
+                        replayed = true;
+                    } else {
+                        // tool_memory miss (cross-session replay): synthesize
+                        // from the block fields using the model's tool_call XML.
+                        for (const auto & part : m["content"]) {
+                            if (part.value("type", "") == "tool_use") {
+                                json input = part.contains("input")
+                                    ? part["input"] : json::object();
+                                cm.content += "<tool_call>\n";
+                                cm.content += render_tool_call_xml(
+                                    part.value("name", ""), input);
+                                cm.content += "</tool_call>\n";
+                            }
+                        }
+                        replayed = !cm.content.empty();
+                    }
+                }
+            }
+
+            bool has_tool_results = false;
             if (!replayed) {
                 if (m.contains("content") && m["content"].is_string()) {
                     cm.content = m["content"].get<std::string>();
@@ -1115,16 +1153,45 @@ std::vector<ChatMessage> normalize_chat_messages(
                         if (ptype == "text" || ptype == "input_text" ||
                             ptype == "output_text") {
                             cm.content += part.value("text", "");
+                        } else if (ptype == "tool_result") {
+                            // Anthropic format: tool result inside a user
+                            // message. Push as a tool-role message so the
+                            // chat template wraps it in <tool_response> tags.
+                            has_tool_results = true;
+                            std::string result_content;
+                            if (part.contains("content")) {
+                                if (part["content"].is_string()) {
+                                    result_content =
+                                        part["content"].get<std::string>();
+                                } else if (part["content"].is_array()) {
+                                    for (const auto & c : part["content"]) {
+                                        if (c.value("type", "") == "text") {
+                                            result_content +=
+                                                c.value("text", "");
+                                        }
+                                    }
+                                }
+                            }
+                            std::string result_id =
+                                part.value("tool_use_id", "");
+                            chat_msgs.push_back(
+                                {"tool", result_content, result_id});
                         }
                     }
                 }
             }
 
-            if (format == ApiFormat::RESPONSES &&
-                (cm.role == "system" || cm.role == "developer")) {
-                system_parts.push_back(cm.content);
-            } else {
-                chat_msgs.push_back(std::move(cm));
+            // Skip pushing an empty user container when all content was
+            // tool_result blocks (already pushed as individual tool messages).
+            bool skip = (cm.role == "user" && has_tool_results &&
+                         cm.content.empty());
+            if (!skip) {
+                if (format == ApiFormat::RESPONSES &&
+                    (cm.role == "system" || cm.role == "developer")) {
+                    system_parts.push_back(cm.content);
+                } else {
+                    chat_msgs.push_back(std::move(cm));
+                }
             }
         }
     } else if (messages.is_string()) {
@@ -2564,19 +2631,21 @@ void HttpServer::worker_loop() {
         const int effective_think_ceiling = (req.per_req_phase1_cap >= 0)
             ? req.per_req_phase1_cap
             : config_.think_max_tokens;
-        // The effective per-request reply budget is the operator's choice
-        // (CLI / sidecar / per-request override). The AR loop force-closes
-        // when `n_gen - generated <= eff_reply`, which means n_gen must
-        // include BOTH the think budget AND the reply reserve. Without the
-        // `+ eff_reply` term, force-close fires immediately when
-        // `eff_reply == effective_think_ceiling` (e.g. think_max=4096,
-        // hard_limit=4096 → remaining starts at 4096, condition fires
-        // before the model emits a single thinking token). Spec §4.4.
+        // When thinking is active, max_tokens is the *response* budget only —
+        // thinking tokens are additive. n_gen = think_ceiling + response_budget,
+        // where response_budget = min(max_tokens, hard_limit_reply_budget).
+        // This prevents immediate force-close on benchmarks whose max_tokens
+        // were sized for nothink responses (e.g. gsm8k=2048, agent_recorded=4096).
+        // Without this, n_gen = min(think+reply, max_tokens) would cap n_gen
+        // below the hard_limit threshold, firing force-close at step 0. Spec §4.4.
         const int eff_reply_for_n_gen = (req.per_req_reply_budget >= 0)
             ? req.per_req_reply_budget
             : config_.hard_limit_reply_budget;
+        const int response_budget = budget_active
+            ? std::min(req.max_output, eff_reply_for_n_gen)
+            : req.max_output;
         const int n_gen_cap = budget_active
-            ? std::min(effective_think_ceiling + eff_reply_for_n_gen, req.max_output)
+            ? effective_think_ceiling + response_budget
             : req.max_output;
 
         GenerateRequest gen_req;
@@ -2608,7 +2677,12 @@ void HttpServer::worker_loop() {
                 ? req.per_req_reply_budget
                 : config_.hard_limit_reply_budget;
             gen_req.budget_hook.close_token_ids = config_.think_close_token_ids;
-            gen_req.budget_hook.hard_limit_remaining = eff_reply_budget;
+            // Clamp hard_limit to min(max_output, eff_reply_budget): when
+            // max_tokens is small (response-only budget), the actual reply
+            // window must respect it even though n_gen already accounts for
+            // thinking being additive. Spec §4.4.
+            gen_req.budget_hook.hard_limit_remaining =
+                std::min(req.max_output, eff_reply_budget);
 
             // Soft-close min-ratio. Operator-gated: only forwarded when
             // config_.soft_close_min_ratio > 0. Per-request value (if
