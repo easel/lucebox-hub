@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-02T11:47:03-04:00`
+Last refresh: `2026-06-02T17:57:06-04:00`
 Current base: `origin/main` `99916f28`
-Previous integration tip: `1fd9b166`
-Current integration source tip before this refresh: `1fd9b166`
-Post-push integration tip: `c7a47f1f`
-refreshed_head: `c7a47f1f`
+Previous integration tip: `8db02d3a`
+Current integration source tip before this refresh: `8db02d3a`
+Post-push integration tip: `6aed4506`
+refreshed_head: `6aed4506`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-Latest 11:47 refresh: fetched `origin` and `easel` separately; `origin/main` remains `99916f28` and already represented. The stack advanced locally to `c7a47f1f` with Gemma4 MTP h_prev capture support in `server/src/gemma4/gemma4_graph.cpp`, `server/src/gemma4/gemma4_internal.h`, and `server/src/gemma4/gemma4_loader.cpp`. Open PR accounting remains 32 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment remains unchanged at 26 current open non-draft PR heads integrated, with the same six non-ancestor selective-port candidates remaining: #305, #237, #221, #154, #153, and #135. `git diff --check -- easel/auto-integration..HEAD` passed after the source commit. No probe edits were promoted this refresh.
+Latest 17:57 refresh: fetched `origin` and `easel` separately; `origin/main` remains `99916f28` and already represented. The stack advanced locally to `6aed4506` by merging advanced PR #285 `730a429e` into the current stack after resolving a single docs/experiments conflict in `docs/experiments/gemma4-26b-call-verb-parser-fix-bragi-2026-05-31.md`. Open PR accounting remains 32 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment is now 26 current open non-draft PR heads integrated, with the same six non-ancestor selective-port candidates remaining: #305, #237, #221, #154, #153, and #135. `git diff --check --cached` passed after the merge, and `python3 -m py_compile` passed on the touched Python files. `python3 -m pytest lucebox/tests/test_autotune.py -q` could not run here because `pytest` is not installed in this environment. No probe edits were promoted this refresh.
 
 Latest 10:22 refresh: fetched `origin` and `easel` separately; `origin/main` remains `99916f28` and already represented. Open PR accounting remains 32 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment showed 26 current open non-draft PR heads integrated, with the same six non-ancestor selective-port candidates remaining: #305, #237, #221, #154, #153, and #135. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-102207/probe-pr*` reconfirmed conflicts #305 (37 unmerged), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3). Tmux-driven Codex session `luce1022-pr153154-codex` in `/tmp/luce-auto-cron-20260602-102207/probe-pr154` wrote `/tmp/luce-auto-cron-20260602-102207/codex-pr153154-feasibility.txt` with `VERDICT NO_SAFE_SLICE`: the remaining PR153/PR154 native-MTP work is old `dflash27b`/old-layout runtime and test material; `f16_convert.cu` is redundant with current `ggml_get_to_fp32_cuda` paths and unwired, MTP docs/scripts describe unavailable current-layout functionality, and the MTP graph/cache/loader tests require broader API and CMake reconciliation. No probe edits were promoted; the current stack source tip therefore remains `1fd9b166` with no source changes this refresh.
 
