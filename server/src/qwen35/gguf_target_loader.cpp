@@ -305,7 +305,11 @@ bool load_target_gguf_partial(const std::string & path,
 
     const uint32_t n_embd  = get_u32_or(gctx, key("embedding_length").c_str(), 0);
     const uint32_t n_ff    = get_u32_or(gctx, key("feed_forward_length").c_str(), 0);
-    const uint32_t n_layer = get_u32_or(gctx, key("block_count").c_str(), 0);
+    // Qwen3.6 MTP GGUFs append NextN head blocks after the backbone layers;
+    // target tensor partitioning below should only count backbone blocks.
+    const uint32_t n_block_raw = get_u32_or(gctx, key("block_count").c_str(), 0);
+    const uint32_t n_nextn = get_u32_or(gctx, key("nextn_predict_layers").c_str(), 0);
+    const uint32_t n_layer = n_block_raw > n_nextn ? n_block_raw - n_nextn : n_block_raw;
     const uint32_t n_head  = get_u32_or(gctx, key("attention.head_count").c_str(), 0);
     const uint32_t n_headkv= get_u32_or(gctx, key("attention.head_count_kv").c_str(), 0);
     const uint32_t kl      = get_u32_or(gctx, key("attention.key_length").c_str(), 0);
