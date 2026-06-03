@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-03T02:16:39-04:00`
-Current base: `origin/main` `99916f28`
-Previous integration tip: `f7e6f601`
-Current integration source tip before this refresh: `f7e6f601`
-Post-push integration tip: `59ef75dc`
-refreshed_head: `59ef75dc`
+Last refresh: `2026-06-03T06:25:14-04:00`
+Current base: `origin/main` `4f043029`
+Previous integration tip: `ba6174d7`
+Current integration source tip before this refresh: `ba6174d7`
+Post-push integration tip: `9db0c300`
+refreshed_head: `9db0c300`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-Latest 02:16 refresh: fetched `origin` and `easel` separately; `origin/main` remains `99916f28` and already represented. Open PR accounting remains 32 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment now shows 24 current open non-draft PR heads integrated, with seven open non-ancestor / held candidates remaining: #305, #285, #237, #221, #154, #153, and #135. PR #285 advanced again to `e63f4e02`; the branch still carries the earlier `93959170` Docker/CLI/harness stack, but the live head is now a large unstable continuation, so it is held for follow-up rather than re-merged this refresh. Draft PR #329 also advanced to `ee9cd9e9` but remains excluded. No source edits were promoted this refresh.
+Latest 06:25 refresh: fetched `origin` and `easel` separately; merged `origin/main` `4f043029` into `auto-integration` via a no-content merge, so the branch now tracks the new upstream base while preserving the existing stack tree. Current open PR accounting is 31 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment now shows 24 current open non-draft PR heads integrated, with seven open non-ancestor / held candidates remaining: #305, #285, #237, #221, #154, #153, and #135. PR #285 remains held because the live head is still a large unstable continuation, and the earlier Docker/CLI/harness stack remains represented in the integration tree. No source edits were promoted this refresh.
 
 Latest 17:57 refresh: fetched `origin` and `easel` separately; `origin/main` remains `99916f28` and already represented. The stack advanced locally to `6aed4506` by merging advanced PR #285 `730a429e` into the current stack after resolving a single docs/experiments conflict in `docs/experiments/gemma4-26b-call-verb-parser-fix-bragi-2026-05-31.md`. Open PR accounting remains 32 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment is now 26 current open non-draft PR heads integrated, with the same six non-ancestor selective-port candidates remaining: #305, #237, #221, #154, #153, and #135. `git diff --check --cached` passed after the merge, and `python3 -m py_compile` passed on the touched Python files. `python3 -m pytest lucebox/tests/test_autotune.py -q` could not run here because `pytest` is not installed in this environment. No probe edits were promoted this refresh.
 
@@ -79,7 +79,7 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 
 This run performed (latest first):
 
-- `date -Is` -> `2026-06-02T10:21:10-04:00` / `2026-06-02T10:22:07-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `99916f28`, `easel/auto-integration` `1fd9b166`, and source tip `1fd9b166`; `origin/main` was already represented.
+- `date -Is` -> `2026-06-03T06:25:14-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `4f043029`, `easel/auto-integration` `9db0c300`, and source tip `9db0c300`; `origin/main` is represented via a no-content merge. Open PR enumeration reports 31 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch shows 24 current open non-draft PR heads included and the same seven remaining non-ancestor/held candidates: #305, #285, #237, #221, #154, #153, and #135. `git diff --check -- docs/auto-integration.md` passed after the manifest update. Full CMake validation was not rerun because no source files changed and prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 26 current open non-draft PR heads included and the same six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135.
 - Reconcile worktree `/tmp/luce-auto-cron-20260602-102207/stack` was branched from `easel/auto-integration`; `origin/main` was already included. Fresh direct-merge probes under `/tmp/luce-auto-cron-20260602-102207/probe-pr*` reconfirmed unmerged conflict counts: #305 (37), #237 (29), #221 (27), #154 (12), #153 (10), and #135 (3).
 - Tmux-driven Codex session `luce1022-pr153154-codex` in `/tmp/luce-auto-cron-20260602-102207/probe-pr154` completed with report `/tmp/luce-auto-cron-20260602-102207/codex-pr153154-feasibility.txt` and `VERDICT NO_SAFE_SLICE`: `server/src/f16_convert.cu` is redundant with current `ggml_get_to_fp32_cuda` usage and lacks safe current-layout build wiring; `server/src/internal.h`, `server/src/qwen35/gguf_target_loader.cpp`, `server/src/qwen35/qwen35_target_graph.cpp`, MTP smoke tests, and docs/scripts remain coupled to old `dflash27b` native-MTP APIs, old CMake/test wiring, and broader loader/graph/cache reconciliation. No probe edits were promoted.
