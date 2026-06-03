@@ -4,12 +4,12 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-02T17:57:06-04:00`
+Last refresh: `2026-06-03T02:16:39-04:00`
 Current base: `origin/main` `99916f28`
-Previous integration tip: `8db02d3a`
-Current integration source tip before this refresh: `8db02d3a`
-Post-push integration tip: `6aed4506`
-refreshed_head: `6aed4506`
+Previous integration tip: `f7e6f601`
+Current integration source tip before this refresh: `f7e6f601`
+Post-push integration tip: `59ef75dc`
+refreshed_head: `59ef75dc`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
