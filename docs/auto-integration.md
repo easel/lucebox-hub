@@ -4,14 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-03T06:25:14-04:00`
-Current base: `origin/main` `4f043029`
-Previous integration tip: `9db0c300`
-Current integration source tip before this refresh: `9db0c300`
-Post-push integration tip: `2363cff7`
-refreshed_head: `2363cff7`
+Last refresh: `2026-06-03T14:53:23-04:00`
+Current base: `origin/main` `080b501c`
+Previous integration tip: `95073090`
+Current integration source tip before this refresh: `95073090`
+Post-push integration tip: `4018f6e6`
+refreshed_head: `4018f6e6`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
+
+Latest 14:53 refresh: fetched `origin` and `easel` separately; merged `origin/main` `080b501c` (upstream PR #295, `fix-layer-split-sampling`) into `auto-integration`, then completed the in-flight PR #322 merge with the single `server/test/test_server_unit.cpp` conflict resolved by preserving both the existing layer-split sampling regression and the new prefill-chunk regression. Current open PR accounting is 27 non-draft plus 4 draft/excluded (#329, #304, #275, #249). The branch now tracks the refreshed upstream base and carries PR #322's status-dashboard changes on top of it; no new source slices were promoted beyond merge conflict resolution and the upstream refresh.
 
 Latest 06:25 refresh: fetched `origin` and `easel` separately; merged `origin/main` `4f043029` into `auto-integration` via a no-content merge, so the branch now tracks the new upstream base while preserving the existing stack tree. Current open PR accounting is 31 non-draft plus 5 draft/excluded (#329, #304, #275, #249, #193). Exact-head containment now shows 24 current open non-draft PR heads integrated, with seven open non-ancestor / held candidates remaining: #305, #285, #237, #221, #154, #153, and #135. PR #285 remains held because the live head is still a large unstable continuation, and the earlier Docker/CLI/harness stack remains represented in the integration tree. No source edits were promoted this refresh.
 
@@ -73,7 +75,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | included / superseded | Recorded with an `ours` merge because the current tree already has SWA draft support (`DraftLayer::is_swa`, `DraftWeights::swa_window`, safetensors SWA metadata parsing, SWA-aware draft masks, and GGUF SWA metadata support). |
 | #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | included / superseded | Merged by preserving deletion of retired `dflash/CMakeLists.txt`; current `server/CMakeLists.txt` already conditionally handles Blackwell/CUDA-version flags. |
 
-Closed, upstreamed, or no-longer-open PRs still represented by the stack/base include #328, #317, #316, #314, #313, #311, #307, #303, #302, #301, #300, #299, #298, #292, and #290.
+Closed, upstreamed, or no-longer-open PRs still represented by the stack/base include #328, #317, #316, #314, #313, #311, #307, #303, #302, #301, #300, #299, #298, #295, #292, and #290.
 
 ## Validation run
 
