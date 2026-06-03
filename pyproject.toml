@@ -8,6 +8,8 @@ license = { text = "Apache-2.0" }
 authors = [{ name = "Lucebox" }]
 
 dependencies = [
+    "harness",
+    "lucebox",
     "lucebox-dflash",
     "pflash",
 ]
@@ -51,11 +53,13 @@ package = false
 no-build-isolation-package = ["qwen35-megakernel-bf16"]
 
 [tool.uv.workspace]
-# Workspace members. Keeping the list to the packages that live in this
-# repo lets `uv lock --check` / `uv sync --frozen` pass.
-members = ["server", "optimizations/megakernel", "optimizations/pflash"]
+# Workspace members. PR adds harness/ and lucebox/ packages alongside the
+# existing server / megakernel / pflash members.
+members = ["harness", "lucebox", "server", "optimizations/megakernel", "optimizations/pflash"]
 
 [tool.uv.sources]
+harness = { workspace = true }
+lucebox = { workspace = true }
 lucebox-dflash = { workspace = true }
 pflash = { workspace = true }
 qwen35-megakernel-bf16 = { workspace = true }
