@@ -2677,6 +2677,8 @@ void HttpServer::worker_loop() {
                 ? req.per_req_reply_budget
                 : config_.hard_limit_reply_budget;
             gen_req.budget_hook.close_token_ids = config_.think_close_token_ids;
+            gen_req.budget_hook.soft_close_probe_ids =
+                config_.think_close_probe_token_ids;
             // Clamp hard_limit to min(max_output, eff_reply_budget): when
             // max_tokens is small (response-only budget), the actual reply
             // window must respect it even though n_gen already accounts for
@@ -2694,6 +2696,11 @@ void HttpServer::worker_loop() {
                         ? req.per_req_soft_close_min_ratio
                         : config_.soft_close_min_ratio;
             }
+
+            // Minimum-thinking-tokens floor: false-positive guard for
+            // soft-close. Server-policy only (no per-request override).
+            gen_req.budget_hook.soft_close_min_tokens =
+                config_.soft_close_min_tokens;
 
             // Diagnostic trajectory log — operator dial only. Carried
             // through the BudgetHook so the AR loop can emit one line
