@@ -65,7 +65,21 @@ static bool looks_like_plain_text_call(const std::string & text) {
     return false;
 }
 
-static bool find_tool_start(const std::string & text, size_t & pos) {
+// `is_plain_text` (out) reports whether the matched opener was Pattern B
+// (plain-text `call:<verb>{`) vs Pattern A (XML envelope: `<tool_call>`,
+// `<function=`, `<tool_code>`). Callers use this to drive divergent
+// downstream behavior at emit_finish:
+//   - Pattern A: malformed parse → suppress buffer (XML envelopes are not
+//     user-facing text); .done events expose only the pre-call accumulated
+//     content.
+//   - Pattern B: malformed parse → flush buffer back to accumulated_content_
+//     so the literal `call:foo{...` span stays caller-visible; on success,
+//     the raw call text must also appear in the Responses-format
+//     finalization events (see emit_finish for the responses_streamed_text
+//     handling).
+static bool find_tool_start(const std::string & text, size_t & pos,
+                            bool & is_plain_text) {
+    is_plain_text = false;
     // Pattern A: XML-like openers (<tool_call>, <function=, <tool_code>).
     size_t idx = text.find('<');
     while (idx != std::string::npos) {
@@ -107,6 +121,7 @@ static bool find_tool_start(const std::string & text, size_t & pos) {
             size_t verb_start = found + CALL_PREFIX_LEN;
             if (verb_start < text.size() && std::isalpha((unsigned char)text[verb_start])) {
                 pos = found;
+                is_plain_text = true;
                 return true;
             }
         }
@@ -466,8 +481,9 @@ std::vector<std::string> SseEmitter::emit_token(const std::string & raw_piece) {
         size_t think_idx = window_.find(THINK_OPEN);
         size_t think_close_idx = window_.find(THINK_CLOSE);
         size_t tool_idx = std::string::npos;
+        bool tool_is_plain_text = false;
         bool tool_hit = has_request_tools(tools_) &&
-                        find_tool_start(window_, tool_idx);
+                        find_tool_start(window_, tool_idx, tool_is_plain_text);
 
         struct Hit { size_t pos; int type; };  // type: 0=think, 1=think_close, 2=tool-ish
         std::vector<Hit> hits;
@@ -496,6 +512,7 @@ std::vector<std::string> SseEmitter::emit_token(const std::string & raw_piece) {
                 // Tool-call syntax. Keep the full tag/function text buffered
                 // until finish so the parser can validate it.
                 tool_buffer_ = window_.substr(h.pos);
+                tool_open_is_plain_text_ = tool_is_plain_text;
                 window_.clear();
                 mode_ = StreamMode::TOOL_BUFFER;
             }
@@ -585,19 +602,36 @@ std::vector<std::string> SseEmitter::emit_finish(int completion_tokens,
     }
     window_.clear();
 
-    // Snapshot of what the Responses stream actually emitted as text
-    // deltas. The CONTENT-mode plain-text tool-call branch below
-    // mutates accumulated_content_ (strips matched call spans so the
-    // non-streaming response shape doesn't duplicate them as both text
-    // AND tool_use), but the Responses-format finalization events
+    // Snapshot of pre-strip text for the Responses finalization events.
+    //
+    // The Responses-format finalization events
     // (response.output_text.done / content_part.done / completed) must
-    // reflect what was actually streamed in earlier
-    // response.output_text.delta events — otherwise a streaming client
-    // sees its accumulated buffer disagree with the .done payload.
-    // Other formats (OpenAI Chat, Anthropic) don't echo final
-    // aggregated text in the stream, so they can continue to read the
-    // (possibly stripped) accumulated_content_ directly.
-    const std::string responses_streamed_text = accumulated_content_;
+    // reflect the full assistant text — including any plain-text
+    // `call:<verb>{...}` span — so a streaming client sees its accumulated
+    // buffer agree with the server's .done payload, and non-streaming
+    // builders that consume .completed get the raw assistant emission.
+    // Meanwhile, accumulated_text() (used by OpenAI Chat / Anthropic final
+    // shapes and non-streaming Responses builders that DO want stripped
+    // text to avoid text+tool_use duplication) continues to return the
+    // post-hoist stripped form.
+    //
+    // Cases:
+    //   - Pattern A (XML envelope, mode==TOOL_BUFFER): tool_buffer_ holds
+    //     protocol artifact text (`<tool_call>...`) that was never streamed
+    //     as a delta. Excluded from responses_streamed_text — the .done
+    //     events expose only the pre-call accumulated_content_ (current
+    //     behavior).
+    //   - Pattern B (plain-text `call:`, mode==TOOL_BUFFER): tool_buffer_
+    //     holds the raw `call:<verb>{...}` span plus any post-call trailing
+    //     text. Both belong in the visible text snapshot per the PR #329
+    //     review (tests #1126 et al).
+    //   - mode==CONTENT plain-text hoist branch below: accumulated_content_
+    //     already contains the full pre-strip text; the snapshot taken
+    //     here freezes it before the strip mutates it.
+    std::string responses_streamed_text = accumulated_content_;
+    if (mode_ == StreamMode::TOOL_BUFFER && tool_open_is_plain_text_) {
+        responses_streamed_text += tool_buffer_;
+    }
 
     // Parse tool calls from buffer
     std::string fr = "stop";
@@ -699,9 +733,27 @@ std::vector<std::string> SseEmitter::emit_finish(int completion_tokens,
                 break;
             default: break;
             }
+        } else if (tool_open_is_plain_text_) {
+            // Pattern B (plain-text `call:<verb>{...`) failed to parse —
+            // most commonly an unbalanced `{` (the model's args were
+            // truncated, or the verb name is real but the JSON body
+            // never closed). Unlike Pattern A's XML envelopes, the
+            // buffered span here is plain user-facing text. Flushing
+            // it back to accumulated_content_ (and re-emitting as a
+            // content delta) preserves the malformed span as
+            // caller-visible signal that the model produced garbage —
+            // dropping it silently would hide the failure mode.
+            // accumulated_text() then reports the original `call:`
+            // text exactly as the model emitted it.
+            accumulated_content_ += tool_buffer_;
+            emit_content_delta(out, tool_buffer_);
+            tool_buffer_.clear();
         } else {
-            // Tool syntax was detected but no valid call parsed. Do not leak
-            // malformed/incomplete XML back to the user as assistant text.
+            // Pattern A (XML envelope) parse failure. Do not leak
+            // malformed/incomplete `<tool_call>` / `<function=` /
+            // `<tool_code>` markup back to the user as assistant text
+            // — XML envelopes are protocol artifacts, not prose. See
+            // test_emitter_does_not_leak_malformed_tool_xml.
             std::fprintf(stderr,
                 "[server] tool_call parse failed; suppressing buffered tool text "
                 "request_id=%s format=%d bytes=%zu\n",

@@ -159,6 +159,21 @@ private:
     StreamMode   mode_;
     std::string  window_;           // holdback buffer
     std::string  tool_buffer_;      // accumulated tool text
+    // True when TOOL_BUFFER was entered via Pattern B (plain-text
+    // `call:<verb>{` opener) rather than Pattern A (XML envelope:
+    // `<tool_call>` / `<function=` / `<tool_code>`). Set at the
+    // CONTENT→TOOL_BUFFER transition in emit_token(). Drives two
+    // divergent behaviors at emit_finish():
+    //   1. malformed-parse branch: Pattern A drops the buffer
+    //      (XML envelopes are not user-facing prose); Pattern B
+    //      flushes the buffer back to accumulated_content_ so the
+    //      literal `call:foo{...` span stays caller-visible.
+    //   2. Responses-format finalization events (.output_text.done /
+    //      .content_part.done / .completed): Pattern B includes the
+    //      raw call span in the streamed-text snapshot used for
+    //      these events, while accumulated_text() continues to
+    //      return the stripped (post-hoist) text.
+    bool         tool_open_is_plain_text_ = false;
     std::string  accumulated_content_;
     std::string  accumulated_raw_;  // all raw text for tool memory
     std::string  reasoning_text_;
