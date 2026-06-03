@@ -20,6 +20,7 @@
 #include "ggml.h"
 #include "ggml-backend.h"
 #include "sampler.h"
+#include "placement/draft_residency.h"
 
 namespace dflash::common {
 
@@ -286,6 +287,7 @@ struct ModelBackend {
         // 0 = off (agentic path: suppress cascade to avoid anchor bloat).
         // 1 = on  (retrieval path: full expansion, same as today).
         int                  use_transitive = -1;
+        DraftResidencyAction residency_action = DraftResidencyAction::KeepLoaded;
     };
 
     struct CompressResult {
