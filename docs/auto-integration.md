@@ -4,14 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-03T14:53:23-04:00`
+Last refresh: `2026-06-03T14:58:48-04:00`
 Current base: `origin/main` `080b501c`
-Previous integration tip: `95073090`
-Current integration source tip before this refresh: `95073090`
-Post-push integration tip: `4018f6e6`
-refreshed_head: `4018f6e6`
+Previous integration tip: `4018f6e6`
+Current integration source tip before this refresh: `4018f6e6`
+Post-push integration tip: `0218f46d`
+refreshed_head: `0218f46d`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
+
+Latest 14:58 docs refresh: recorded the current branch head `0218f46d` after updating this manifest. No source-stack changes were made; the branch still carries the 14:53 upstream-sync result plus this documentation-only checkpoint.
 
 Latest 14:53 refresh: fetched `origin` and `easel` separately; merged `origin/main` `080b501c` (upstream PR #295, `fix-layer-split-sampling`) into `auto-integration`, then completed the in-flight PR #322 merge with the single `server/test/test_server_unit.cpp` conflict resolved by preserving both the existing layer-split sampling regression and the new prefill-chunk regression. Current open PR accounting is 27 non-draft plus 4 draft/excluded (#329, #304, #275, #249). The branch now tracks the refreshed upstream base and carries PR #322's status-dashboard changes on top of it; no new source slices were promoted beyond merge conflict resolution and the upstream refresh.
 
