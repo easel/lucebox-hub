@@ -4,14 +4,18 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-03T14:58:48-04:00`
+Last refresh: `2026-06-03T17:07:23-04:00`
 Current base: `origin/main` `080b501c`
-Previous integration tip: `4018f6e6`
-Current integration source tip before this refresh: `4018f6e6`
-Post-push integration tip: `0218f46d`
-refreshed_head: `0218f46d`
+Previous integration tip: `858c6e7c`
+Current integration source tip before this refresh: `858c6e7c`
+Post-push integration tip: `e07031a0`
+refreshed_head: `e07031a0`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
+
+Latest 17:07 refresh: fetched `origin` and `easel` separately, re-enumerated open PR heads, and merged the current PR #274 head `0bd1c13f` back into `auto-integration` after resolving the CMake registration delta. The substantive pflash admission fix from #274 was already represented in the current stack; this refresh mainly promoted the new `server/CMakeLists.txt` test wiring for the recently added drafter/router/tail-guard regression binaries.
+
+Exact-head containment after the refresh shows 22 included current open non-draft PR heads (`#332 #326 #325 #324 #322 #321 #319 #315 #312 #310 #309 #308 #306 #297 #294 #276 #274 #152 #142 #137 #94 #48`) and 5 remaining non-ancestor/held candidates (`#305 #285 #154 #153 #135`). Draft/excluded PRs currently are `#329`, `#304`, `#275`, and `#249`. No new source slices were promoted beyond the merge conflict resolution and test-registration update.
 
 Latest 14:58 docs refresh: recorded the current branch head `0218f46d` after updating this manifest. No source-stack changes were made; the branch still carries the 14:53 upstream-sync result plus this documentation-only checkpoint.
 
@@ -82,6 +86,8 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `git diff --check --cached -- server/CMakeLists.txt` passed after the merge resolution; `easel/auto-integration` was pushed at `e07031a0`, and exact-head containment now shows 22 included current open non-draft PR heads, 5 held/non-ancestor candidates, and 4 draft/excluded PRs. No CMake or test suite rerun was needed because the promoted tree delta is limited to test-registration wiring.
 
 - `date -Is` -> `2026-06-03T06:25:14-04:00`; primary checkout was clean on `auto-integration`, auth/tooling checks succeeded using the real user credential home (`gh auth status`, `claude auth status --text`, `codex --help`), and `origin` / `easel` were fetched separately. Current refs were `origin/main` `4f043029`, `easel/auto-integration` `2363cff7`, and source tip `2363cff7`; `origin/main` is represented via a no-content merge. Open PR enumeration reports 31 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch shows 24 current open non-draft PR heads included and the same seven remaining non-ancestor/held candidates: #305, #285, #237, #221, #154, #153, and #135. `git diff --check -- docs/auto-integration.md` passed after the manifest update. Full CMake validation was not rerun because no source files changed and prior attempts in this checkout remain blocked by missing populated `server/deps/llama.cpp` plus the known local CUDA compiler-id `sm_52` `ptxas` failure before project compilation.
 - Open PR enumeration reported 32 non-draft PRs and 5 draft/excluded PRs (#329, #304, #275, #249, #193). Exact-head containment after explicit PR ref fetch showed 26 current open non-draft PR heads included and the same six remaining non-ancestor/selective-port candidates: #305, #237, #221, #154, #153, and #135.
