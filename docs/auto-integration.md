@@ -4,18 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-03T17:07:23-04:00`
+Last refresh: `2026-06-03T19:11:57-04:00`
 Current base: `origin/main` `080b501c`
-Previous integration tip: `858c6e7c`
-Current integration source tip before this refresh: `858c6e7c`
-Post-push integration tip: `e07031a0`
-refreshed_head: `e07031a0`
+Previous integration tip: `e07031a0`
+Current integration source tip before this refresh: `a70c3a84`
+Post-push integration tip: `a70c3a84`
+refreshed_head: `a70c3a84`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-Latest 17:07 refresh: fetched `origin` and `easel` separately, re-enumerated open PR heads, and merged the current PR #274 head `0bd1c13f` back into `auto-integration` after resolving the CMake registration delta. The substantive pflash admission fix from #274 was already represented in the current stack; this refresh mainly promoted the new `server/CMakeLists.txt` test wiring for the recently added drafter/router/tail-guard regression binaries.
-
-Exact-head containment after the refresh shows 22 included current open non-draft PR heads (`#332 #326 #325 #324 #322 #321 #319 #315 #312 #310 #309 #308 #306 #297 #294 #276 #274 #152 #142 #137 #94 #48`) and 5 remaining non-ancestor/held candidates (`#305 #285 #154 #153 #135`). Draft/excluded PRs currently are `#329`, `#304`, `#275`, and `#249`. No new source slices were promoted beyond the merge conflict resolution and test-registration update.
+Latest 19:11 refresh: fetched `origin` and `easel` separately; `origin/main` `080b501c` is already represented and the local branch tip is `a70c3a84` before this manifest update. Open PR accounting is now 27 non-draft plus 12 draft/excluded (`#341 #340 #339 #338 #337 #336 #334 #335 #329 #304 #275 #249`). Exact-head containment still shows 22 included current open non-draft PR heads (`#332 #326 #325 #324 #322 #321 #319 #315 #312 #310 #309 #308 #306 #297 #294 #276 #274 #152 #142 #137 #94 #48`) and 5 held non-ancestor candidates (`#305 #285 #154 #153 #135`). Fresh isolated merge probes on the current advanced heads confirm #305 `4727d206` and #285 `e13e8203` remain too conflicted to promote as-is; #154/#153/#135 remain unsalvageable current-layout MTP/scheduler work. No new source slices were promoted in this refresh.
 
 Latest 14:58 docs refresh: recorded the current branch head `0218f46d` after updating this manifest. No source-stack changes were made; the branch still carries the 14:53 upstream-sync result plus this documentation-only checkpoint.
 
@@ -70,9 +68,9 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support is carried exactly. |
 | #294 | `feat/server-passthrough-proxy` | `dc18f33b` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, unit coverage, and CURL-optional CI fix are carried exactly. |
 | #291 | `feat-gemma4-draft-residency-followup` | `91ff48fa` | included | Current head is carried exactly. Adds draft residency policy (`auto` / `persistent` / `request-scoped`), `--draft-residency` CLI and `/props.runtime` surfacing, PFlash and decode-draft request-scoped release actions, and Gemma4 draft-only park/unpark helpers while preserving current stack passthrough PFlash, transitive compression, cancellation, visible-empty retry, and status behavior. |
-|| #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
-|| #285 | `feat/lucebox-docker` | `e63f4e02` | held / advanced; prior `93959170` tree represented | The earlier `93959170` Docker stack / `lucebox` CLI / harness / `luce-bench` content remains represented in the current integration tree, but the live PR head has advanced into a much larger unstable continuation (docs, Docker, harness, and bench/profile material, 68k+ additions). It stays on the held list for follow-up rather than being re-merged this refresh. |
-|| #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
+| #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
+| #285 | `feat/lucebox-docker` | `e13e8203` | held / advanced; prior `93959170` tree represented | The earlier `93959170` Docker stack / `lucebox` CLI / harness / `luce-bench` content remains represented in the current integration tree, but the live PR head has advanced into a much larger unstable continuation (docs, Docker, harness, and bench/profile material, 68k+ additions). A fresh direct-merge probe against the current head still explodes into broad conflicts, so it stays on the held list for follow-up rather than being re-merged this refresh. |
+| #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
 
 | #266 | `feat/harness-typed-adapters` | `17525eae` | included | Typed harness adapters and format-aware session-inject proxy are carried exactly. |
 | #152 | `main` | `cf735bee` | included | Gemma 4 RTX 4090 backend helpers are carried exactly. |
@@ -82,7 +80,6 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | included / superseded | Merged by preserving deletion of retired `dflash/CMakeLists.txt`; current `server/CMakeLists.txt` already conditionally handles Blackwell/CUDA-version flags. |
 
 Closed, upstreamed, or no-longer-open PRs still represented by the stack/base include #328, #317, #316, #314, #313, #311, #307, #303, #302, #301, #300, #299, #298, #295, #292, and #290.
-
 ## Validation run
 
 This run performed (latest first):
