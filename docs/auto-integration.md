@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-03T21:21:41-04:00`
+Last refresh: `2026-06-03T23:28:11-04:00`
 Current base: `origin/main` `bdc706ad`
-Previous integration tip: `86358256`
-Current integration source tip before this refresh: `fa1fb095`
-Post-push integration tip: `fa1fb095`
-refreshed_head: `fa1fb095`
+Previous integration tip: `fa1fb095`
+Current integration source tip before this refresh: `3ccc5928`
+Post-push integration tip: `56913664`
+refreshed_head: `56913664`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-Latest 21:21 refresh: fetched `origin` and `easel` separately, merged `origin/main` `bdc706ad` into `auto-integration`, and then merged the advanced PR #294 `5c873adb` after resolving one usage-text conflict in `server/src/server/server_main.cpp`. Open PR accounting is now 26 non-draft plus 12 draft/excluded (`#341 #340 #339 #338 #337 #336 #335 #334 #329 #304 #275 #249`). Exact-head containment now shows 21 included current open non-draft PR heads (`#332 #326 #325 #324 #322 #321 #319 #315 #312 #310 #309 #308 #306 #294 #276 #274 #152 #142 #137 #94 #48`) and 5 held non-ancestor candidates (`#305 #285 #154 #153 #135`). PR #332 was already represented before this run; PR #297 is no longer open and remains represented upstream/through the stack. Fresh isolated merge probes on the current advanced heads still confirm #305 `4727d206` and #285 `e13e8203` remain too conflicted to promote as-is; #154/#153/#135 remain unsalvageable current-layout MTP/scheduler work. No new source slices were promoted beyond the upstream refresh and the #294 integration.
+Latest 23:28 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` was already represented, and PR #342 `d49bc49c` merged cleanly as a one-file build fix after adding the missing closing brace in `server/test/test_server_unit.cpp`. Open PR accounting is now 27 non-draft plus 12 draft/excluded (`#341 #340 #339 #338 #337 #336 #335 #334 #329 #304 #275 #249`). Exact-head containment now shows 22 included current open non-draft PR heads (`#342 #332 #326 #325 #324 #322 #321 #319 #315 #312 #310 #309 #308 #306 #294 #276 #274 #152 #142 #137 #94 #48`) and 5 held non-ancestor candidates (`#305 #285 #154 #153 #135`). PR #332 was already represented before this run; PR #297 is no longer open and remains represented upstream/through the stack. Fresh isolated merge probes on the current advanced heads still confirm #305 `4727d206` and #285 `e13e8203` remain too conflicted to promote as-is; #154/#153/#135 remain unsalvageable current-layout MTP/scheduler work. No new source slices were promoted beyond the upstream refresh and the #342 integration.
 
 Latest 14:58 docs refresh: recorded the current branch head `0218f46d` after updating this manifest. No source-stack changes were made; the branch still carries the 14:53 upstream-sync result plus this documentation-only checkpoint.
 
@@ -51,6 +51,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
+| #342 | `missing` | `d49bc49c` | included | Fix main build; restores the missing brace in `server/test/test_server_unit.cpp` so the current stack compiles against the latest base and keeps the unit-test translation unit valid. |
 | #329 | `fix/sse-emitter-content-mode-tool-parse` | `ee9cd9e9` | draft / excluded; previous `8218333b` represented | The earlier `8218333b` head is already represented with plain-text `call:<verb>{...}` tool-call detection and SSE/emitter wiring. The PR advanced while draft after this run's first push, so the new draft head is excluded from non-draft target accounting pending contributor readiness. |
 | #332 | `cudagraph-on-main` | `53e5e795` | included | CUDA-graph AR decode + GPU argmax; current head is already represented by the stack. |
 | #326 | `feat/soft-close-thinking-termination` | `f7e8d6f8` | included | Adds soft-close thinking termination via logit-ratio peek, server flags/status props, Qwen35/Qwen35MoE model-backend hooks, HTTP stop-reason propagation, and unit coverage while preserving the current stack's visible-output retry, stall guards, MoE AR dispatch path, and C2 gate tests. |
@@ -80,10 +81,12 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | included / superseded | Recorded with an `ours` merge because the current tree already has SWA draft support (`DraftLayer::is_swa`, `DraftWeights::swa_window`, safetensors SWA metadata parsing, SWA-aware draft masks, and GGUF SWA metadata support). |
 | #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | included / superseded | Merged by preserving deletion of retired `dflash/CMakeLists.txt`; current `server/CMakeLists.txt` already conditionally handles Blackwell/CUDA-version flags. |
 
-Closed, upstreamed, or no-longer-open PRs still represented by the stack/base include #328, #317, #316, #314, #313, #311, #307, #303, #302, #301, #300, #299, #298, #297, #295, #292, and #290.
+Closed, upstreamed, or no-longer-open PRs still represented by the stack/base include #342, #328, #317, #316, #314, #313, #311, #307, #303, #302, #301, #300, #299, #298, #297, #295, #292, and #290.
 ## Validation run
 
 This run performed (latest first):
+
+- `git diff --check --cached -- server/test/test_server_unit.cpp` passed after merging PR #342; exact-head containment now shows 22 included current open non-draft PR heads and 5 held non-ancestor candidates, with 27 non-draft plus 12 draft/excluded open PRs remaining. No broader source tests or CMake validation were rerun because the promoted delta is the missing brace fix in the unit-test file.
 
 - `git diff --check --cached -- server/CMakeLists.txt` passed after the merge resolution; `easel/auto-integration` was pushed at `e07031a0`, and exact-head containment now shows 22 included current open non-draft PR heads, 5 held/non-ancestor candidates, and 4 draft/excluded PRs. No CMake or test suite rerun was needed because the promoted tree delta is limited to test-registration wiring.
 
