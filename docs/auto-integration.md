@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-04T12:09:43-04:00`
-Current base: `origin/main` `02ad45d7`
-Previous integration tip: `7bff98f1`
-Current integration source tip before this refresh: `7bff98f1`
-Post-push integration tip: `2310bf71`
-refreshed_head: `2310bf71`
+Last refresh: `2026-06-04T14:18:07-04:00`
+Current base: `origin/main` `f4eb5045`
+Previous integration tip: `29c17c11`
+Current integration source tip before this refresh: `29c17c11`
+Post-push integration tip: `9da11cc4`
+refreshed_head: `9da11cc4`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, re-evaluated the current open PR set, then merged the updated upstream `origin/main` `02ad45d7` into `auto-integration` on top of the previously landed integration-only server refactor. The earlier refactor commit `0691e7a` consolidated common MoE hybrid helpers into `server/src/common`, updated Laguna and Qwen35MoE plumbing to use the shared code, and removed obsolete test-registration wiring in `server/CMakeLists.txt`. The branch now tracks `origin/main` `02ad45d7` first and foremost.
+This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, re-evaluated the current open PR set, then merged the updated upstream `origin/main` `f4eb5045` into `auto-integration` and fast-forwarded the already-represented PR #337 merge commit (`9fdc0f60`) as a no-content merge because the PR tree matched the existing integration tree. The earlier refactor commit `0691e7a` consolidated common MoE hybrid helpers into `server/src/common`, updated Laguna and Qwen35MoE plumbing to use the shared code, and removed obsolete test-registration wiring in `server/CMakeLists.txt`. The branch now tracks `origin/main` `f4eb5045` first and foremost.
 
-Latest 12:09 refresh: fetched `origin` and `easel` separately; merged updated `origin/main` `02ad45d7` into the branch cleanly. Exact-head containment against the current open PR set still shows 20 included non-draft PR heads and 10 held PRs/drafts, with no new PR head advances this run. The source commit made during this refresh is an integration-only refactor plus upstream-base merge rather than a new PR inclusion. Validation this run: `git diff --check --cached && git diff --check` passed after fixing a trailing blank line in `server/src/common/moe_hybrid_types.h`; `git diff --check HEAD^1..HEAD` passed for the upstream-merge commit; `cmake -S server -B /tmp/luce2-server-build-make -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON` (with `CC=gcc CXX=g++`) failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path in this environment. No source edits were promoted beyond the integration refactor and upstream-base merge.
+Latest 14:18 refresh: fetched `origin` and `easel` separately; merged updated `origin/main` `f4eb5045` into the branch cleanly, then fast-forwarded PR #337 as a no-content merge because its tree was already represented. Exact-head containment against the current open PR set now shows 17 included non-draft PR heads and 3 held PRs, with no new non-draft head advances this run. The source commit made during this refresh is an integration-only upstream-base merge plus a no-content PR representation rather than a new source delta. Validation this run: `git diff --check HEAD^1..HEAD` passed for both merge commits, `git diff --stat HEAD^1 HEAD` is empty for the merge tip, and no CMake or test rerun was needed because this refresh introduced no tree changes beyond merge metadata. No source edits were promoted beyond the integration/base refresh.
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
 
