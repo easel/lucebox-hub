@@ -195,7 +195,6 @@ struct ServerConfig {
     std::vector<std::pair<int, float>> pflash_curve;
     bool        lazy_draft      = false;   // legacy alias for request-scoped draft residency
     DraftResidencyPolicy draft_residency = DraftResidencyPolicy::Auto;
-
     // TYPE-gate compression router (v2).
     // Default: disabled (exact no-op, correct-by-construction).
     // Enable via PFLASH_ROUTER_ENABLE=1 env var at server startup.
