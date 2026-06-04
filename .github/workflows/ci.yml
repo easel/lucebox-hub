@@ -19,6 +19,9 @@ jobs:
         # full sync and builds megakernel against torch.
         run: bash scripts/check_uv_workspace.sh
 
+      - name: Verify bundled model cards match share/ (drift guard)
+        run: bash scripts/check_card_bundle_drift.sh
+
   build:
     name: Build (cmake + uv sync --extra megakernel)
     runs-on: ubuntu-latest
