@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-04T03:38:34-04:00`
-Current base: `origin/main` `bdc706ad`
-Previous integration tip: `fa1fb095`
-Current integration source tip before this refresh: `56913664`
-Post-push integration tip: `56913664`
-refreshed_head: `a12107ae`
+Last refresh: `2026-06-04T07:53:38-04:00`
+Current base: `origin/main` `c4a8c2c4`
+Previous integration tip: `16e61893`
+Current integration source tip before this refresh: `16e61893`
+Post-push integration tip: `16e61893`
+refreshed_head: `16e61893`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-Latest 03:38 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. Re-ran exact-head containment on the current open PR set and the stack still includes 22 current open non-draft PR heads, with 5 held non-ancestor candidates (`#305 #285 #154 #153 #135`) and the same 27 non-draft plus 12 draft/excluded open PRs overall. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`; the branch already carries the richer call-verb parser and broader unit coverage, so #340 remains held/superseded rather than promoted. No source edits were applied; the branch remains on `43094913`.
+Latest 07:53 refresh: fetched `origin` and `easel` separately; `origin/main` `c4a8c2c4` is already represented. Re-ran exact-head containment on the current open PR set and the stack currently includes 24 open PR heads, with four non-draft non-ancestor candidates (`#305 #154 #153 #135`) and six draft/excluded non-ancestor candidates (`#341 #339 #335 #334 #304 #249`). The current stack already carries the recently merged PRs `#340 #338 #337 #336`, so those heads are represented and did not require additional source edits. `#275` is still draft but already represented. No source edits were applied.
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
 
@@ -54,6 +54,10 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
 | #342 | `missing` | `d49bc49c` | included | Fix main build; restores the missing brace in `server/test/test_server_unit.cpp` so the current stack compiles against the latest base and keeps the unit-test translation unit valid. |
+| #340 | `feat/server-call-verb-parser` | `4472aa94` | included | Plain-text `call:<verb>{...}` tool-call parsing for Gemma4; current head is already represented by the stack. |
+| #338 | `feat/server-pflash-drafter` | `bfbe07a9` | included | EE7 early-exit drafter with anchor-transitive cascade and regime router; current head is already represented by the stack. |
+| #337 | `feat/lucebench-harness` | `c20a0f23` | included | In-tree bench harness with multi-turn agent_recorded replay and LLM-judge grading; current head is already represented by the stack. |
+| #336 | `feat/server-layer-split` | `2cf8c999` | included | Shared layer-split backend plus GGUF inspection and c2-gate plumbing; current head is already represented by the stack. |
 | #329 | `fix/sse-emitter-content-mode-tool-parse` | `ee9cd9e9` | draft / excluded; previous `8218333b` represented | The earlier `8218333b` head is already represented with plain-text `call:<verb>{...}` tool-call detection and SSE/emitter wiring. The PR advanced while draft after this run's first push, so the new draft head is excluded from non-draft target accounting pending contributor readiness. |
 | #332 | `cudagraph-on-main` | `53e5e795` | included | CUDA-graph AR decode + GPU argmax; current head is already represented by the stack. |
 | #326 | `feat/soft-close-thinking-termination` | `f7e8d6f8` | included | Adds soft-close thinking termination via logit-ratio peek, server flags/status props, Qwen35/Qwen35MoE model-backend hooks, HTTP stop-reason propagation, and unit coverage while preserving the current stack's visible-output retry, stall guards, MoE AR dispatch path, and C2 gate tests. |
@@ -88,7 +92,7 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 
 This run performed (latest first):
 
-- `git diff --check -- docs/auto-integration.md` passed after the manifest refresh. A merge probe against PR #340 conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`, and the PR was held/superseded because the current stack already carries a richer call-verb parser and broader unit coverage. No source edits were applied and no CMake/test reruns were needed.
+- `git diff --check -- docs/auto-integration.md` passed after the manifest refresh. Exact-head containment on the current open PR set reports 24 current open PR heads integrated, with four non-draft non-ancestor candidates (`#305 #154 #153 #135`) and six draft/excluded non-ancestor candidates (`#341 #339 #335 #334 #304 #249`); `#275` is draft but already represented. No source edits were applied and no CMake/test reruns were needed.
 
 - `git diff --check --cached -- server/test/test_server_unit.cpp` passed after merging PR #342; exact-head containment now shows 22 included current open non-draft PR heads and 5 held non-ancestor candidates, with 27 non-draft plus 12 draft/excluded open PRs remaining. No broader source tests or CMake validation were rerun because the promoted delta is the missing brace fix in the unit-test file.
 
