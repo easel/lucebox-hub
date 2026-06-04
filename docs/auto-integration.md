@@ -8,8 +8,8 @@ Last refresh: `2026-06-03T23:28:11-04:00`
 Current base: `origin/main` `bdc706ad`
 Previous integration tip: `fa1fb095`
 Current integration source tip before this refresh: `3ccc5928`
-Post-push integration tip: `f51a07f4`
-refreshed_head: `f51a07f4`
+Post-push integration tip: `56913664`
+refreshed_head: `56913664`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
