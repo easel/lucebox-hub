@@ -33,6 +33,7 @@ from lucebench.areas import (
 )
 from lucebench.model_cards import (
     card_is_thinking_capable,
+    card_sampling,
     normalize_model_card_stem,
     resolve_card,
 )
@@ -53,6 +54,72 @@ def _summarize_injection(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if isinstance(info, dict):
             return info
     return {"active": False, "token": None, "source": "none"}
+
+# Sampling fields threaded into run_case. The first three are also exposed as
+# explicit CLI flags (per-field override); the rest are card-only knobs the
+# CLI never surfaces but still forces from the card by default.
+_SAMPLING_FIELDS = (
+    "temperature",
+    "top_p",
+    "top_k",
+    "min_p",
+    "presence_penalty",
+    "repetition_penalty",
+)
+# CLI-overridable subset — these map to --temperature / --top-p / --top-k.
+_CLI_SAMPLING_FIELDS = ("temperature", "top_p", "top_k")
+
+
+def resolve_sampling(
+    *,
+    card: dict[str, Any] | None,
+    no_card_sampling: bool,
+    cli_temperature: float | None,
+    cli_top_p: float | None,
+    cli_top_k: int | None,
+) -> tuple[dict[str, Any], str]:
+    """Compute the effective per-field sampling dict + its provenance source.
+
+    Precedence, per field:
+      1. explicit CLI flag (not None) → use it (per-field override), else
+      2. resolved card's ``sampling[field]`` when a card resolved and has it
+         AND ``--no-card-sampling`` was not passed → use it, else
+      3. omit (None).
+
+    Returns ``(sampling, source)`` where ``sampling`` carries only the fields
+    that resolved (missing key = omit on the wire) and ``source`` is:
+      * ``"none"``  — nothing resolved (no card / opted out, no CLI flags)
+      * ``"cli"``   — every resolved field came from a CLI flag
+      * ``"card"``  — every resolved field came from the card
+      * ``"mixed"`` — a blend of CLI overrides and card values
+    """
+    card_block = {} if no_card_sampling else card_sampling(card)
+    cli_values = {
+        "temperature": cli_temperature,
+        "top_p": cli_top_p,
+        "top_k": cli_top_k,
+    }
+    sampling: dict[str, Any] = {}
+    saw_cli = False
+    saw_card = False
+    for field_name in _SAMPLING_FIELDS:
+        cli_val = cli_values.get(field_name)
+        if cli_val is not None:
+            sampling[field_name] = cli_val
+            saw_cli = True
+        elif field_name in card_block and card_block[field_name] is not None:
+            sampling[field_name] = card_block[field_name]
+            saw_card = True
+    if saw_cli and saw_card:
+        source = "mixed"
+    elif saw_cli:
+        source = "cli"
+    elif saw_card:
+        source = "card"
+    else:
+        source = "none"
+    return sampling, source
+
 
 # Threshold below which we'll auto-pick the first model and surface the
 # full list. Gateways with hundreds of models still need an explicit
@@ -174,10 +241,25 @@ AREAS = {
         "default_max_tokens": 4096,
         "default_thinking": False,
     },
-    "agent_recorded": {
-        "load": agent_recorded.load_agent_recorded_cases,
-        "grade": agent_recorded.grade_agent_recorded_case,
+    # Legacy single-turn area — kept for back-compat with archived
+    # result snapshots. See lucebench.areas.agent_recorded module
+    # docstring for why this was deprecated in favor of multi-turn.
+    "agent_recorded_v1": {
+        "load": agent_recorded.load_agent_recorded_v1_cases,
+        "grade": agent_recorded.grade_agent_recorded_v1_case,
         "default_max_tokens": 4096,
+        "default_thinking": False,
+    },
+    # ``agent_recorded`` (new default, multi-turn + LLM judge) does NOT
+    # plug into _run_standard_area_to_dir's case-per-request loop — it
+    # needs cold/warm passes around each case and a judge call. The CLI
+    # dispatches it through ``_run_agent_recorded_to_dir`` (mirror of
+    # ``_run_forge_area_to_dir``). The entry below is a placeholder for
+    # introspection only; load/grade are unused on the new path.
+    "agent_recorded": {
+        "load": agent_recorded.load_agent_recorded_multi_turn_cases,
+        "grade": agent_recorded.grade_multi_turn_replay_stub,
+        "default_max_tokens": 512,
         "default_thinking": False,
     },
 }
@@ -645,6 +727,83 @@ def _run_forge_area_to_dir(
     }
 
 
+def _run_agent_recorded_to_dir(
+    *,
+    out_root: Path,
+    url: str,
+    model: str,
+    auth_header: str,
+    timeout: int,
+    max_tokens: int | None,
+    questions: int | None,
+    restart_between_cases: bool = True,
+    mock_judge: Any = None,
+) -> dict[str, Any] | None:
+    """Drive the multi-turn agent_recorded area + write ``<out_root>/agent_recorded.json``.
+
+    Mirrors ``_run_forge_area_to_dir`` — the area owns its own cold/warm
+    loop and judge invocation, so the standard ``run_case`` path doesn't
+    fit. Returns the summary row appended to ``summary_areas``, or
+    ``None`` on hard failure.
+    """
+    from lucebench.areas.agent_recorded import run_agent_recorded_area
+
+    max_tokens_eff = max_tokens if max_tokens is not None else 512
+    print(
+        f"\n[lucebench] === area=agent_recorded max_tokens={max_tokens_eff} "
+        f"restart_between_cases={restart_between_cases} ===",
+        flush=True,
+    )
+    try:
+        rows, summary = run_agent_recorded_area(
+            url=url,
+            model=model,
+            max_tokens=max_tokens_eff,
+            auth_header=auth_header,
+            timeout_s=timeout,
+            restart_between_cases=restart_between_cases,
+            questions=questions,
+            mock_judge=mock_judge,
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[lucebench] agent_recorded: {exc}", file=sys.stderr, flush=True)
+        return None
+
+    (out_root / "agent_recorded.json").write_text(
+        json.dumps(
+            {
+                "lucebench_version": __version__,
+                "area": "agent_recorded",
+                "url": url,
+                "model": model,
+                **summary,
+                "rows": rows,
+            },
+            indent=2,
+            default=str,
+        )
+    )
+    print(
+        f"[lucebench] area=agent_recorded pass_rate={summary.get('pass_rate', 0):.2f}% "
+        f"({summary.get('n_pass', 0)}/{summary.get('n_judged', 0)}) "
+        f"cache_speedup_p50={summary.get('cache_speedup_p50')} "
+        f"cold_prefill_p50={summary.get('cold_prefill_p50')}s "
+        f"warm_prefill_p50={summary.get('warm_prefill_p50')}s",
+        flush=True,
+    )
+    cold_walls = [r["cold"].get("wall_s") or 0 for r in rows]
+    warm_walls = [r["warm"].get("wall_s") or 0 for r in rows]
+    walls = cold_walls + warm_walls
+    return {
+        "area": "agent_recorded",
+        "n": summary.get("n", 0),
+        "pass": summary.get("n_pass", 0),
+        "rate": summary.get("pass_rate", 0.0),
+        "wall_total": sum(walls),
+        "wall_median": statistics.median(walls) if walls else 0,
+    }
+
+
 def _run_standard_area_to_dir(
     area: str,
     *,
@@ -655,9 +814,8 @@ def _run_standard_area_to_dir(
     timeout: int,
     max_tokens: int | None,
     think: bool | None,
-    temperature: float | None,
-    top_p: float | None,
-    top_k: int | None,
+    sampling: dict[str, Any] | None,
+    sampling_source: str | None,
     questions: int | None,
     no_fail_fast: bool,
     prompt_thinking_control: str,
@@ -692,6 +850,7 @@ def _run_standard_area_to_dir(
         prompt_thinking_control if card_is_thinking_capable(model_card) else "off"
     )
 
+    sampling = sampling or {}
     rows: list[dict[str, Any]] = []
     for idx, case in enumerate(cases, start=1):
         row = run_case(
@@ -702,9 +861,13 @@ def _run_standard_area_to_dir(
             think=chosen_think,
             model=model,
             auth_header=auth_header,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
+            temperature=sampling.get("temperature"),
+            top_p=sampling.get("top_p"),
+            top_k=sampling.get("top_k"),
+            min_p=sampling.get("min_p"),
+            presence_penalty=sampling.get("presence_penalty"),
+            repetition_penalty=sampling.get("repetition_penalty"),
+            sampling_source=sampling_source,
             thinking_control_flag=effective_thinking_control,
             server_honors_api_flags=server_honors_api_flags,
             reasoning_effort=reasoning_effort,
@@ -901,6 +1064,22 @@ def _run_sweep(args) -> int:
             if row is not None:
                 summary_areas.append(row)
             continue
+        if area == "agent_recorded":
+            row = _run_agent_recorded_to_dir(
+                out_root=out_root,
+                url=args.url,
+                model=args.model,
+                auth_header=auth_header,
+                timeout=args.timeout,
+                max_tokens=args.max_tokens,
+                questions=args.questions,
+                restart_between_cases=getattr(
+                    args, "agent_recorded_restart", True
+                ),
+            )
+            if row is not None:
+                summary_areas.append(row)
+            continue
 
         row, aborted = _run_standard_area_to_dir(
             area,
@@ -911,9 +1090,8 @@ def _run_sweep(args) -> int:
             timeout=args.timeout,
             max_tokens=args.max_tokens,
             think=args.think,
-            temperature=args.temperature,
-            top_p=args.top_p,
-            top_k=args.top_k,
+            sampling=getattr(args, "sampling", {}),
+            sampling_source=getattr(args, "sampling_source", "none"),
             questions=args.questions,
             no_fail_fast=args.no_fail_fast,
             prompt_thinking_control=getattr(args, "prompt_thinking_control", "off"),
@@ -1118,6 +1296,12 @@ def main() -> int:
     ap.add_argument("--temperature", type=float, default=None)
     ap.add_argument("--top-p", type=float, default=None)
     ap.add_argument("--top-k", type=int, default=None)
+    ap.add_argument(
+        "--no-card-sampling",
+        action="store_true",
+        help="Do not apply the model card's sampling block; use only explicit "
+        "--temperature/--top-p/--top-k or omit.",
+    )
     ap.add_argument("--timeout", type=int, default=300, help="Per-request wall timeout (s).")
     ap.add_argument(
         "--auth-env",
@@ -1138,6 +1322,17 @@ def main() -> int:
         "keep going even when the first case can't reach the server. "
         "Default behavior aborts on connection-refused-style errors to "
         "avoid burning ~92 timeouts per area on a typo'd URL.",
+    )
+    ap.add_argument(
+        "--no-agent-recorded-restart",
+        dest="agent_recorded_restart",
+        action="store_false",
+        default=True,
+        help="Disable systemctl --user restart lucebox.service between "
+        "cases in the agent_recorded area. Use on hosts without systemd "
+        "(CI) or when the operator wants cache to accumulate across "
+        "cases. Without restarts the cache_speedup_x metric degrades to "
+        "warm-vs-warm (~1.0).",
     )
     ap.add_argument(
         "--parallel",
@@ -1194,7 +1389,12 @@ def main() -> int:
         "code",
         "longctx",
         "agent",
-        "agent_recorded",
+        # ``agent_recorded`` is intentionally NOT in --areas all — it
+        # has SIDE EFFECTS (systemctl restart, real Anthropic billing
+        # for the judge) that don't belong in a CI smoke sweep. Run it
+        # explicitly: ``--areas agent_recorded``.
+        # ``agent_recorded_v1`` is similarly excluded — it's the
+        # deprecated single-turn variant kept for back-compat only.
         "forge",
     ]
 
@@ -1309,6 +1509,27 @@ def main() -> int:
         flush=True,
     )
 
+    # ── Effective sampling. By default we FORCE the resolved card's sampling
+    # block (so card-less servers — OpenRouter / MLX — run with the model's
+    # recommended decode params instead of the provider's defaults); explicit
+    # --temperature/--top-p/--top-k override per field, and --no-card-sampling
+    # opts out entirely (CLI-flags-or-omit). Threaded into both run_case call
+    # sites below. See resolve_sampling for the precedence.
+    sampling, sampling_source = resolve_sampling(
+        card=resolved_card,
+        no_card_sampling=getattr(args, "no_card_sampling", False),
+        cli_temperature=args.temperature,
+        cli_top_p=args.top_p,
+        cli_top_k=args.top_k,
+    )
+    args.sampling = sampling
+    args.sampling_source = sampling_source
+    print(
+        f"[lucebench] sampling: source={sampling_source} "
+        f"{sampling if sampling else '(server defaults)'}",
+        flush=True,
+    )
+
     # ── Multi-area dispatch: anything > 1 area in args.areas_list runs
     # through the sweep path, which writes per-area JSON + a combined
     # summary under <out-dir>/<name>/. Single-area runs use the slimmer
@@ -1319,6 +1540,70 @@ def main() -> int:
     # Single area from here on — alias into args.area so the existing
     # forge / generic-area branches keep working unchanged.
     args.area = args.areas_list[0]
+
+    # agent_recorded multi-turn replay also owns its runner (cold/warm
+    # passes around each case + LLM judge). Same dispatch pattern as
+    # forge — early branch, write its own JSON.
+    if args.area == "agent_recorded":
+        from lucebench.areas.agent_recorded import run_agent_recorded_area
+
+        max_tokens_eff = args.max_tokens if args.max_tokens is not None else 512
+        auth_header = ""
+        if args.auth_env:
+            token = os.environ.get(args.auth_env, "")
+            if not token:
+                ap.error(f"--auth-env {args.auth_env}: env var is empty or unset")
+            auth_header = f"Bearer {token}"
+        try:
+            rows, summary = run_agent_recorded_area(
+                url=args.url,
+                model=args.model,
+                max_tokens=max_tokens_eff,
+                auth_header=auth_header,
+                timeout_s=args.timeout,
+                restart_between_cases=getattr(args, "agent_recorded_restart", True),
+                questions=args.questions,
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"[lucebench] agent_recorded: {exc}", file=sys.stderr, flush=True)
+            return 3
+        for idx, r in enumerate(rows, start=1):
+            verdict = "PASS" if r.get("pass") else "FAIL"
+            cold = r.get("cold", {}) or {}
+            warm = r.get("warm", {}) or {}
+            speedup = r.get("cache_speedup_x")
+            speedup_str = f"{speedup}x" if speedup is not None else "n/a"
+            print(
+                f"  {idx:3d} {verdict} agent_rec  {r['case_id']:60s} "
+                f"bucket={r['bucket_tokens']:>6} "
+                f"cold_pf={cold.get('prefill_s')}s warm_pf={warm.get('prefill_s')}s "
+                f"speedup={speedup_str} judge={r['judge'].get('verdict')}",
+                flush=True,
+            )
+        print(
+            f"\n[lucebench] agent_recorded pass_rate={summary.get('pass_rate', 0):.2f}% "
+            f"({summary.get('n_pass', 0)}/{summary.get('n_judged', 0)}) "
+            f"cache_speedup_p50={summary.get('cache_speedup_p50')}",
+            flush=True,
+        )
+        if args.json_out:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(
+                json.dumps(
+                    {
+                        "lucebench_version": __version__,
+                        "area": "agent_recorded",
+                        "url": args.url,
+                        "model": args.model,
+                        **summary,
+                        "rows": rows,
+                    },
+                    indent=2,
+                    default=str,
+                )
+            )
+            print(f"[lucebench] wrote {len(rows)} rows to {args.json_out}", flush=True)
+        return 0
 
     # Forge takes a completely different path — it owns its own runner
     # (recording AnthropicClient + scenario driver) instead of using
@@ -1424,9 +1709,13 @@ def main() -> int:
             think=think,
             model=args.model,
             auth_header=auth_header,
-            temperature=args.temperature,
-            top_p=args.top_p,
-            top_k=args.top_k,
+            temperature=args.sampling.get("temperature"),
+            top_p=args.sampling.get("top_p"),
+            top_k=args.sampling.get("top_k"),
+            min_p=args.sampling.get("min_p"),
+            presence_penalty=args.sampling.get("presence_penalty"),
+            repetition_penalty=args.sampling.get("repetition_penalty"),
+            sampling_source=args.sampling_source,
             thinking_control_flag=effective_thinking_control,
             server_honors_api_flags=getattr(args, "server_honors_api_flags", False),
             reasoning_effort=getattr(args, "reasoning_effort", "high"),

@@ -174,6 +174,10 @@ def run_case(
     temperature: float | None = None,
     top_p: float | None = None,
     top_k: int | None = None,
+    min_p: float | None = None,
+    presence_penalty: float | None = None,
+    repetition_penalty: float | None = None,
+    sampling_source: str | None = None,
     extra_body: dict[str, Any] | None = None,
     stream: bool = True,
     thinking_control_flag: str = "off",
@@ -187,11 +191,18 @@ def run_case(
 ) -> dict[str, Any]:
     """Send one case to the server, return a normalized row dict.
 
-    Sampling fields (``temperature``, ``top_p``, ``top_k``) are sent
-    only when explicitly set. Omitted fields let the server apply its
-    own defaults — for luce-dflash this is the loaded model card's
-    ``sampling`` section. Forcing values here would defeat that
-    fallback and on Gemma 4 cause degenerate-decode collapse.
+    Sampling fields (``temperature``, ``top_p``, ``top_k``, ``min_p``,
+    ``presence_penalty``, ``repetition_penalty``) are sent only when the
+    corresponding argument is not None; a None field is omitted so the
+    server applies its own default. The CLI applies the resolved model
+    card's ``sampling`` block by default (forcing the model's recommended
+    decode params even against card-less servers like OpenRouter / MLX) and
+    layers explicit ``--temperature`` / ``--top-p`` / ``--top-k`` over it
+    per field; ``--no-card-sampling`` reverts to "CLI flags or omit". The
+    runner just sends whatever effective values the caller threads in.
+    ``sampling_source`` (``"card"`` | ``"cli"`` | ``"mixed"`` | ``"none"``)
+    is provenance only — stamped on the row alongside the actual ``sampling``
+    dict sent; it does not change the wire body.
 
     ``extra_body`` is merged into the request body verbatim — use for
     server-specific knobs (e.g. ``chat_template_kwargs``,
@@ -277,12 +288,28 @@ def run_case(
         # for OpenAI / OpenRouter (lucebox sends it either way). Without
         # this we'd lose prompt/completion token counts on streaming runs.
         body["stream_options"] = {"include_usage": True}
+    # ── Effective sampling. Each field rides only when not None; a None
+    # field is omitted so the server applies its own default. The dict is
+    # echoed onto the row (with `sampling_source`) for provenance.
+    sampling_sent: dict[str, Any] = {}
     if temperature is not None:
-        body["temperature"] = float(temperature)
+        sampling_sent["temperature"] = float(temperature)
     if top_p is not None:
-        body["top_p"] = float(top_p)
+        sampling_sent["top_p"] = float(top_p)
     if top_k is not None and top_k > 0:
-        body["top_k"] = int(top_k)
+        sampling_sent["top_k"] = int(top_k)
+    if min_p is not None:
+        sampling_sent["min_p"] = float(min_p)
+    if presence_penalty is not None:
+        sampling_sent["presence_penalty"] = float(presence_penalty)
+    if repetition_penalty is not None:
+        # Send both wire names: `repetition_penalty` (vLLM/HF/OpenRouter) and
+        # `repeat_penalty` (llama.cpp / lucebox). Same value; servers ignore the
+        # name they don't recognize. Without this, a card's repetition_penalty
+        # silently fails to reach lucebox (which only reads repeat_penalty).
+        sampling_sent["repetition_penalty"] = float(repetition_penalty)
+        sampling_sent["repeat_penalty"] = float(repetition_penalty)
+    body.update(sampling_sent)
     if extra_body:
         body.update(extra_body)
 
@@ -354,6 +381,8 @@ def run_case(
                 "streaming": False,
                 "card_source": card_source,
                 "card_stem": card_stem,
+                "sampling_source": sampling_source,
+                "sampling": sampling_sent,
                 "client_thinking": off_block,
                 "_thinking_injection": injection_info,
             }
@@ -389,6 +418,8 @@ def run_case(
             "timings": usage.get("timings"),
             "card_source": card_source,
             "card_stem": card_stem,
+            "sampling_source": sampling_source,
+            "sampling": sampling_sent,
             "client_thinking": off_block,
             # Caller grades; we just normalize the wire shape.
             "_response": data,
@@ -510,6 +541,8 @@ def run_case(
             "http_status": http_status,
             "card_source": card_source,
             "card_stem": card_stem,
+            "sampling_source": sampling_source,
+            "sampling": sampling_sent,
             "client_thinking": off_block,
             "_thinking_injection": injection_info,
         }
@@ -543,6 +576,9 @@ def run_case(
             temperature=temperature,
             top_p=top_p,
             top_k=top_k,
+            min_p=min_p,
+            presence_penalty=presence_penalty,
+            repetition_penalty=repetition_penalty,
             extra_body=extra_body,
         )
         wall = round(time.perf_counter() - t0, 3)
@@ -576,6 +612,8 @@ def run_case(
             "timings": None,
             "card_source": card_source,
             "card_stem": card_stem,
+            "sampling_source": sampling_source,
+            "sampling": sampling_sent,
             "client_thinking": client_thinking_block,
             "_response": last_chunk,
             "_thinking_injection": injection_info,
@@ -620,6 +658,8 @@ def run_case(
         "timings": usage.get("timings"),
         "card_source": card_source,
         "card_stem": card_stem,
+        "sampling_source": sampling_source,
+        "sampling": sampling_sent,
         "client_thinking": client_thinking_final,
         # Caller grades; we just normalize the wire shape.
         "_response": last_chunk,
@@ -640,6 +680,9 @@ def _client_thinking_continuation(
     temperature: float | None,
     top_p: float | None,
     top_k: int | None,
+    min_p: float | None = None,
+    presence_penalty: float | None = None,
+    repetition_penalty: float | None = None,
     extra_body: dict[str, Any] | None,
 ) -> tuple[str | None, bool]:
     """Tier-2 forced-`</think>` re-prompt — a fresh, non-streamed request.
@@ -678,6 +721,12 @@ def _client_thinking_continuation(
         body["top_p"] = float(top_p)
     if top_k is not None and top_k > 0:
         body["top_k"] = int(top_k)
+    if min_p is not None:
+        body["min_p"] = float(min_p)
+    if presence_penalty is not None:
+        body["presence_penalty"] = float(presence_penalty)
+    if repetition_penalty is not None:
+        body["repetition_penalty"] = float(repetition_penalty)
     if extra_body:
         body.update(extra_body)
 

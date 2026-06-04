@@ -146,6 +146,52 @@ def test_run_case_top_k_zero_is_omitted():
     assert "top_k" not in sent["body"]
 
 
+def test_run_case_ships_extended_sampling_when_explicit():
+    """min_p / presence_penalty / repetition_penalty ride when not None."""
+    case = {"id": "x", "kind": "integer", "question": "1+1?"}
+    sent = _capture_body(
+        case,
+        min_p=0.05,
+        presence_penalty=0.1,
+        repetition_penalty=1.1,
+    )
+    assert sent["body"]["min_p"] == 0.05
+    assert sent["body"]["presence_penalty"] == 0.1
+    assert sent["body"]["repetition_penalty"] == 1.1
+
+
+def test_run_case_extended_sampling_omitted_by_default():
+    """Unset extended sampling fields are omitted from the body."""
+    case = {"id": "x", "kind": "integer", "question": "1+1?"}
+    sent = _capture_body(case)
+    assert "min_p" not in sent["body"]
+    assert "presence_penalty" not in sent["body"]
+    assert "repetition_penalty" not in sent["body"]
+
+
+def test_run_case_stamps_sampling_provenance_on_row():
+    """sampling_source + the actual sampling dict echo onto the returned row."""
+    case = {"id": "x", "kind": "integer", "question": "1+1?"}
+    with patch("urllib.request.urlopen", return_value=_mock_urlopen(_chat_response())):
+        row = run_case(
+            url="http://localhost:8080",
+            case=case,
+            stream=False,
+            temperature=1.0,
+            top_p=0.95,
+            top_k=20,
+            min_p=0.0,
+            sampling_source="card",
+        )
+    assert row["sampling_source"] == "card"
+    assert row["sampling"] == {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0.0,
+    }
+
+
 def test_run_case_thinking_control_fields_always_shipped():
     case = {"id": "x", "kind": "integer", "question": "1+1?"}
     # nothink mode

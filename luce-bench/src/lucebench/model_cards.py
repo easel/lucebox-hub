@@ -146,6 +146,26 @@ def card_is_thinking_capable(card: dict[str, Any] | None) -> bool:
     return isinstance(hint, str) and bool(hint)
 
 
+def card_sampling(card: dict[str, Any] | None) -> dict[str, Any]:
+    """Return the card's ``sampling`` block, or ``{}`` when absent.
+
+    The sampling block carries the model's recommended decode params
+    (``temperature``, ``top_p``, ``top_k``, ``min_p``, ``presence_penalty``,
+    ``repetition_penalty``). luce-bench applies these by default against
+    card-less servers (OpenRouter / MLX) so the model runs with its own
+    recommended sampling instead of the provider's defaults; the CLI's
+    ``--no-card-sampling`` opts out, and explicit ``--temperature`` /
+    ``--top-p`` / ``--top-k`` override per field. Returns a fresh dict the
+    caller may mutate.
+    """
+    if not isinstance(card, dict):
+        return {}
+    sampling = card.get("sampling")
+    if isinstance(sampling, dict):
+        return dict(sampling)
+    return {}
+
+
 def resolve_card(
     model_id: str,
     props_model_card: dict[str, Any] | None = None,
@@ -175,4 +195,5 @@ __all__ = [
     "normalize_model_card_stem",
     "resolve_card",
     "card_is_thinking_capable",
+    "card_sampling",
 ]
