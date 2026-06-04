@@ -482,8 +482,9 @@ std::vector<std::string> SseEmitter::emit_token(const std::string & raw_piece) {
         size_t think_idx = window_.find(THINK_OPEN);
         size_t think_close_idx = window_.find(THINK_CLOSE);
         size_t tool_idx = std::string::npos;
+        bool tool_is_plain_text = false;
         bool tool_hit = has_request_tools(tools_) &&
-                        find_tool_start(window_, tool_idx);
+                        find_tool_start(window_, tool_idx, tool_is_plain_text);
 
         struct Hit { size_t pos; int type; };  // type: 0=think, 1=think_close, 2=tool-ish
         std::vector<Hit> hits;
@@ -512,6 +513,7 @@ std::vector<std::string> SseEmitter::emit_token(const std::string & raw_piece) {
                 // Tool-call syntax. Keep the full tag/function text buffered
                 // until finish so the parser can validate it.
                 tool_buffer_ = window_.substr(h.pos);
+                tool_open_is_plain_text_ = tool_is_plain_text;
                 window_.clear();
                 mode_ = StreamMode::TOOL_BUFFER;
             }
@@ -715,9 +717,27 @@ std::vector<std::string> SseEmitter::emit_finish(int completion_tokens,
                 break;
             default: break;
             }
+        } else if (tool_open_is_plain_text_) {
+            // Pattern B (plain-text `call:<verb>{...`) failed to parse —
+            // most commonly an unbalanced `{` (the model's args were
+            // truncated, or the verb name is real but the JSON body
+            // never closed). Unlike Pattern A's XML envelopes, the
+            // buffered span here is plain user-facing text. Flushing
+            // it back to accumulated_content_ (and re-emitting as a
+            // content delta) preserves the malformed span as
+            // caller-visible signal that the model produced garbage —
+            // dropping it silently would hide the failure mode.
+            // accumulated_text() then reports the original `call:`
+            // text exactly as the model emitted it.
+            accumulated_content_ += tool_buffer_;
+            emit_content_delta(out, tool_buffer_);
+            tool_buffer_.clear();
         } else {
-            // Tool syntax was detected but no valid call parsed. Do not leak
-            // malformed/incomplete XML back to the user as assistant text.
+            // Pattern A (XML envelope) parse failure. Do not leak
+            // malformed/incomplete `<tool_call>` / `<function=` /
+            // `<tool_code>` markup back to the user as assistant text
+            // — XML envelopes are protocol artifacts, not prose. See
+            // test_emitter_does_not_leak_malformed_tool_xml.
             std::fprintf(stderr,
                 "[server] tool_call parse failed; suppressing buffered tool text "
                 "request_id=%s format=%d bytes=%zu\n",
