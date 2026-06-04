@@ -5,15 +5,15 @@ Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
 Last refresh: `2026-06-04T12:09:43-04:00`
-Current base: `origin/main` `c4a8c2c4`
-Previous integration tip: `99b9ace5`
-Current integration source tip before this refresh: `99b9ace5`
-Post-push integration tip: `0691e7a`
-refreshed_head: `0691e7a`
+Current base: `origin/main` `02ad45d7`
+Previous integration tip: `7bff98f1`
+Current integration source tip before this refresh: `7bff98f1`
+Post-push integration tip: `2310bf71`
+refreshed_head: `2310bf71`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, re-evaluated the current open PR set, and then landed an integration-only server refactor commit on `auto-integration` (`0691e7a`). That commit consolidates common MoE hybrid helpers into `server/src/common`, updates Laguna and Qwen35MoE plumbing to use the shared code, and removes obsolete test-registration wiring in `server/CMakeLists.txt`. The branch still tracks `origin/main` `c4a8c2c4` first and foremost.
+This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, re-evaluated the current open PR set, then merged the updated upstream `origin/main` `02ad45d7` into `auto-integration` on top of the previously landed integration-only server refactor. The earlier refactor commit `0691e7a` consolidated common MoE hybrid helpers into `server/src/common`, updated Laguna and Qwen35MoE plumbing to use the shared code, and removed obsolete test-registration wiring in `server/CMakeLists.txt`. The branch now tracks `origin/main` `02ad45d7` first and foremost.
 
-Latest 12:09 refresh: fetched `origin` and `easel` separately; `origin/main` `c4a8c2c4` remains represented. Exact-head containment against the current open PR set still shows 20 included non-draft PR heads and 10 held PRs/drafts, with no new PR head advances this run. The source commit made during this refresh is an integration-only refactor rather than a new PR inclusion. Validation this run: `git diff --check --cached && git diff --check` passed after fixing a trailing blank line in `server/src/common/moe_hybrid_types.h`; `cmake -S server -B /tmp/luce2-server-build-make -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON` (with `CC=gcc CXX=g++`) failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path in this environment. No source edits were promoted beyond the integration refactor.
+Latest 12:09 refresh: fetched `origin` and `easel` separately; merged updated `origin/main` `02ad45d7` into the branch cleanly. Exact-head containment against the current open PR set still shows 20 included non-draft PR heads and 10 held PRs/drafts, with no new PR head advances this run. The source commit made during this refresh is an integration-only refactor plus upstream-base merge rather than a new PR inclusion. Validation this run: `git diff --check --cached && git diff --check` passed after fixing a trailing blank line in `server/src/common/moe_hybrid_types.h`; `git diff --check HEAD^1..HEAD` passed for the upstream-merge commit; `cmake -S server -B /tmp/luce2-server-build-make -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON` (with `CC=gcc CXX=g++`) failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path in this environment. No source edits were promoted beyond the integration refactor and upstream-base merge.
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
 
