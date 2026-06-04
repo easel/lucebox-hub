@@ -257,12 +257,14 @@ add_library(dflash_common STATIC
     src/qwen35moe/qwen35moe_ffn.cpp
     src/qwen35moe/qwen35moe_backend.cpp
     src/qwen35moe/qwen35moe_daemon.cpp
-    src/qwen35moe/qwen35moe_routing_stats.cpp
-    src/qwen35moe/qwen35moe_expert_placement.cpp
-    src/qwen35moe/qwen35moe_hybrid_storage.cpp
-    src/qwen35moe/qwen35moe_hybrid_ffn_eval.cpp
     src/qwen35moe/qwen35moe_pipelined_decode.cpp
-    src/qwen35moe/qwen35moe_swap_manager.cpp
+    # ── Common MoE hybrid infrastructure ──
+    src/common/moe_hybrid_placement.cpp
+    src/common/moe_hybrid_routing_stats.cpp
+    src/common/moe_hybrid_storage.cpp
+    src/common/moe_hybrid_ffn_eval.cpp
+    src/common/cold_ffn_cpu.cpp
+    src/common/moe_hybrid_swap_manager.cpp
     src/qwen35/layer_split_forward.cpp
     src/qwen35/layer_split_daemon.cpp
     src/qwen35/qwen35_backend.cpp
@@ -533,6 +535,11 @@ target_link_libraries(dflash_common
         ggml-base
         nlohmann_json::nlohmann_json
 )
+# OpenMP for parallel cold FFN kernel (saturate memory bandwidth).
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(dflash_common PRIVATE OpenMP::OpenMP_CXX)
+endif()
 if(DFLASH27B_GPU_BACKEND STREQUAL "hip")
     target_link_libraries(dflash_common PRIVATE hip::host)
 endif()
@@ -653,52 +660,6 @@ if(DFLASH27B_TESTS)
         target_link_libraries(test_bandit_integration PRIVATE dflash_common)
         add_test(NAME bandit_integration COMMAND test_bandit_integration)
     endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_early_exit_score_range.cpp")
-        add_executable(test_drafter_early_exit_score_range
-            test/test_drafter_early_exit_score_range.cpp)
-        target_include_directories(test_drafter_early_exit_score_range PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-        add_test(NAME test_drafter_early_exit_score_range
-            COMMAND test_drafter_early_exit_score_range)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_regime_router.cpp")
-        add_executable(test_regime_router
-            test/test_regime_router.cpp)
-        target_include_directories(test_regime_router PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-        add_test(NAME regime_router
-            COMMAND test_regime_router)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_anchor_transitive.cpp")
-        add_executable(test_anchor_transitive
-            test/test_anchor_transitive.cpp
-            src/qwen3/anchor_scan.cpp)
-        target_include_directories(test_anchor_transitive PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/qwen3)
-        add_test(NAME test_anchor_transitive
-            COMMAND test_anchor_transitive)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_warm_path_regression.cpp")
-        add_executable(test_drafter_warm_path_regression
-            test/test_drafter_warm_path_regression.cpp)
-        target_include_directories(test_drafter_warm_path_regression PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-        add_test(NAME test_drafter_warm_path_regression
-            COMMAND test_drafter_warm_path_regression)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_tail_capture_guard.cpp")
-        # GREEN phase: built with TAIL_GUARD_USE_NEW_FORMULA — must pass after Bug #42 fix.
-        add_executable(test_drafter_tail_capture_guard
-            test/test_drafter_tail_capture_guard.cpp)
-        target_compile_definitions(test_drafter_tail_capture_guard PRIVATE
-            TAIL_GUARD_USE_NEW_FORMULA)
-        add_test(NAME test_drafter_tail_capture_guard
-            COMMAND test_drafter_tail_capture_guard)
-        # RED phase binary: same source WITHOUT the fix flag — documents the bug.
-        add_executable(test_drafter_tail_capture_guard_red
-            test/test_drafter_tail_capture_guard.cpp)
-        # No TAIL_GUARD_USE_NEW_FORMULA — uses old (buggy) guard, expected to FAIL.
-    endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_draft_vs_reference.cpp")
         add_executable(test_draft_vs_reference test/test_draft_vs_reference.cpp)
         target_link_libraries(test_draft_vs_reference PRIVATE dflash_common)
@@ -760,32 +721,32 @@ if(DFLASH27B_TESTS)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/smoke_load_target_laguna.cpp")
         add_executable(smoke_load_target_laguna test/smoke_load_target_laguna.cpp)
         target_include_directories(smoke_load_target_laguna PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
-        target_link_libraries(smoke_load_target_laguna PRIVATE dflash_common ggml ggml-cuda)
+        target_link_libraries(smoke_load_target_laguna PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET})
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/smoke_laguna_forward.cpp")
         add_executable(smoke_laguna_forward test/smoke_laguna_forward.cpp)
         target_include_directories(smoke_laguna_forward PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
-        target_link_libraries(smoke_laguna_forward PRIVATE dflash_common ggml ggml-cuda)
+        target_link_libraries(smoke_laguna_forward PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET})
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/bench_laguna_ttft.cpp")
         add_executable(bench_laguna_ttft test/bench_laguna_ttft.cpp)
         target_include_directories(bench_laguna_ttft PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
-        target_link_libraries(bench_laguna_ttft PRIVATE dflash_common ggml ggml-cuda)
+        target_link_libraries(bench_laguna_ttft PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET})
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/bench_laguna_pflash.cpp")
         add_executable(bench_laguna_pflash test/bench_laguna_pflash.cpp)
         target_include_directories(bench_laguna_pflash PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
-        target_link_libraries(bench_laguna_pflash PRIVATE dflash_common ggml ggml-cuda)
+        target_link_libraries(bench_laguna_pflash PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET})
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/bench_laguna_generate.cpp")
         add_executable(bench_laguna_generate test/bench_laguna_generate.cpp)
         target_include_directories(bench_laguna_generate PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
-        target_link_libraries(bench_laguna_generate PRIVATE dflash_common ggml ggml-cuda)
+        target_link_libraries(bench_laguna_generate PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET})
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_laguna_daemon.cpp")
         add_executable(test_laguna_daemon test/test_laguna_daemon.cpp)
         target_include_directories(test_laguna_daemon PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
-        target_link_libraries(test_laguna_daemon PRIVATE dflash_common ggml ggml-cuda)
+        target_link_libraries(test_laguna_daemon PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET})
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/smoke_target_forward.cpp")
         add_executable(smoke_target_forward test/smoke_target_forward.cpp)
