@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-04T01:35:10-04:00`
+Last refresh: `2026-06-04T03:38:34-04:00`
 Current base: `origin/main` `bdc706ad`
 Previous integration tip: `fa1fb095`
-Current integration source tip before this refresh: `3ccc5928`
+Current integration source tip before this refresh: `56913664`
 Post-push integration tip: `56913664`
-refreshed_head: `56913664`
+refreshed_head: `a12107ae`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-Latest 23:28 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` was already represented, and PR #342 `d49bc49c` merged cleanly as a one-file build fix after adding the missing closing brace in `server/test/test_server_unit.cpp`. Open PR accounting is now 27 non-draft plus 12 draft/excluded (`#341 #340 #339 #338 #337 #336 #335 #334 #329 #304 #275 #249`). Exact-head containment now shows 22 included current open non-draft PR heads (`#342 #332 #326 #325 #324 #322 #321 #319 #315 #312 #310 #309 #308 #306 #294 #276 #274 #152 #142 #137 #94 #48`) and 5 held non-ancestor candidates (`#305 #285 #154 #153 #135`). PR #332 was already represented before this run; PR #297 is no longer open and remains represented upstream/through the stack. Fresh isolated merge probes on the current advanced heads still confirm #305 `4727d206` and #285 `e13e8203` remain too conflicted to promote as-is; #154/#153/#135 remain unsalvageable current-layout MTP/scheduler work. No new source slices were promoted beyond the upstream refresh and the #342 integration.
+Latest 03:38 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. Re-ran exact-head containment on the current open PR set and the stack still includes 22 current open non-draft PR heads, with 5 held non-ancestor candidates (`#305 #285 #154 #153 #135`) and the same 27 non-draft plus 12 draft/excluded open PRs overall. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`; the branch already carries the richer call-verb parser and broader unit coverage, so #340 remains held/superseded rather than promoted. No source edits were applied; the branch remains on `43094913`.
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
 
