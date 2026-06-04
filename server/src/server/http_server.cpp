@@ -403,6 +403,7 @@ static std::string build_stall_tool_prefix(const json & tools,
 }
 
 
+
 // Build the /props response body.
 //
 // Non-static so unit tests can call it directly (declared in http_server.h).
@@ -1676,8 +1677,7 @@ bool HttpServer::route_request(int fd, const HttpRequest & hr) {
                     eos_str,
                     /*add_generation_prompt=*/true,
                     enable_thinking,
-                    tools_json,
-                    chat_format_);
+                    tools_json);
             } catch (const std::exception & e) {
                 send_error(fd, 500,
                     std::string("chat template (jinja) render failed: ") + e.what());
@@ -1710,27 +1710,8 @@ bool HttpServer::route_request(int fd, const HttpRequest & hr) {
         return true;  // handled (with error)
     }
 
-    // Pre-compression admission: reject non-pflash requests that can't fit,
-    // and pflash requests whose raw prompt cannot possibly compress to fit
-    // (first-principles guard: raw*keep_ratio + max_output > max_ctx).
-    // The real post-compression gate runs in worker_loop after pflash runs.
-    const int raw_size = (int)req.prompt_tokens.size();
-    const bool pflash_will_run =
-        config_.max_ctx > 0 &&
-        config_.pflash_mode != ServerConfig::PflashMode::OFF &&
-        drafter_tokenizer_ != nullptr &&
-        (config_.pflash_mode == ServerConfig::PflashMode::ALWAYS ||
-         raw_size >= config_.pflash_threshold);
-    if (!check_admission(raw_size, raw_size, req.max_output, config_.max_ctx,
-                         /*pflash_on=*/false) && !pflash_will_run) {
-        // Non-pflash path: raw is the effective size, reject immediately.
-        send_error(fd, 400, "prompt + max_tokens exceeds context window");
-        return true;
-    }
-    if (pflash_will_run &&
-        !check_admission(raw_size, raw_size, req.max_output, config_.max_ctx,
-                         /*pflash_on=*/true, config_.pflash_keep_ratio)) {
-        // Pre-compression guard: best-case compression still can't fit.
+    // Check context length.
+    if ((int)req.prompt_tokens.size() + req.max_output > config_.max_ctx) {
         send_error(fd, 400, "prompt + max_tokens exceeds context window");
         return true;
     }
@@ -2122,11 +2103,6 @@ void HttpServer::worker_loop() {
         gen_req.sampler = req.sampler;
         gen_req.do_sample = req.sampler.needs_logit_processing();
         gen_req.stream = false;  // we handle streaming via on_token callback
-        // Widen verify window to cover the full compressed prompt; C2 gate in
-        // qwen35_backend.cpp selects spec-decode vs AR. See docs/pflash-adaptive-composition.md.
-        if (pflash_compressed) {
-            gen_req.fa_window_override = (int)effective_prompt.size() + 256;
-        }
 
         // Level 2 force-close: when thinking is opted in, the server is
         // configured with a hard-limit reply budget, and we resolved the
@@ -2502,21 +2478,14 @@ void HttpServer::worker_loop() {
         // close_kind reflects the Level 2 BudgetHook outcome:
         //   "natural" — the model emitted </think> on its own (or the
         //               request never opted in to the envelope).
-        //   "soft"    — the soft-close logit-ratio peek (Level 2.5)
-        //               fired before the hard cap, indicating the
-        //               model was willing to close. See
-        //               docs/specs/thinking-budget.md §7.
-        //   "hard"    — the budget edge was reached without the model
-        //               or the soft path agreeing; the AR loop forced
-        //               </think> in. Original Level 2 behavior.
-        // Soft wins ties against hard on the same step (see plan §4 +
-        // §12) — soft_forced_close and budget_forced_close are mutually
-        // exclusive per AR-loop step. Emitted as part of finish_details
-        // for thinking-budget callers.
+        //   "hard"    — the budget edge was reached and the AR loop
+        //               forced </think> in. Original Level 2 behavior.
+        // Soft-close (Level 2.5) lives on a sibling branch; this PR
+        // reports the natural/hard split that landed first. Emitted as
+        // part of finish_details for thinking-budget callers.
         std::string close_kind = "natural";
-        if (req.thinking_opt_in) {
-            if (result.soft_forced_close)        close_kind = "soft";
-            else if (result.budget_forced_close) close_kind = "hard";
+        if (req.thinking_opt_in && result.budget_forced_close) {
+            close_kind = "hard";
         }
 
         // Finalize.
