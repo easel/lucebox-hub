@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-03T19:11:57-04:00`
-Current base: `origin/main` `080b501c`
-Previous integration tip: `e07031a0`
-Current integration source tip before this refresh: `a70c3a84`
-Post-push integration tip: `5276cfc4`
-refreshed_head: `5276cfc4`
+Last refresh: `2026-06-03T21:21:41-04:00`
+Current base: `origin/main` `bdc706ad`
+Previous integration tip: `86358256`
+Current integration source tip before this refresh: `fa1fb095`
+Post-push integration tip: `fa1fb095`
+refreshed_head: `fa1fb095`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest recorded stack refresh fetched `origin` and `easel` separately, fetched current non-draft PR heads, and checked exact PR-head containment against the stack tip.
 
-Latest 19:11 refresh: fetched `origin` and `easel` separately; `origin/main` `080b501c` is already represented and the local branch tip is `a70c3a84` before this manifest update. Open PR accounting is now 27 non-draft plus 12 draft/excluded (`#341 #340 #339 #338 #337 #336 #334 #335 #329 #304 #275 #249`). Exact-head containment still shows 22 included current open non-draft PR heads (`#332 #326 #325 #324 #322 #321 #319 #315 #312 #310 #309 #308 #306 #297 #294 #276 #274 #152 #142 #137 #94 #48`) and 5 held non-ancestor candidates (`#305 #285 #154 #153 #135`). Fresh isolated merge probes on the current advanced heads confirm #305 `4727d206` and #285 `e13e8203` remain too conflicted to promote as-is; #154/#153/#135 remain unsalvageable current-layout MTP/scheduler work. No new source slices were promoted in this refresh.
+Latest 21:21 refresh: fetched `origin` and `easel` separately, merged `origin/main` `bdc706ad` into `auto-integration`, and then merged the advanced PR #294 `5c873adb` after resolving one usage-text conflict in `server/src/server/server_main.cpp`. Open PR accounting is now 26 non-draft plus 12 draft/excluded (`#341 #340 #339 #338 #337 #336 #335 #334 #329 #304 #275 #249`). Exact-head containment now shows 21 included current open non-draft PR heads (`#332 #326 #325 #324 #322 #321 #319 #315 #312 #310 #309 #308 #306 #294 #276 #274 #152 #142 #137 #94 #48`) and 5 held non-ancestor candidates (`#305 #285 #154 #153 #135`). PR #332 was already represented before this run; PR #297 is no longer open and remains represented upstream/through the stack. Fresh isolated merge probes on the current advanced heads still confirm #305 `4727d206` and #285 `e13e8203` remain too conflicted to promote as-is; #154/#153/#135 remain unsalvageable current-layout MTP/scheduler work. No new source slices were promoted beyond the upstream refresh and the #294 integration.
 
 Latest 14:58 docs refresh: recorded the current branch head `0218f46d` after updating this manifest. No source-stack changes were made; the branch still carries the 14:53 upstream-sync result plus this documentation-only checkpoint.
 
@@ -52,10 +52,11 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
 | #329 | `fix/sse-emitter-content-mode-tool-parse` | `ee9cd9e9` | draft / excluded; previous `8218333b` represented | The earlier `8218333b` head is already represented with plain-text `call:<verb>{...}` tool-call detection and SSE/emitter wiring. The PR advanced while draft after this run's first push, so the new draft head is excluded from non-draft target accounting pending contributor readiness. |
-| #326 | `feat/soft-close-thinking-termination` | `d799d000` | included | Adds soft-close thinking termination via logit-ratio peek, server flags/status props, Qwen35/Qwen35MoE model-backend hooks, HTTP stop-reason propagation, and unit coverage while preserving the current stack's visible-output retry, stall guards, MoE AR dispatch path, and C2 gate tests. |
+| #332 | `cudagraph-on-main` | `53e5e795` | included | CUDA-graph AR decode + GPU argmax; current head is already represented by the stack. |
+| #326 | `feat/soft-close-thinking-termination` | `f7e8d6f8` | included | Adds soft-close thinking termination via logit-ratio peek, server flags/status props, Qwen35/Qwen35MoE model-backend hooks, HTTP stop-reason propagation, and unit coverage while preserving the current stack's visible-output retry, stall guards, MoE AR dispatch path, and C2 gate tests. |
 | #325 | `feat-layer-split-disk-prefix-cache` | `b47fb3aa` | included / represented | Current PR head is now an ancestor via no-content merge after manual and tmux-delegated conflict-resolution attempts. Existing auto-integration commits already carry the same-backend layer-split disk prefix-cache snapshot/adopt support, disk-cache lookup/adopted-layout validation cleanup, and related runtime/IPC robustness; direct merge remains heavily conflicted against newer current-stack layer-split code. |
 | #321 | `feat-mixed-backend-layer-split-runtime` | `87fe7655` | included / represented | Current PR head is now an ancestor via no-content merge after a direct merge produced 15 unmerged paths and tmux-driven Claude reached max turns without resolving it. Existing auto-integration commits already carry the mixed-backend placement parsing, target-shard IPC control-plane staging, layer-split runtime metadata hardening, `placement_backend` propagation, and inactive-client safe hooks. |
-| #322 | `status_html` | `4b40aa13` | included | Adds real-time `/status` dashboard assets, SSE plumbing, server status registry, inference observer callbacks, and non-blocking SSE heartbeat sends; conflicts were resolved by preserving both current-stack MTP/status/cancellation callbacks and PR322 dashboard plumbing. |
+| #322 | `status_html` | `5c6d51c3` | included | Adds real-time `/status` dashboard assets, SSE plumbing, server status registry, inference observer callbacks, and non-blocking SSE heartbeat sends; conflicts were resolved by preserving both current-stack MTP/status/cancellation callbacks and PR322 dashboard plumbing. |
 | #324 | `codex/visible-empty-dflash-retry-upstream` | `3f44fc84` | included | Current head is now carried exactly after a post-push PR advance. It adds cancellation-on-disconnect plumbing through `CancelCallback`, `DaemonIO::should_cancel`, tokenizer cancellation, backend loops, SSE/header handling, regression coverage, and the latest visible-empty retry updates while preserving auto-integration status-dashboard broadcasts, draft-residency fields, Qwen35MoE gallocr cleanup, layer-split runtime behavior, and #285 Gemma4 `<|channel>*` handling. |
 | #319 | `codex/pr314-restore-default` | `de1c77fe` | included | Adds default empty-spec-decode retry through backend wrapper methods so successful zero-token speculative paths retry once via AR decode while preserving timing/metadata, and the latest visible-output tracking for empty DFlash retry/cache-save behavior. |
 | #315 | `codex/dflash-spec-tool-recovery` | `3a06dd4d` | included | Current PR head is now carried exactly after this run's advance from `138b7975`. The merge kept current-stack soft-close/observer/cancellation/status plumbing, retained visible-output retry semantics, and adopted #315's review follow-ups around bounded `/tmp/dflash_floor.log` diagnostics, `DFLASH_MIN_TOKENS` parsing, suffix-terminal token matching, trailing sequence scan cleanup, and decode-duration retry logging. The stack carries spec-decode stall recovery behavior: env-gated tool-prefix floor injection, bounded residual stall/repetition guards, invalid draft-seed AR fallback, and qwen35 empty-output / C2 `fa_window` AR fallbacks. |
@@ -64,9 +65,9 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #309 | `experiment-dflash-feature-dtype` | `ea6ac481` | included | Feature mirror dtype policy is carried exactly. |
 | #308 | `fix/qwen-think-channel` | `9d4defe1` | included | Qwen3.6/Laguna think-mode reasoning is routed to `reasoning_content`; stack carries the replay HTTP stub harness and regression scenarios exactly. |
 | #306 | `refactor-server-layer-split-runtime` | `988fc933` | included | Shared layer-split runtime helper extraction is carried exactly. |
-| #297 | `feat-server-laguna-layer-split-adapter-v2` | `53dd1686` | included | Laguna target-layer-split adapter is carried exactly. |
+| #297 | `feat-server-laguna-layer-split-adapter-v2` | `53dd1686` | closed / represented | Laguna target-layer-split adapter is already carried in the stack; the PR is no longer open. |
 | #295 | `fix-layer-split-sampling` | `a9aedf7d` | included | Target layer-split sampling support is carried exactly. |
-| #294 | `feat/server-passthrough-proxy` | `dc18f33b` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, unit coverage, and CURL-optional CI fix are carried exactly. |
+| #294 | `feat/server-passthrough-proxy` | `5c873adb` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, unit coverage, and CURL-optional CI fix are carried exactly; the advanced head merged cleanly this refresh after one usage-text conflict. |
 | #291 | `feat-gemma4-draft-residency-followup` | `91ff48fa` | included | Current head is carried exactly. Adds draft residency policy (`auto` / `persistent` / `request-scoped`), `--draft-residency` CLI and `/props.runtime` surfacing, PFlash and decode-draft request-scoped release actions, and Gemma4 draft-only park/unpark helpers while preserving current stack passthrough PFlash, transitive compression, cancellation, visible-empty retry, and status behavior. |
 | #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
 | #285 | `feat/lucebox-docker` | `e13e8203` | held / advanced; prior `93959170` tree represented | The earlier `93959170` Docker stack / `lucebox` CLI / harness / `luce-bench` content remains represented in the current integration tree, but the live PR head has advanced into a much larger unstable continuation (docs, Docker, harness, and bench/profile material, 68k+ additions). A fresh direct-merge probe against the current head still explodes into broad conflicts, so it stays on the held list for follow-up rather than being re-merged this refresh. |
@@ -79,7 +80,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | included / superseded | Recorded with an `ours` merge because the current tree already has SWA draft support (`DraftLayer::is_swa`, `DraftWeights::swa_window`, safetensors SWA metadata parsing, SWA-aware draft masks, and GGUF SWA metadata support). |
 | #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | included / superseded | Merged by preserving deletion of retired `dflash/CMakeLists.txt`; current `server/CMakeLists.txt` already conditionally handles Blackwell/CUDA-version flags. |
 
-Closed, upstreamed, or no-longer-open PRs still represented by the stack/base include #328, #317, #316, #314, #313, #311, #307, #303, #302, #301, #300, #299, #298, #295, #292, and #290.
+Closed, upstreamed, or no-longer-open PRs still represented by the stack/base include #328, #317, #316, #314, #313, #311, #307, #303, #302, #301, #300, #299, #298, #297, #295, #292, and #290.
 ## Validation run
 
 This run performed (latest first):
