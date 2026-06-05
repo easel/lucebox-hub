@@ -4,23 +4,22 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-05T03:20:54-04:00`
+Last refresh: `2026-06-05T07:36:47-04:00`
 Current base: `origin/main` `89ce05d2`
-Previous integration tip: `27c133cb`
-Current integration source tip before this refresh: `aa14925b`
-Post-push integration tip: `aa14925b`
-refreshed_head: `aa14925b`
+Previous integration tip: `40db5f93`
+Current integration source tip before this refresh: `518b6298`
+Post-push integration tip: `518b6298`
+refreshed_head: `518b6298`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, confirmed `origin/main` `89ce05d2` is already represented, and then landed PR #344 (`feat(server): GgufMetadata reader + SHA-256 sidecar for /props schema-4`) as a merge commit that adds size-guarded GGUF sha256 sidecar validation. The branch remains anchored to the upstream base first and foremost.
+This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh confirmed `origin/main` `89ce05d2` is already represented, then tried to fold PR #335 (`feat(lucebox): hub CLI + autotune/sweep/profile + harness adapters + shell wrapper`) into the stack. The direct merge conflicted broadly across the lucebox/harness CLI surface and CI wiring, so the current stack's newer integration layout was kept and PR #335 was held for later reconciliation rather than promoted.
 
 ## 2026-06-05 refresh snapshot
 
-- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #274, #276, #309, #310, #312, #321, #322, #324, #325, #334, #344.
-- Open PR heads whose earlier work is already represented, but whose live heads have advanced and need later reconciliation: #335, #337, #339, #341.
-- Open PRs still held for now because they are not exact-head represented and need later selective-port or conflict work: #135, #153, #154.
+- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #274, #276, #309, #310, #312, #321, #322, #324, #325, #334, #337, #339, #341, #344.
+- Open PR heads whose earlier work is already represented, but whose live heads have advanced and need later reconciliation: #335.
 - Draft / excluded open PRs: #249, #275, #304, #343.
-- Integration-only merge this run: `aa14925b` `Merge branch 'pr344-trial' into auto-integration` (PR #344, `feat(server): GgufMetadata reader + SHA-256 sidecar for /props schema-4`).
-- Validation before commit: `git diff --check --cached` passed; `CC=gcc CXX=g++ cmake -S server -B /tmp/luce-pr344-cmake-make -G 'Unix Makefiles' -DCMAKE_CUDA_ARCHITECTURES=89` failed at CUDA compiler identification because local `ptxas` rejects `sm_52`.
+- Direct-merge probe this run: PR #335 (`feat(lucebox): hub CLI + autotune/sweep/profile + harness adapters + shell wrapper`) conflicted broadly in `.github/workflows/ci.yml`, `harness/clients/README.md`, `harness/clients/run_lucebench.sh`, `harness/src/harness/{bench.py,clients/_common.py,clients/{claude_code,hermes,openclaw,opencode}.py}`, `install.sh`, `lefthook.yml`, `lucebox.sh`, `lucebox/{pyproject.toml,src/lucebox/{autotune.py,cli.py,config.py,docker_run.py,profile.py,sweep.py},tests/test_sweep.py}`, and `pyproject.toml`; the current stack kept its newer lucebox/harness integration and CI layout, so #335 was held rather than promoted.
+- Validation before this docs refresh: `git status --short --branch` was clean before the probe, and the direct-merge probe was aborted without committing any source-path resolutions.
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
 
