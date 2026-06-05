@@ -4,14 +4,22 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-04T14:18:07-04:00`
-Current base: `origin/main` `f4eb5045`
-Previous integration tip: `29c17c11`
-Current integration source tip before this refresh: `29c17c11`
-Post-push integration tip: `9da11cc4`
-refreshed_head: `9da11cc4`
+Last refresh: `2026-06-05T01:14:54-04:00`
+Current base: `origin/main` `89ce05d2`
+Previous integration tip: `bc784da6`
+Current integration source tip before this refresh: `bc784da6`
+Post-push integration tip: `6c5d7108`
+refreshed_head: `6c5d7108`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, re-evaluated the current open PR set, then merged the updated upstream `origin/main` `f4eb5045` into `auto-integration` and fast-forwarded the already-represented PR #337 merge commit (`9fdc0f60`) as a no-content merge because the PR tree matched the existing integration tree. The earlier refactor commit `0691e7a` consolidated common MoE hybrid helpers into `server/src/common`, updated Laguna and Qwen35MoE plumbing to use the shared code, and removed obsolete test-registration wiring in `server/CMakeLists.txt`. The branch now tracks `origin/main` `f4eb5045` first and foremost.
+This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, confirmed `origin/main` `89ce05d2` is already represented, and then landed an integration-only Gemma4 soft-close cancellation refinement plus a documentation path correction as `6c5d7108`. The branch remains anchored to the upstream base first and foremost.
+
+## 2026-06-05 refresh snapshot
+
+- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #274, #276, #309, #310, #312, #321, #322, #324, #325, #334.
+- Open PR heads whose earlier work is already represented, but whose live heads have advanced and need later reconciliation: #335, #337, #339, #341, #344.
+- Draft / excluded open PRs: #249, #275, #304, #343.
+- Integration-only commit this run: `6c5d7108` `fix(server): refine gemma4 soft-close handling`.
+- Validation before commit: `git diff --check --cached` passed.
 
 Latest 14:18 refresh: fetched `origin` and `easel` separately; merged updated `origin/main` `f4eb5045` into the branch cleanly, then fast-forwarded PR #337 as a no-content merge because its tree was already represented. Exact-head containment against the current open PR set now shows 17 included non-draft PR heads and 3 held PRs, with no new non-draft head advances this run. The source commit made during this refresh is an integration-only upstream-base merge plus a no-content PR representation rather than a new source delta. Validation this run: `git diff --check HEAD^1..HEAD` passed for both merge commits, `git diff --stat HEAD^1 HEAD` is empty for the merge tip, and no CMake or test rerun was needed because this refresh introduced no tree changes beyond merge metadata. No source edits were promoted beyond the integration/base refresh.
 
