@@ -8,8 +8,8 @@ Last refresh: `2026-06-05T03:20:54-04:00`
 Current base: `origin/main` `89ce05d2`
 Previous integration tip: `27c133cb`
 Current integration source tip before this refresh: `aa14925b`
-Post-push integration tip: `94ca89d6`
-refreshed_head: `94ca89d6`
+Post-push integration tip: `aa14925b`
+refreshed_head: `aa14925b`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, confirmed `origin/main` `89ce05d2` is already represented, and then landed PR #344 (`feat(server): GgufMetadata reader + SHA-256 sidecar for /props schema-4`) as a merge commit that adds size-guarded GGUF sha256 sidecar validation. The branch remains anchored to the upstream base first and foremost.
 
