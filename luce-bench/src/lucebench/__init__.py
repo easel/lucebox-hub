@@ -5,13 +5,13 @@ Quick start:
     from lucebench.areas import ds4_eval
     from lucebench.runner import run_case
 
-    cases = ds4_eval.load_cases()
+    cases = ds4_eval.load_ds4_eval_cases()
     rows = [run_case(url="http://localhost:8080", case=c, model="dflash")
             for c in cases]
 
 Or via CLI:
 
-    lucebench --url http://localhost:8080 --area ds4-eval --model dflash
+    lucebench --url http://localhost:8080 --areas ds4-eval --model dflash
 
 The package vendors evaluation fixtures from upstream MIT-licensed
 projects (antirez/ds4, openai/human-eval, antoinezambelli/forge). See

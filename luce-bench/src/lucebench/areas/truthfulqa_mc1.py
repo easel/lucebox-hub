@@ -57,6 +57,14 @@ def load_truthfulqa_mc1_cases(path: Path = FIXTURE_PATH) -> list[dict[str, Any]]
             raw = json.loads(line)
             choices = list(raw["choices"])
             expected_idx = int(raw["expected_index"])
+            if not (0 <= expected_idx < len(choices)):
+                # Out-of-range labels would silently produce un-passable
+                # cases; surface as a load-time error so a broken fixture
+                # fails fast rather than poisoning the pass-rate.
+                raise ValueError(
+                    f"truthfulqa-mc1 case {raw.get('id')!r}: expected_index "
+                    f"{expected_idx} out of range for {len(choices)} choices"
+                )
             expected_letter = chr(ord("A") + expected_idx)
             prompt = build_mc_prompt(raw["question"], choices)
             out.append(

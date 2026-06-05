@@ -738,15 +738,18 @@ def _run_agent_recorded_to_dir(
     questions: int | None,
     restart_between_cases: bool = True,
     mock_judge: Any = None,
-) -> dict[str, Any] | None:
+) -> tuple[dict[str, Any] | None, bool]:
     """Drive the multi-turn agent_recorded area + write ``<out_root>/agent_recorded.json``.
 
-    Mirrors ``_run_forge_area_to_dir`` — the area owns its own cold/warm
-    loop and judge invocation, so the standard ``run_case`` path doesn't
-    fit. Returns the summary row appended to ``summary_areas``, or
-    ``None`` on hard failure.
+    Mirrors ``_run_standard_area_to_dir`` — the area owns its own
+    cold/warm loop and judge invocation, so the standard ``run_case``
+    path doesn't fit. Returns ``(row, aborted)`` where ``aborted`` is
+    True for hard configuration failures (e.g. missing ANTHROPIC_API_KEY
+    → ``JudgeUnavailable``) that should fail the sweep instead of being
+    silently dropped from the summary.
     """
     from lucebench.areas.agent_recorded import run_agent_recorded_area
+    from lucebench.grading.llm_judge import JudgeUnavailable
 
     max_tokens_eff = max_tokens if max_tokens is not None else 512
     print(
@@ -765,9 +768,25 @@ def _run_agent_recorded_to_dir(
             questions=questions,
             mock_judge=mock_judge,
         )
+    except JudgeUnavailable as exc:
+        # Missing judge credentials are a configuration error, not a
+        # per-case hiccup — abort the sweep rather than reporting success
+        # with the area silently missing from the summary.
+        print(
+            f"[lucebench] agent_recorded aborted: {exc}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return None, True
     except Exception as exc:  # noqa: BLE001
-        print(f"[lucebench] agent_recorded: {exc}", file=sys.stderr, flush=True)
-        return None
+        # Any other unexpected failure also aborts — letting the sweep
+        # exit 0 with agent_recorded missing was hiding real breakage.
+        print(
+            f"[lucebench] agent_recorded aborted: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return None, True
 
     (out_root / "agent_recorded.json").write_text(
         json.dumps(
@@ -801,7 +820,7 @@ def _run_agent_recorded_to_dir(
         "rate": summary.get("pass_rate", 0.0),
         "wall_total": sum(walls),
         "wall_median": statistics.median(walls) if walls else 0,
-    }
+    }, False
 
 
 def _run_standard_area_to_dir(
@@ -1065,7 +1084,7 @@ def _run_sweep(args) -> int:
                 summary_areas.append(row)
             continue
         if area == "agent_recorded":
-            row = _run_agent_recorded_to_dir(
+            row, aborted = _run_agent_recorded_to_dir(
                 out_root=out_root,
                 url=args.url,
                 model=args.model,
@@ -1077,6 +1096,8 @@ def _run_sweep(args) -> int:
                     args, "agent_recorded_restart", True
                 ),
             )
+            if aborted:
+                return 3
             if row is not None:
                 summary_areas.append(row)
             continue

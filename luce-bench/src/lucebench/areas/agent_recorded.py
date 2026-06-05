@@ -442,7 +442,14 @@ def _extract_row_from_response(raw: dict[str, Any], wall: float) -> dict[str, An
         timings = {}
     prefill_ms = timings.get("prefill_ms")
     decode_ms = timings.get("decode_ms")
-    prefix_len = timings.get("prompt_n_cached") or timings.get("prefix_len") or 0
+    # Explicit ``is not None`` checks — ``prompt_n_cached=0`` (cold cache)
+    # is a valid value that ``or`` would treat as falsy, incorrectly
+    # falling through to ``prefix_len`` and inflating cache-hit metrics.
+    prefix_len = timings.get("prompt_n_cached")
+    if prefix_len is None:
+        prefix_len = timings.get("prefix_len")
+    if prefix_len is None:
+        prefix_len = 0
     tps_decode = timings.get("decode_tokens_per_sec")
     out_tokens = usage.get("completion_tokens")
     if tps_decode is None and decode_ms and out_tokens:
@@ -641,6 +648,12 @@ def _run_one_multi_turn_case(
             "error": "no_reference",
         }
     else:
+        # ``JudgeUnavailable`` (missing API key / SDK) is a configuration
+        # failure rather than a per-call hiccup — let it propagate so the
+        # area aborts on the first case instead of silently masking every
+        # row as ``judge_pending``. See module docstring.
+        from lucebench.grading.llm_judge import JudgeUnavailable
+
         try:
             verdict = judge_fn(
                 case_id=case_id,
@@ -649,6 +662,8 @@ def _run_one_multi_turn_case(
                 candidate_response=cold_content,
             )
             judge_result = verdict.to_dict() if hasattr(verdict, "to_dict") else dict(verdict)
+        except JudgeUnavailable:
+            raise
         except Exception as e:  # noqa: BLE001 - one judge failure → pending, not abort
             judge_result = {
                 "pass": False,

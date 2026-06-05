@@ -1,9 +1,10 @@
 # luce-bench
 
 Capability benchmarks for OpenAI-compatible chat-completion endpoints —
-6 evaluation areas (`smoke`, `ds4-eval`, `code`, `longctx`, `agent`,
-`forge`). Lives inside the [lucebox-hub] monorepo and publishes to
-PyPI on tagged releases.
+10 evaluation areas (`smoke`, `ds4-eval`, `gsm8k`, `truthfulqa-mc1`,
+`hellaswag`, `code`, `longctx`, `agent`, `agent_recorded`, `forge`).
+Lives inside the [lucebox-hub] monorepo and publishes to PyPI on tagged
+releases.
 
 [lucebox-hub]: https://github.com/luce-org/lucebox-hub
 

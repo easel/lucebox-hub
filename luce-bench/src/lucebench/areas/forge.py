@@ -96,6 +96,14 @@ def _coerce_relaxed_json(payload: str) -> Any:
     # Permissive pass: quote bare keys. The regex matches an identifier
     # followed by ``:`` only when it isn't already inside a string. We
     # walk the text and skip string contents to avoid mangling values.
+    #
+    # When we open a single-quoted string we emit a ``"`` for the opener,
+    # then re-emit each inner char verbatim (un-escaping a ``\'`` to a
+    # literal apostrophe and escaping any bare ``"`` to ``\"``) until we
+    # hit the matching close ``'``, which we again rewrite to ``"``. This
+    # keeps payloads like ``{q: "it's time"}`` intact — a global
+    # ``.replace("'", '"')`` would convert the apostrophe inside the
+    # double-quoted value and break parsing.
     out: list[str] = []
     i = 0
     n = len(payload)
@@ -103,13 +111,31 @@ def _coerce_relaxed_json(payload: str) -> Any:
     while i < n:
         ch = payload[i]
         if in_str is not None:
-            out.append(ch)
             if ch == "\\" and i + 1 < n:
-                out.append(payload[i + 1])
+                nxt = payload[i + 1]
+                if in_str == "'" and nxt == "'":
+                    # \' inside a single-quoted string → literal apostrophe
+                    out.append("'")
+                elif in_str == "'" and nxt == '"':
+                    # \" inside a single-quoted string → must escape for double-quoted JSON
+                    out.append('\\"')
+                else:
+                    out.append(ch)
+                    out.append(nxt)
                 i += 2
                 continue
             if ch == in_str:
+                # Close: emit the appropriate close char (always " for JSON).
+                out.append('"')
                 in_str = None
+                i += 1
+                continue
+            if in_str == "'" and ch == '"':
+                # Bare double quote inside a single-quoted string must be escaped.
+                out.append('\\"')
+                i += 1
+                continue
+            out.append(ch)
             i += 1
             continue
         if ch in ('"', "'"):
@@ -134,11 +160,7 @@ def _coerce_relaxed_json(payload: str) -> Any:
         out.append(ch)
         i += 1
 
-    # Replace any single-quoted string close markers in the rewrite. We
-    # already opened them as double quotes; close them as double quotes
-    # too. This is a no-op for inputs that didn't use single quotes.
-    rewritten = "".join(out).replace("'", '"')
-    return json.loads(rewritten)
+    return json.loads("".join(out))
 
 
 def _strip_plain_text_tool_calls(text: str) -> str:
@@ -569,10 +591,13 @@ def run_forge_area(
                 "completion_tokens": total_comp or None,
                 "timings": agg_timings,
                 "error": err or (res and res.error_type),
-                "http_status": 200 if graded_pass else None,
-                "finish_reason": "tool_calls"
-                if iterations and iterations[-1].get("tool_calls")
-                else "stop",
+                # Surface the actual final-iteration status/finish, not a
+                # pass/fail-derived synthesis — a 200 response that fails
+                # grading is still HTTP 200, and a ``length`` finish on
+                # the last turn must not be erased by the assumption that
+                # the run ended on ``tool_calls``/``stop``.
+                "http_status": iterations[-1].get("http_status") if iterations else None,
+                "finish_reason": iterations[-1].get("finish_reason") if iterations else None,
             }
         )
 

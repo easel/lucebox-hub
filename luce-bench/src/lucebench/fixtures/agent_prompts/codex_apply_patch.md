@@ -322,7 +322,7 @@ AddFile := "*** Add File: " path NEWLINE { "+" line NEWLINE }
 DeleteFile := "*** Delete File: " path NEWLINE
 UpdateFile := "*** Update File: " path NEWLINE [ MoveTo ] { Hunk }
 MoveTo := "*** Move to: " newPath NEWLINE
-Hunk := "@@" [ header ] NEWLINE { HunkLine } [ "*** End of File" NEWLINE ]
+Hunk := "@@" [ header ] NEWLINE { "@@" [ header ] NEWLINE } { HunkLine } [ "*** End of File" NEWLINE ]
 HunkLine := (" " | "-" | "+") text NEWLINE
 
 A full patch can combine several operations:

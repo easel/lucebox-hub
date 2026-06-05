@@ -156,5 +156,5 @@ def grade_longctx_case(case: dict[str, Any], row: dict[str, Any]) -> dict[str, A
         "status": g["status"],
         "format_pass": g["format_pass"],
         "strict_pass": g["strict_pass"],
-        "semantic_hint": False,
+        "semantic_hint": g["semantic_hint"],
     }

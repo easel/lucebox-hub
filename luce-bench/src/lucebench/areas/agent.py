@@ -135,7 +135,13 @@ def grade_agent(user_message: str, completion: str) -> dict[str, Any]:
 
 def grade_agent_case(case: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     """Wrap grade_agent to match the lucebench.cli runner shape."""
-    completion = row.get("content") or ""
+    # Mirror the MC grader: prefer visible ``content``, but fall back to
+    # ``reasoning_content`` when content is empty so think-mode models
+    # whose entire reply lands in the reasoning channel aren't graded
+    # against the empty string.
+    content = row.get("content") or ""
+    reasoning = row.get("reasoning_content") or ""
+    completion = content if content.strip() else reasoning
     g = grade_agent(case.get("user_message", ""), completion)
     return {
         "pass": g["graded_pass"],

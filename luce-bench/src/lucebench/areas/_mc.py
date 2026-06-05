@@ -29,12 +29,20 @@ GRADER_VERSION = 1
 # caller validate that the letter falls within the case's actual range
 # (some cases have only 2 choices, in which case "G" is junk even if
 # the model emitted it).
+# Patterns 1-3 anchor the captured letter with a trailing ``(?![A-Za-z])``
+# so phrases like "answer is unclear" don't capture "u" out of "unclear".
+# All five patterns use IGNORECASE for a consistent matching policy —
+# parenthesized / standalone-line lowercase letters ("(a)", "a\n") are
+# accepted just like natural-language phrasings ("answer is a").
 _ANSWER_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"\banswer\s*(?:is|:)\s*\(?([A-Z])\)?", re.IGNORECASE),
-    re.compile(r"\bfinal\s+answer\s*:?\s*\(?([A-Z])\)?", re.IGNORECASE),
-    re.compile(r"\bthe\s+correct\s+(?:answer|choice|option)\s*(?:is|:)\s*\(?([A-Z])\)?", re.IGNORECASE),
-    re.compile(r"\(([A-Z])\)\s*$"),  # trailing "(X)"
-    re.compile(r"^\s*\(?([A-Z])\)?\s*$", re.MULTILINE),  # standalone letter on its own line
+    re.compile(r"\banswer\s*(?:is|:)\s*\(?([A-Z])\)?(?![A-Za-z])", re.IGNORECASE),
+    re.compile(r"\bfinal\s+answer\s*:?\s*\(?([A-Z])\)?(?![A-Za-z])", re.IGNORECASE),
+    re.compile(
+        r"\bthe\s+correct\s+(?:answer|choice|option)\s*(?:is|:)\s*\(?([A-Z])\)?(?![A-Za-z])",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\(([A-Z])\)\s*$", re.IGNORECASE),  # trailing "(X)"
+    re.compile(r"^\s*\(?([A-Z])\)?\s*$", re.MULTILINE | re.IGNORECASE),  # standalone letter on its own line
 )
 
 
