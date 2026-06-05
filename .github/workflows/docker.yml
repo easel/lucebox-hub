@@ -12,6 +12,12 @@ on:
   # event=tag` + `type=semver` rules below.
   release:
     types: [published]
+  # Build + push the rolling `:cuda12` tag on every main merge so the public
+  # image tracks main. The metadata-action `enable=` rule below gates the
+  # moving tag on `github.ref == refs/heads/main`, and the build step's
+  # `push:` condition includes push events on main.
+  push:
+    branches: [main]
   # Build-only CI guard on PRs that touch the docker surface. We never push
   # from a PR — even if we wanted to, GITHUB_TOKEN on PRs from forks lacks
   # `packages:write`. The point is to catch Dockerfile / bake-file / arch-
@@ -166,7 +172,7 @@ jobs:
             docker-bake.hcl
             ${{ steps.meta.outputs.bake-file }}
           targets: ${{ matrix.variant }}
-          push: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.push) }}
+          push: ${{ github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.push) }}
           # gha cache stores layer blobs in the workflow's Actions cache,
           # scoped by variant so future CUDA stacks don't evict each other.
           # mode=max also caches multi-stage intermediate layers (the
