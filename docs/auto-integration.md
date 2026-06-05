@@ -4,22 +4,24 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-05T13:56:10-04:00`
+Last refresh: `2026-06-05T16:02:26-04:00`
 Current base: `origin/main` `f59f2a33`
-Previous integration tip: `6f81085c`
-Current integration source tip before this refresh: `6f81085c`
-Post-push integration tip: `9cbad2be`
-refreshed_head: `9cbad2be`
+Previous integration tip: `cb0885eb`
+Current integration source tip before this refresh: `cb0885eb`
+Post-push integration tip: `cb0885eb`
+refreshed_head: `cb0885eb`
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This refresh first fast-forwarded to upstream `origin/main` `f59f2a33`, then merged PR #346 (`fix(test): chain DFlash verify/replay produce valid logits at all positions`) and PR #345 (`feat(optimizations): Luce Spark — calibrated hot/cold expert residency`) cleanly into the stack. PR #335 was probed this run and remains held for later reconciliation because the direct merge hit broad add/add and content conflicts across the new `lucebox`/`harness` packaging, workflow, installer, and pyproject surfaces.
 
 ## 2026-06-05 refresh snapshot
 
-- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #274, #276, #309, #310, #312, #321, #322, #324, #325, #334, #337, #339, #341, #344, #345, #346.
-- Open PR heads whose earlier work is already represented, but whose live heads have advanced and need later reconciliation: #335.
+- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #276, #309, #310, #312, #321, #322, #324, #325, #326, #334, #336, #337, #338, #339, #340, #341, #344, #345, #346.
+- Open PR heads currently held after direct merge probes this run: #274, #335.
 - Draft / excluded open PRs: #249, #275, #304, #343.
-- Direct-merge probe this run: PR #346 (`fix(test): chain DFlash verify/replay produce valid logits at all positions`) merged cleanly; PR #345 (`feat(optimizations): Luce Spark — calibrated hot/cold expert residency`) merged cleanly; PR #335 (`feat(lucebox): hub CLI + autotune/sweep/profile + harness adapters + shell wrapper`) hit 21 unmerged paths in a direct-merge probe, including `.github/workflows/ci.yml`, `harness/clients/README.md`, the new `harness` and `lucebox` add/add files, `install.sh`, `lefthook.yml`, `lucebox.sh`, `lucebox/pyproject.toml`, `lucebox/src/lucebox/*`, `lucebox/tests/test_sweep.py`, and `pyproject.toml`.
-- Validation before this docs refresh: `git diff --check HEAD~2..HEAD` passed, and `python3 -m py_compile optimizations/spark/spark/extract_sessions.py` passed.
+- Direct-merge probe this run: PR #346 (`fix(test): chain DFlash verify/replay produce valid logits at all positions`) merged cleanly; PR #345 (`feat(optimizations): Luce Spark — calibrated hot/cold expert residency`) merged cleanly; PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at parity`) hit 11 unmerged paths across `.gitignore`, `server/CMakeLists.txt`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_{drafter,graph,loader}.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/{chat_template,http_server,server_main}.cpp`, and `server/test/test_server_unit.cpp`; PR #335 (`feat(lucebox): hub CLI + autotune/sweep/profile + harness adapters + shell wrapper`) hit 21 unmerged paths in a direct-merge probe, including `.github/workflows/ci.yml`, `harness/clients/README.md`, the new `harness` and `lucebox` add/add files, `install.sh`, `lefthook.yml`, `lucebox.sh`, `lucebox/pyproject.toml`, `lucebox/src/lucebox/*`, `lucebox/tests/test_sweep.py`, and `pyproject.toml`.
+
+- Validation before this docs refresh: `git diff --check -- docs/auto-integration.md` passed, and the direct-merge probes above were run in detached worktrees with no source edits promoted.
+
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
 
@@ -62,6 +64,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #342 | `missing` | `d49bc49c` | included | Fix main build; restores the missing brace in `server/test/test_server_unit.cpp` so the current stack compiles against the latest base and keeps the unit-test translation unit valid. |
 | #346 | `fix/dflash-chain-verify-mask-argmax` | `dcfa10aa` | included | Chained DFlash verify/replay logits fix; current head is now represented by the stack after a clean merge. |
 | #345 | `feat/optimizations-spark` | `31778662` | included | Luce Spark calibrated hot/cold expert residency; current head is now represented by the stack after a clean merge. |
+| #344 | `feat/server-gguf-inspect` | `f7d8278a` | included | GgufMetadata reader + SHA-256 sidecar for `/props` schema-4; current head is already represented by the stack. |
 | #340 | `feat/server-call-verb-parser` | `4472aa94` | included | Plain-text `call:<verb>{...}` tool-call parsing for Gemma4; current head is already represented by the stack. |
 | #338 | `feat/server-pflash-drafter` | `bfbe07a9` | included | EE7 early-exit drafter with anchor-transitive cascade and regime router; current head is already represented by the stack. |
 | #337 | `feat/lucebench-harness` | `c20a0f23` | included | In-tree bench harness with multi-turn agent_recorded replay and LLM-judge grading; current head is already represented by the stack. |
