@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         git \
         git-lfs \
+        libcurl4-openssl-dev \
         ninja-build \
         pkg-config \
         python3 \
@@ -112,12 +113,15 @@ RUN cd /src/server/build \
 # runtime stage needs to COPY but the cmake build does not. Editing any
 # of these reuses the cached CUDA layers above and only re-runs the
 # runtime stage's uv sync (~70s) instead of the full ~25-minute build.
+#
+# `lucebox/`, `luce-bench/`, and `harness/` are intentionally not copied
+# here — they ship in sibling PRs (#335 lucebox-cli, #337 luce-bench).
+# This image is the foundational layer that #335 / #337 layer their
+# Python surfaces on top of (either as follow-up COPY directives in
+# their Dockerfile diffs, or as runtime bind-mounts during dev).
 COPY pyproject.toml uv.lock README.md /src/
 COPY server/pyproject.toml server/README.md /src/server/
 COPY server/scripts /src/server/scripts
-COPY lucebox /src/lucebox
-COPY luce-bench /src/luce-bench
-COPY harness /src/harness
 COPY optimizations/pflash /src/optimizations/pflash
 COPY optimizations/megakernel /src/optimizations/megakernel
 
@@ -173,21 +177,12 @@ COPY --from=builder /src/optimizations/pflash /opt/lucebox-hub/optimizations/pfl
 COPY --from=builder /src/optimizations/megakernel/pyproject.toml \
                    /src/optimizations/megakernel/README.md \
                    /opt/lucebox-hub/optimizations/megakernel/
-# The lucebox Python CLI ships in /opt/lucebox-hub/lucebox/ as a uv workspace
-# member; entrypoint.sh execs `python -m lucebox` for any host-wrapper
-# subcommand other than `serve` / `benchmark` / `shell`.
-COPY --from=builder /src/lucebox /opt/lucebox-hub/lucebox
 
-# luce-bench is the standalone benchmark harness, in-tree as a workspace
-# member (see 490ff95 "absorb luce-bench into the monorepo"). Required so
-# the runtime stage's `uv sync` can resolve `luce-bench = { workspace = true }`
-# in the root pyproject.toml without falling over.
-COPY --from=builder /src/luce-bench /opt/lucebox-hub/luce-bench
-
-# harness is the "run X against a Lucebox server" abstraction — workspace
-# member at harness/ that profile.py imports for `python -m harness.bench`.
-# Required so the runtime stage's `uv sync` can resolve the workspace dep.
-COPY --from=builder /src/harness /opt/lucebox-hub/harness
+# lucebox/, luce-bench/, harness/ are intentionally absent here. They ship
+# in sibling PRs (#335 lucebox-cli, #337 luce-bench). This image is the
+# foundational base layer; the Python CLI and bench harness layer on top
+# either via a follow-up COPY in #335/#337's Dockerfile diff or via a
+# runtime bind-mount during dev.
 
 # server: ship the entrypoint/benchmark scripts, the pyproject + README that uv
 # resolves against, and the pruned build tree (binaries + .so files from the
@@ -205,10 +200,10 @@ COPY --from=builder /src/server/build /opt/lucebox-hub/server/build
 # from the build context (no builder roundtrip needed — these are
 # static JSON, not compiled).
 # One copy under share/; a symlink wires in the server search path so
-# we don't duplicate. luce-bench force-include expects
-# /opt/lucebox-hub/share/model_cards (../share relative to luce-bench/).
-# The C++ server binary resolves <binary>/../share/model_cards
-# = server/build/../share/model_cards = server/share/model_cards.
+# we don't duplicate. The C++ server binary resolves
+# <binary>/../share/model_cards = server/build/../share/model_cards =
+# server/share/model_cards. Sibling PR #337 (luce-bench) reads the same
+# share/ tree at /opt/lucebox-hub/share/model_cards once it lands.
 COPY share/model_cards /opt/lucebox-hub/share/model_cards
 RUN mkdir -p /opt/lucebox-hub/server/share \
     && ln -s /opt/lucebox-hub/share/model_cards \
@@ -248,13 +243,15 @@ RUN printf '%s\n%s\n' \
 # cache is gone by the time the layer commits, so we don't double-pay.
 ENV UV_LINK_MODE=hardlink \
     UV_NO_CACHE=1
-# --no-editable: install workspace members (luce-bench, lucebox, harness,
-# pflash, lucebox-hub) as proper wheels rather than source-linked editable
-# installs. Without this, hatch-vcs's build hook re-fires at runtime when
-# `uv run` re-checks env consistency and tries to write `_version.py` into
-# the root-owned workspace source dirs, which fails as a non-root user.
-# With non-editable wheels the venv is self-contained and the build hook
-# only runs once, here, with root.
+# --no-editable: install workspace members (pflash, lucebox-hub, and the
+# lucebox-dflash server binding) as proper wheels rather than
+# source-linked editable installs. Without this, hatch-vcs's build hook
+# re-fires at runtime when `uv run` re-checks env consistency and tries
+# to write `_version.py` into the root-owned workspace source dirs, which
+# fails as a non-root user. With non-editable wheels the venv is
+# self-contained and the build hook only runs once, here, with root.
+# Note: sibling PRs #335 (lucebox-cli) and #337 (luce-bench) re-add
+# their respective workspace members to this list when they land.
 RUN uv sync --no-dev --frozen --no-editable 2>/dev/null \
     || uv sync --no-dev --frozen --no-editable
 

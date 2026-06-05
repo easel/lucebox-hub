@@ -31,8 +31,8 @@ on:
       - server/pyproject.toml
       - pyproject.toml
       - uv.lock
-      - lucebox.sh
-      - lucebox/**
+      # `lucebox.sh` and `lucebox/**` are added by sibling PR #335
+      # (lucebox-cli); revisit once that lands.
   # Manual trigger for one-off rebuilds or pre-release smoke tests. The
   # `push` input controls whether the resulting images land in GHCR or only
   # populate the buildx cache.

@@ -6,13 +6,19 @@
 #
 # Quick start:
 #   make help        # what's available
-#   make test        # 85+ tests across luce-bench / lucebox
+#   make test        # workspace pytest (no-op on this PR until #335/#337 land)
 #   make lint        # ruff check + format check
 #   make build       # docker buildx bake cuda12-local --load
 #   make serve       # docker run the local image, gemma-4-26b
 #   make smoke URL=http://localhost:8080  # 3-prompt sanity check
 #   make bench AREAS=all                  # full capability sweep
 #   make clean       # drop containers + dangling images
+#
+# `test`, `smoke`, `bench`, and `profile` depend on the lucebox CLI (#335)
+# and luce-bench (#337) packages — they exist as targets here so the
+# Makefile interface is stable, but they will report "missing" until
+# those siblings land. `build` / `serve` / `shell` / `clean` work on this
+# PR alone.
 
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
@@ -50,8 +56,13 @@ sync:  ## uv sync the workspace (incl. dev extras).
 	uv sync --extra dev
 
 .PHONY: test
-test: sync  ## Run all Python tests (lucebox + luce-bench).
-	uv run pytest lucebox/tests luce-bench/tests -q
+test: sync  ## Run all Python tests (lucebox + luce-bench — requires #335/#337).
+	@if [ -d lucebox/tests ] || [ -d luce-bench/tests ]; then \
+		uv run pytest $$(test -d lucebox/tests && echo lucebox/tests) \
+		              $$(test -d luce-bench/tests && echo luce-bench/tests) -q; \
+	else \
+		echo "make test: no Python test dirs yet (lucebox/ and luce-bench/ ship in #335/#337)"; \
+	fi
 
 .PHONY: lint
 lint: sync  ## Ruff check + format-check (no auto-fix).
