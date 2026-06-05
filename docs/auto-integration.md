@@ -4,24 +4,23 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-05T01:14:54-04:00`
+Last refresh: `2026-06-05T03:20:54-04:00`
 Current base: `origin/main` `89ce05d2`
-Previous integration tip: `bc784da6`
-Current integration source tip before this refresh: `bc784da6`
-Post-push integration tip: `6c5d7108`
-refreshed_head: `6c5d7108`
+Previous integration tip: `27c133cb`
+Current integration source tip before this refresh: `27c133cb`
+Post-push integration tip: `aa14925b`
+refreshed_head: `aa14925b`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, confirmed `origin/main` `89ce05d2` is already represented, and then landed an integration-only Gemma4 soft-close cancellation refinement plus a documentation path correction as `6c5d7108`. The branch remains anchored to the upstream base first and foremost.
+This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh fetched `origin` and `easel` separately, confirmed `origin/main` `89ce05d2` is already represented, and then landed PR #344 (`feat(server): GgufMetadata reader + SHA-256 sidecar for /props schema-4`) as a merge commit that adds size-guarded GGUF sha256 sidecar validation. The branch remains anchored to the upstream base first and foremost.
 
 ## 2026-06-05 refresh snapshot
 
-- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #274, #276, #309, #310, #312, #321, #322, #324, #325, #334.
-- Open PR heads whose earlier work is already represented, but whose live heads have advanced and need later reconciliation: #335, #337, #339, #341, #344.
+- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #274, #276, #309, #310, #312, #321, #322, #324, #325, #334, #344.
+- Open PR heads whose earlier work is already represented, but whose live heads have advanced and need later reconciliation: #335, #337, #339, #341.
+- Open PRs still held for now because they are not exact-head represented and need later selective-port or conflict work: #135, #153, #154.
 - Draft / excluded open PRs: #249, #275, #304, #343.
-- Integration-only commit this run: `6c5d7108` `fix(server): refine gemma4 soft-close handling`.
-- Validation before commit: `git diff --check --cached` passed.
-
-Latest 14:18 refresh: fetched `origin` and `easel` separately; merged updated `origin/main` `f4eb5045` into the branch cleanly, then fast-forwarded PR #337 as a no-content merge because its tree was already represented. Exact-head containment against the current open PR set now shows 17 included non-draft PR heads and 3 held PRs, with no new non-draft head advances this run. The source commit made during this refresh is an integration-only upstream-base merge plus a no-content PR representation rather than a new source delta. Validation this run: `git diff --check HEAD^1..HEAD` passed for both merge commits, `git diff --stat HEAD^1 HEAD` is empty for the merge tip, and no CMake or test rerun was needed because this refresh introduced no tree changes beyond merge metadata. No source edits were promoted beyond the integration/base refresh.
+- Integration-only merge this run: `aa14925b` `Merge branch 'pr344-trial' into auto-integration` (PR #344, `feat(server): GgufMetadata reader + SHA-256 sidecar for /props schema-4`).
+- Validation before commit: `git diff --check --cached` passed; `CC=gcc CXX=g++ cmake -S server -B /tmp/luce-pr344-cmake-make -G 'Unix Makefiles' -DCMAKE_CUDA_ARCHITECTURES=89` failed at CUDA compiler identification because local `ptxas` rejects `sm_52`.
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
 
