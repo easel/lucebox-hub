@@ -1161,7 +1161,14 @@ bool Qwen35Backend::do_ar_decode(int committed, int n_gen,
             tok, inject0, budget_hook.close_token_ids.size());
         tok = inject0;
         budget_close_started = true;
-        close_inject_pos = 1;
+        // close_inject_pos = 0 (NOT 1) so that maybe_force_close's
+        // continuation branch, which runs immediately after this lambda
+        // in the same AR step, picks up close_token_ids[0] and emits
+        // inject[0] as-is (and advances close_inject_pos to 1 for the
+        // next step). If we set it to 1 here, the continuation would
+        // overwrite tok=inject[0] with close_token_ids[1], skipping
+        // the first close token entirely. See cubic PR #339 comment 1.
+        close_inject_pos = 0;
         if (soft_forced_close_out) *soft_forced_close_out = true;
     };
 
@@ -1294,6 +1301,30 @@ bool Qwen35Backend::do_ar_decode(int committed, int n_gen,
             }
         }
 
+        // Soft check runs BEFORE hard-cap check. If soft fires, it sets
+        // budget_close_started=true so maybe_force_close's continuation
+        // branch handles steps 2..N of a multi-token close (and the
+        // remaining-check branch is skipped because the sequence is
+        // already started). If soft does not fire (disabled or threshold
+        // not met), maybe_force_close proceeds as today.
+        //
+        // GPU-argmax path: when soft-close or its diagnostic is enabled,
+        // pull the logits row to CPU before the comparator runs — the
+        // GPU-argmax branch above only reads 4 bytes (the argmax token id)
+        // and leaves logits_buf with stale data from the previous step.
+        // Without this fetch, maybe_soft_close would compare against stale
+        // logits and could misfire / emit invalid trajectory traces.
+        // Zero-cost when soft-close is disabled (dial == 0 and no debug
+        // flag): we skip the D2H copy entirely. See cubic PR #339 comment 3.
+        if (!sampler_.needs_logit_processing() &&
+            kGpuArgmaxAR && sg_.argmax_tokens &&
+            (budget_hook.soft_close_min_ratio > 0.0f ||
+             budget_hook.debug_thinking_logits)) {
+            ggml_backend_tensor_get(sg_.logits, logits_buf.data(), 0,
+                                    sizeof(float) * vocab);
+        }
+        maybe_soft_close(next_tok, logits_buf.data(), committed);
+
         // MIN_TOKENS_BEFORE_EOS (env DFLASH_MIN_TOKENS, default 0=off): if the
         // model tries to stop before producing N tokens in this decode call,
         // suppress EOS and take the best NON-eos token instead. Targets the Q4
@@ -1318,13 +1349,6 @@ bool Qwen35Backend::do_ar_decode(int committed, int n_gen,
             }
         }
 
-        // Soft check runs BEFORE hard-cap check. If soft fires, it sets
-        // budget_close_started=true so maybe_force_close's continuation
-        // branch handles steps 2..N of a multi-token close (and the
-        // remaining-check branch is skipped because the sequence is
-        // already started). If soft does not fire (disabled or threshold
-        // not met), maybe_force_close proceeds as today.
-        maybe_soft_close(next_tok, logits_buf.data(), committed);
         maybe_force_close(next_tok, committed);
 
         out_tokens.push_back(next_tok);
