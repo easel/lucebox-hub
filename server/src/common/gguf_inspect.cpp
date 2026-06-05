@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <string>
@@ -180,6 +181,9 @@ std::string sha256_of_file(const std::string & path) {
         std::streamsize got = f.gcount();
         if (got > 0) sha256_update(c, buf.data(), size_t(got));
     }
+    // If the loop exited on anything other than clean EOF (disk error, etc.),
+    // bail rather than cache a hash over a partial read.
+    if (f.bad() || (f.fail() && !f.eof())) return {};
     return sha256_final(c);
 }
 
@@ -228,27 +232,59 @@ const char * llama_ftype_name(int32_t v) {
     }
 }
 
-bool read_sidecar_sha(const std::string & path, std::string & out) {
+// Sidecar layout (extends standard sha256sum format with a validation hint):
+//   line 1: "<64-hex>  <basename>\n"   (sha256sum-compatible)
+//   line 2: "# size=<bytes>\n"         (our extension; required to trust line 1)
+//
+// The size guard is what protects us from a stale sidecar after the GGUF was
+// replaced/edited in place without the sidecar being updated. We deliberately
+// don't trust legacy/external sidecars that lack the size hint — silently
+// reporting the wrong model identity at /props is worse than re-hashing once.
+bool read_sidecar_sha(const std::string & path, int64_t expected_size, std::string & out) {
+    if (expected_size < 0) return false;  // can't validate without a known size
     std::ifstream f(path + ".sha256");
     if (!f) return false;
-    std::string s;
-    f >> s;  // tolerate `<hex>  filename\n` (sha256sum format) — we only want the first token
-    if (s.size() != 64) return false;
-    for (char c : s) {
-        bool hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
-        if (!hex) return false;
+    std::string hex;
+    f >> hex;  // tolerate `<hex>  filename\n` (sha256sum format) — we only want the first token
+    if (hex.size() != 64) return false;
+    for (char c : hex) {
+        bool is_hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+        if (!is_hex) return false;
     }
-    out = std::move(s);
+    // Scan the rest of the file for a `# size=<n>` directive. Refuse to
+    // trust the cached hash if it's missing or doesn't match — that
+    // indicates either a legacy sidecar (pre-validation-guard) or that the
+    // underlying GGUF has been replaced since the hash was written.
+    std::string line;
+    std::getline(f, line);  // consume rest of line 1
+    bool size_matches = false;
+    while (std::getline(f, line)) {
+        // Strip leading whitespace, then look for "# size=" prefix.
+        size_t i = 0;
+        while (i < line.size() && (line[i] == ' ' || line[i] == '\t')) ++i;
+        const std::string prefix = "# size=";
+        if (line.compare(i, prefix.size(), prefix) != 0) continue;
+        const char * num = line.c_str() + i + prefix.size();
+        char * end = nullptr;
+        long long n = std::strtoll(num, &end, 10);
+        if (end == num) continue;
+        if (n == (long long)expected_size) size_matches = true;
+        break;
+    }
+    if (!size_matches) return false;
+    out = std::move(hex);
     return true;
 }
 
-void write_sidecar_sha(const std::string & path, const std::string & sha) {
+void write_sidecar_sha(const std::string & path, int64_t size_bytes, const std::string & sha) {
     // Best-effort. If the directory isn't writable (read-only mount, model
     // dir owned by another user), we just skip — the in-memory hash is
     // already what /props will report this run.
+    if (size_bytes < 0) return;
     std::ofstream f(path + ".sha256");
     if (!f) return;
     f << sha << "\n";
+    f << "# size=" << size_bytes << "\n";
 }
 
 }  // namespace
@@ -315,13 +351,13 @@ GgufMetadata read_gguf_metadata(const std::string & path,
 
     if (compute_sha256) {
         std::string cached;
-        if (read_sidecar_sha(path, cached)) {
+        if (read_sidecar_sha(path, m.size_bytes, cached)) {
             m.sha256 = std::move(cached);
         } else {
             std::string hash = sha256_of_file(path);
             if (!hash.empty()) {
                 m.sha256 = hash;
-                write_sidecar_sha(path, hash);
+                write_sidecar_sha(path, m.size_bytes, hash);
             }
         }
     }
