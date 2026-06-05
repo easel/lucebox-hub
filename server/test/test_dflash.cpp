@@ -4589,7 +4589,14 @@ int main(int argc, char ** argv) {
                 const int win_start_v = (verify_fa_window > 0 && committed > verify_fa_window)
                                             ? (committed - verify_fa_window) : 0;
                 const int win_len_v = committed + q_len - win_start_v;
-                build_causal_mask(mask_buf, win_len_v, q_len, committed, g_kq_stride_pad, win_start_v);
+                // Stride the mask to the SAME kv_pad the mask tensor was
+                // allocated with (align_up(max_ctx + n_tokens)). Without this
+                // override build_causal_mask strides rows by align_up(win_len),
+                // so only query row 0 lands at the right offset and rows 1.. read
+                // an unwritten region, zeroing attention (and logits) for every
+                // verify position > 0. DDTree already passes this; chain did not.
+                build_causal_mask(mask_buf, win_len_v, q_len, committed, g_kq_stride_pad, win_start_v,
+                                  align_up(cache.max_ctx + q_len, g_kq_stride_pad));
             }
             ggml_backend_tensor_set(sg.attn_mask, mask_buf.data(), 0, sizeof(uint16_t) * mask_buf.size());
             T_verify_set = sync_us();
@@ -4600,8 +4607,16 @@ int main(int argc, char ** argv) {
             T_verify_compute = sync_us();
             tt_verify_compute += std::chrono::duration<double, std::micro>(T_verify_compute - T_verify_set).count();
 
-            ggml_backend_tensor_get(sg.argmax_tokens, target_tok.data(), 0,
-                                    sizeof(int32_t) * q_len);
+            // The GPU argmax shortcut (sg.argmax_tokens) returns -1 after
+            // position 0 for the multi-token batched verify even though the
+            // logits are valid (the same defect fixed for the DDTree path in
+            // 1b3882d). Read full logits and argmax on CPU per position so the
+            // accept loop and bonus see real target predictions, not -1.
+            ggml_backend_tensor_get(sg.logits, verify_logits_buf.data(), 0,
+                                    sizeof(float) * vocab * q_len);
+            for (int i = 0; i < q_len; i++) {
+                target_tok[i] = argmax_f32(verify_logits_buf.data() + (size_t)i * vocab, vocab);
+            }
         } else {
             // Sequential verify: q_len independent single-token decodes.
             // Each call writes K/V at slot committed+i and advances SSM by 1.
@@ -4843,7 +4858,10 @@ int main(int argc, char ** argv) {
                 const int win_start_r = (replay_fa_window > 0 && committed > replay_fa_window)
                                             ? (committed - replay_fa_window) : 0;
                 const int win_len_r = committed + commit_n - win_start_r;
-                build_causal_mask(mask_buf, win_len_r, commit_n, committed, g_kq_stride_pad, win_start_r);
+                // Same kv_pad override as the verify mask above: match the mask
+                // tensor's allocated stride or only replay row 0 is valid.
+                build_causal_mask(mask_buf, win_len_r, commit_n, committed, g_kq_stride_pad, win_start_r,
+                                  align_up(cache.max_ctx + commit_n, g_kq_stride_pad));
                 ggml_backend_tensor_set(sg.attn_mask, mask_buf.data(), 0, sizeof(uint16_t) * mask_buf.size());
             }
             auto T_replay_set = sync_us();
