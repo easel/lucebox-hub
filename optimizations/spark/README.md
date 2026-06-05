@@ -94,7 +94,31 @@ of the hot expert stack, so a swap is "copy 3 weight tensors into a spare slot +
 update one routing LUT entry" and the existing GPU FFN serves it with no special
 path. Cold experts that are never cached fall back to the engine's CPU path.
 
-## Quick start
+## Serve it: one self-tuning command
+
+For production, you don't run any of the offline pipeline. `dflash_server`
+auto-tunes from its own traffic:
+
+```bash
+dflash_server <model.gguf> --spark            # laguna or qwen35moe MoE
+```
+
+`--spark` (optionally `--spark-slots N`, default 32):
+- enables the **bounded expert cache** (auto-tunes the working set at serve time),
+- **auto-loads** a learned placement profile from `<model>.gguf.spark.csv` if present,
+- keeps **persisting** that profile after every request from live routing.
+
+First boot starts uniform and warms the cache within a session; each restart
+loads a better profile and starts warmer. No corpus, no CSV juggling, no env
+vars. Verified on RTX 3090 for **both** Laguna-XS.2 and Qwen3.6-35B-A3B: the
+profile is written, reloaded (`source=hotness:...`), and generation stays
+coherent under offload.
+
+The offline pipeline below is for **bootstrapping** a profile before first serve
+(e.g. from your own Claude Code and Codex session history) and for
+**evaluation**. It is optional.
+
+## Bootstrapping / eval pipeline
 
 The tooling here drives the dflash daemon (`test_dflash`); build it from
 [`../../server/`](../../server/) first.
@@ -106,8 +130,10 @@ uv sync                                   # tokenizers (+ gguf/torch optional ex
 # 0. one tokenizer, extracted from the GGUF (gpt2 byte-level BPE)
 python -m spark.tokenizer --gguf laguna-xs2-Q4_K_M.gguf --out laguna_tok.json
 
-# 1. corpus from your agent sessions (train / held-out split, by session)
-python -m spark.extract_sessions --sessions-dir ~/.claude/projects --out-dir ./corpus
+# 1. corpus from your agent sessions, by session split. Pulls Claude Code
+#    (~/.claude/projects) and Codex (~/.codex/sessions) by default; --source
+#    claude|codex|both to pick.
+python -m spark.extract_sessions --source both --out-dir ./corpus
 
 # 2. calibrate the placement profile (routing is placement-independent, so a
 #    high budget calibrates fast)

@@ -148,7 +148,9 @@ bool Qwen35MoeBackend::load_target_model(ggml_backend_t backend, TargetWeights &
         for (int il = 0; il < out.n_layer; ++il) {
             layer_descs[(size_t)il] = make_moe_layer_desc(out.layers[(size_t)il]);
         }
-        if (!build_moe_hybrid_storage_from_file(hybrid_cfg, backend, placement, layer_descs, layer_file_data, *hybrid, &err)) {
+        int cache_slots = 0;
+    if (const char * cs = std::getenv("DFLASH_QWEN35MOE_CACHE_SLOTS")) cache_slots = std::max(0, std::atoi(cs));
+    if (!build_moe_hybrid_storage_from_file(hybrid_cfg, backend, placement, layer_descs, layer_file_data, *hybrid, &err, cache_slots)) {
             ::munmap(mmap_addr, file_size);
             gguf_free(gctx);
             set_last_error(std::string("qwen35moe hybrid storage build failed: ") + err);

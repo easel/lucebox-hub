@@ -325,6 +325,8 @@ int main(int argc, char ** argv) {
     BackendArgs bargs;
     ServerConfig sconfig;
     bargs.model_path = argv[1];
+    bool spark_autotune = false;   // --spark: self-tuning hot/cold MoE residency
+    int  spark_slots = 32;          // --spark-slots: GPU expert-cache slots/layer
     std::string cache_type_k;  // explicit --cache-type-k override
     std::string cache_type_v;  // explicit --cache-type-v override
     bool target_device_seen = false;
@@ -428,6 +430,10 @@ int main(int argc, char ** argv) {
             bargs.fast_rollback = true;
         } else if (std::strcmp(argv[i], "--ddtree-budget") == 0 && i + 1 < argc) {
             bargs.ddtree_budget = std::atoi(argv[++i]);
+        } else if (std::strcmp(argv[i], "--spark") == 0) {
+            spark_autotune = true;
+        } else if (std::strcmp(argv[i], "--spark-slots") == 0 && i + 1 < argc) {
+            spark_slots = std::atoi(argv[++i]);
         } else if (std::strcmp(argv[i], "--no-cors") == 0) {
             sconfig.enable_cors = false;
         } else if (std::strcmp(argv[i], "--think-max-tokens") == 0 && i + 1 < argc) {
@@ -658,6 +664,43 @@ int main(int argc, char ** argv) {
     g_peer_access_opt_in = bargs.device.peer_access;
     std::fprintf(stderr, "[server] creating backend...\n");
     const std::string arch = detect_arch(bargs.model_path);
+    if (spark_autotune) {
+        // Self-tuning hot/cold MoE residency: enable the bounded expert cache
+        // (auto-tunes the working set at serve time), auto-load a learned
+        // placement profile next to the model if present, and keep persisting it
+        // from live traffic. One command; improves across restarts. Both laguna
+        // and qwen35moe.
+        const bool is_laguna  = (arch == "laguna");
+        const bool is_qwenmoe = (arch == "qwen35moe");
+        if (is_laguna || is_qwenmoe) {
+            const std::string pfx = is_laguna ? "DFLASH_LAGUNA_" : "DFLASH_QWEN35MOE_";
+            const std::string profile = std::string(bargs.model_path) + ".spark.csv";
+            std::FILE * pf = std::fopen(profile.c_str(), "rb");
+            const bool have_profile = (pf != nullptr);
+            if (pf) std::fclose(pf);
+            const std::string slots = std::to_string(spark_slots);
+            ::setenv((pfx + "CACHE_SLOTS").c_str(), slots.c_str(), 1);
+            if (is_laguna) {
+                ::setenv("DFLASH_LAGUNA_EXPERT_CACHE", "1", 1);
+                ::setenv("DFLASH_LAGUNA_GPU_REMAP", "1", 1);
+            }
+            if (have_profile) ::setenv((pfx + "HOTNESS").c_str(), profile.c_str(), 1);
+            // Persist the learned routing profile after each request. laguna saves
+            // via NEXT_PLACEMENT_OUT; qwen35moe via RUNTIME_STATS_OUT (that var is
+            // what allocates its routing-stats accumulator).
+            const char * save_var = is_laguna ? "DFLASH_LAGUNA_NEXT_PLACEMENT_OUT"
+                                              : "DFLASH_QWEN35MOE_RUNTIME_STATS_OUT";
+            ::setenv(save_var, profile.c_str(), 1);
+            std::fprintf(stderr,
+                "[spark] autotune ON (%s): cache_slots=%d, profile=%s (%s)\n",
+                arch.c_str(), spark_slots, profile.c_str(),
+                have_profile ? "loaded" : "new — will be learned from traffic");
+        } else {
+            std::fprintf(stderr,
+                "[spark] --spark ignored: arch '%s' has no hot/cold MoE offload path\n",
+                arch.c_str());
+        }
+    }
     auto backend = create_backend(bargs);
     if (!backend) {
         std::fprintf(stderr, "[server] backend creation failed\n");
