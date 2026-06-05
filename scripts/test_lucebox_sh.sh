@@ -32,6 +32,17 @@ if [ ! -f "$SCRIPT" ]; then
     exit 1
 fi
 
+# entrypoint.sh ships with the docker-stack PR (#334). When it's absent
+# (e.g. on the lucebox-cli branch in isolation), skip the entire suite —
+# every section below either references $ENTRYPOINT in shellcheck targets,
+# parses it with `bash -n`, or sources/dispatches into it directly. The
+# host-only lucebox.sh wrapper itself is covered by lucebox.sh's own unit
+# tests; this script's value is the wrapper↔entrypoint contract.
+if [ ! -f "$ENTRYPOINT" ]; then
+    echo "Skipping entrypoint tests: server/scripts/entrypoint.sh not present (provided by #334 docker-stack)"
+    exit 0
+fi
+
 fail=0
 pass=0
 report() {

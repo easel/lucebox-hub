@@ -322,7 +322,10 @@ def _score_agent_replay(
     import urllib.request
 
     try:
-        from lucebench.areas.agent_recorded import (
+        # luce-bench lands in a sibling PR (#337); the workspace deliberately
+        # doesn't hard-depend on it, so mypy can't resolve the symbol at
+        # check time. The try/except below is the runtime fallback.
+        from lucebench.areas.agent_recorded import (  # type: ignore[import-not-found]
             load_agent_recorded_multi_turn_cases,
             pick_multi_turn_case_for_budget,
         )

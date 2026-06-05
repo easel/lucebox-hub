@@ -8,13 +8,14 @@ license = { text = "Apache-2.0" }
 authors = [{ name = "Lucebox" }]
 
 dependencies = [
+    "harness",
+    "lucebox",
     "lucebox-dflash",
     "pflash",
 ]
-# Note: `lucebox`, `luce-bench`, and `harness` packages land in sibling
-# PRs (#335 lucebox-cli, #337 luce-bench). This PR ships the docker stack
-# as a foundational layer; #335/#337 add their workspace members back
-# into this list when they merge.
+# Note: `luce-bench` lands in a sibling PR (#337 luce-bench). This PR ships
+# the docker/host-CLI stack; #337 adds its workspace member back into this
+# list when it merges.
 
 [project.optional-dependencies]
 megakernel = ["qwen35-megakernel-bf16"]
@@ -56,14 +57,14 @@ package = false
 no-build-isolation-package = ["qwen35-megakernel-bf16"]
 
 [tool.uv.workspace]
-# `lucebox`, `luce-bench`, and `harness` workspace members land in sibling
-# PRs (#335 lucebox-cli, #337 luce-bench). Keeping them out of `members`
-# here lets `uv lock --check` / `uv sync --frozen` pass on this branch
-# alone; #335 and #337 each re-add their own member entry as part of
-# their PR diff.
-members = ["server", "optimizations/megakernel", "optimizations/pflash"]
+# `luce-bench` is still a sibling PR (#337 luce-bench). Keeping it out of
+# `members` here lets `uv lock --check` / `uv sync --frozen` pass on this
+# branch alone; #337 will re-add its own member entry as part of its PR diff.
+members = ["harness", "lucebox", "server", "optimizations/megakernel", "optimizations/pflash"]
 
 [tool.uv.sources]
+harness = { workspace = true }
+lucebox = { workspace = true }
 lucebox-dflash = { workspace = true }
 pflash = { workspace = true }
 qwen35-megakernel-bf16 = { workspace = true }

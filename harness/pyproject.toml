@@ -7,11 +7,13 @@ license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
 authors = [{ name = "Lucebox" }]
 
-# luce-bench is the only declared dep — and via luce-bench's own
-# dependencies, anthropic + stdlib come along for the ride.
-dependencies = [
-    "luce-bench",
-]
+# luce-bench is consumed lazily — `harness.bench.run` invokes
+# `python -m lucebench.cli` as a subprocess, so the package doesn't need
+# to be importable at install time. Kept out of the hard dep list so the
+# workspace can lock without luce-bench in the registry (lands in a
+# sibling PR — see #337). Install with `uv pip install luce-bench` on the
+# host running benches.
+dependencies = []
 
 [project.optional-dependencies]
 # Kept as an empty alias for backward compatibility — luce-bench[forge]
