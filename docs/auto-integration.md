@@ -4,22 +4,22 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-05T07:36:47-04:00`
+Last refresh: `2026-06-05T09:43:30-04:00`
 Current base: `origin/main` `89ce05d2`
-Previous integration tip: `40db5f93`
-Current integration source tip before this refresh: `518b6298`
-Post-push integration tip: `518b6298`
-refreshed_head: `518b6298`
+Previous integration tip: `0c8511f8`
+Current integration source tip before this refresh: `0c8511f8`
+Post-push integration tip: `32d6c19a`
+refreshed_head: `32d6c19a`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh confirmed `origin/main` `89ce05d2` is already represented, then tried to fold PR #335 (`feat(lucebox): hub CLI + autotune/sweep/profile + harness adapters + shell wrapper`) into the stack. The direct merge conflicted broadly across the lucebox/harness CLI surface and CI wiring, so the current stack's newer integration layout was kept and PR #335 was held for later reconciliation rather than promoted.
+This branch is maintained as a reproducible patch stack over `origin/main`. The latest refresh confirmed `origin/main` `89ce05d2` is already represented, then folded the advanced PR #274 head (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at parity`) into the stack. The direct merge hit overlapping conflicts in the qwen3/qwen35/server surface, so the resolution preserved the current stack's newer backend behavior in those overlap regions while keeping the PR's benchmark/docs/artifact additions; PR #274 is now represented at its latest head and remains included.
 
 ## 2026-06-05 refresh snapshot
 
 - Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #274, #276, #309, #310, #312, #321, #322, #324, #325, #334, #337, #339, #341, #344.
 - Open PR heads whose earlier work is already represented, but whose live heads have advanced and need later reconciliation: #335.
 - Draft / excluded open PRs: #249, #275, #304, #343.
-- Direct-merge probe this run: PR #335 (`feat(lucebox): hub CLI + autotune/sweep/profile + harness adapters + shell wrapper`) conflicted broadly in `.github/workflows/ci.yml`, `harness/clients/README.md`, `harness/clients/run_lucebench.sh`, `harness/src/harness/{bench.py,clients/_common.py,clients/{claude_code,hermes,openclaw,opencode}.py}`, `install.sh`, `lefthook.yml`, `lucebox.sh`, `lucebox/{pyproject.toml,src/lucebox/{autotune.py,cli.py,config.py,docker_run.py,profile.py,sweep.py},tests/test_sweep.py}`, and `pyproject.toml`; the current stack kept its newer lucebox/harness integration and CI layout, so #335 was held rather than promoted.
-- Validation before this docs refresh: `git status --short --branch` was clean before the probe, and the direct-merge probe was aborted without committing any source-path resolutions.
+- Direct-merge probe this run: PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at parity`) merged successfully after resolving overlapping qwen3/qwen35/server conflicts in favor of the current stack's newer code paths and keeping PR artifacts (benchmark runs, thoughts, and related docs) alongside the merge.
+- Validation before this docs refresh: `git diff --check --cached -- . ':(exclude)bench/results/**' ':(exclude)thoughts/**'` passed, and a CMake configure attempt with `CC=gcc CXX=g++` still failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path.
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
 
