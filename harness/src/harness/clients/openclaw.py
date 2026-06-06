@@ -91,10 +91,26 @@ def launch(
     # Apply the JSON patch via OpenClaw's `config patch` subcommand — same
     # step run_openclaw.sh performs before invoking `agent`. Without this,
     # the agent run can't see the lucebox provider entry.
-    subprocess.run(
-        [bin_path, "config", "patch", "--file", str(patch_path)],
-        env=env, check=True, stdin=subprocess.DEVNULL,
-    )
+    #
+    # Cap the patch step at 30s (or `timeout`, whichever is shorter): a
+    # hung preflight has bricked CI runs in the past because the launcher
+    # waited indefinitely. 30s is plenty for what is fundamentally a JSON
+    # merge against a local file; if it takes longer, the binary is wedged
+    # and we want a clear timeout exit rather than a stuck process.
+    patch_timeout = 30 if timeout is None else min(30, timeout)
+    try:
+        subprocess.run(
+            [bin_path, "config", "patch", "--file", str(patch_path)],
+            env=env, check=True, stdin=subprocess.DEVNULL,
+            timeout=patch_timeout,
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            f"[harness-openclaw] `openclaw config patch` exceeded "
+            f"{patch_timeout}s — aborting before agent run.",
+            file=sys.stderr,
+        )
+        return 124
     argv: list[str] = [bin_path]
     if interactive:
         if extra_args:

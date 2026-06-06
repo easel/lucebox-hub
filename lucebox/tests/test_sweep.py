@@ -392,47 +392,43 @@ def test_run_sweep_happy_path_picks_winner_and_applies(
     ]
     monkeypatch.setattr(
         "lucebox.sweep.autotune_mod.candidate_configs",
-        lambda host: candidates,  # noqa: ARG005
+        lambda host, preset="": candidates,  # noqa: ARG005
     )
 
     # Restart always succeeds.
     restart_calls = []
+    profile_calls: list[tuple[Path, str]] = []
 
     def fake_run(argv, check=False, env=None, **kw):  # noqa: ARG001
+        # The sweep's subprocess.run path now only carries the systemctl
+        # restarts — the legacy `lucebox profile` shell-out was replaced
+        # by a direct `run_profile()` call (mocked separately below) so
+        # cells write into the right per-cell sweep dir.
         restart_calls.append(argv)
-        # The sweep does TWO kinds of subprocess.run:
-        #   1. systemctl --user restart lucebox.service  → success
-        #   2. lucebox profile --level level1            → success, writes
-        #      a snapshot dir into LUCEBOX_SWEEP_OUT_DIR / LUCEBOX_SWEEP_CELL_NAME
-        if argv[0] == "lucebox" and len(argv) > 1 and argv[1] == "profile":
-            sweep_dir = Path(env["LUCEBOX_SWEEP_OUT_DIR"]) if env else None
-            cell_name = env.get("LUCEBOX_SWEEP_CELL_NAME") if env else None
-            if sweep_dir and cell_name:
-                # tps tied to budget so we can assert the winner is the
-                # higher-tps cell. budget * 2 → 16, 44, 64. Winner: 64
-                # (budget=32).
-                budget_marker = cell_name  # encoded via _short_hash, not budget directly
-                # Pick tps based on the call index — restart_calls
-                # tracks ALL calls including restarts. Counting only
-                # profile calls is more robust.
-                profile_calls = [c for c in restart_calls if c[0] == "lucebox"]
-                idx = len(profile_calls) - 1
-                tps = [16.0, 44.0, 64.0][idx]
-                _write_synthetic_snapshot(sweep_dir / cell_name, tps)
-                del budget_marker
         return mock.MagicMock(returncode=0)
 
+    def fake_run_profile(cfg, *, level, console=None, out_dir=None, name=None, **kw):  # noqa: ARG001
+        assert out_dir is not None and name is not None, \
+            "sweep must pass out_dir + name so cells land in the sweep tree"
+        # tps tied to call order → 16, 44, 64. Winner = budget=32 (tps=64).
+        profile_calls.append((out_dir, name))
+        idx = len(profile_calls) - 1
+        tps = [16.0, 44.0, 64.0][idx]
+        _write_synthetic_snapshot(out_dir / name, tps)
+        return 0
+
     monkeypatch.setattr("lucebox.sweep.subprocess.run", fake_run)
+    monkeypatch.setattr("lucebox.profile.run_profile", fake_run_profile)
     monkeypatch.setattr("lucebox.sweep._wait_ready", lambda port, timeout_s: True)
 
     rc = sweep_mod.run_sweep(yes=True)
     assert rc == 0
 
-    # 3 cell restarts + 3 profile calls + 1 final winner restart = 7 calls.
+    # 3 cell restarts + 1 final winner restart on subprocess.run; profile
+    # was called 3 times via the direct run_profile path.
     restart_argvs = [c for c in restart_calls if c[0] == "systemctl"]
-    profile_argvs = [c for c in restart_calls if c[0] == "lucebox"]
     assert len(restart_argvs) == 4  # 3 cells + 1 final  # noqa: PLR2004
-    assert len(profile_argvs) == 3  # noqa: PLR2004
+    assert len(profile_calls) == 3  # noqa: PLR2004
 
     # Winner = budget=32 (tps=64). It must be persisted as the final
     # on-disk config.
@@ -458,7 +454,7 @@ def test_run_sweep_all_cells_fail_restores_backup(
     ]
     monkeypatch.setattr(
         "lucebox.sweep.autotune_mod.candidate_configs",
-        lambda host: candidates,  # noqa: ARG005
+        lambda host, preset="": candidates,  # noqa: ARG005
     )
 
     # Capture the pre-sweep config.toml.
@@ -493,7 +489,7 @@ def test_run_sweep_keyboard_interrupt_restores_backup(
     candidates = [DflashRuntime(budget=8), DflashRuntime(budget=22), DflashRuntime(budget=32)]
     monkeypatch.setattr(
         "lucebox.sweep.autotune_mod.candidate_configs",
-        lambda host: candidates,  # noqa: ARG005
+        lambda host, preset="": candidates,  # noqa: ARG005
     )
 
     from lucebox import config as config_mod

@@ -29,8 +29,26 @@ def write_config(
     api_key: str,
     max_ctx: int = 32768,
     max_tokens: int = 4096,
+    overwrite: bool = False,
 ) -> None:
+    """Write opencode.json into ``project_dir``.
+
+    Mirrors the JSON literal in ``harness/clients/run_opencode.sh``
+    including the ``tools`` block (write/bash off) — the shell launcher
+    keeps a real-client run from mutating the user's working tree, and
+    the Python launch path must preserve that contract or the two
+    invocation modes behave differently.
+
+    Refuses to overwrite an existing ``opencode.json`` unless
+    ``overwrite=True``; the caller (``launch``) opts in only for
+    sandbox tempdirs and the explicit ``project_dir`` test path.
+    """
     config_path = project_dir / "opencode.json"
+    if config_path.exists() and not overwrite:
+        raise FileExistsError(
+            f"refusing to overwrite existing {config_path}; "
+            "remove it or pass --project-dir to a fresh directory."
+        )
     config = {
         "$schema": "https://opencode.ai/config.json",
         "model": f"lucebox/{model}",
@@ -52,6 +70,14 @@ def write_config(
                     }
                 },
             }
+        },
+        # Match run_opencode.sh: deny the destructive tools so a harness
+        # run cannot mutate the user's project tree. Operators who want
+        # write/bash on can flip these via a project-level opencode.json
+        # overlay.
+        "tools": {
+            "write": False,
+            "bash": False,
         },
     }
     config_path.write_text(json.dumps(config, indent=2))
@@ -81,8 +107,14 @@ def launch(
                         work_dir_hint="clients/opencode/npm/bin/opencode")
     cwd = project_dir if project_dir else (Path.cwd() if interactive else mktempdir("opencode"))
     cwd.mkdir(parents=True, exist_ok=True)
+    # Only overwrite an existing opencode.json when we own the directory
+    # (a fresh tempdir created above for non-interactive runs). The
+    # interactive default of cwd=Path.cwd() may point at the user's
+    # actual project — refuse to clobber it.
+    we_own_cwd = project_dir is None and not interactive
     write_config(cwd, base_url=base_url, model=model, api_key=api_key,
-                 max_ctx=max_ctx, max_tokens=max_tokens)
+                 max_ctx=max_ctx, max_tokens=max_tokens,
+                 overwrite=we_own_cwd)
 
     # OpenCode resolves XDG_* for state; sandbox these too in test mode
     # so the user's real opencode state isn't touched.
@@ -155,6 +187,9 @@ def main() -> int:
     except FileNotFoundError as e:
         print(f"[harness-opencode] {e}", file=sys.stderr)
         return 127
+    except FileExistsError as e:
+        print(f"[harness-opencode] {e}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

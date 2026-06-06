@@ -31,9 +31,10 @@
 #   LUCEBENCH_TIMEOUT   per-request wall timeout in seconds (default 300)
 #   LUCEBENCH_PARALLEL  in-flight concurrency (default 1 — single-GPU)
 #
-# All harness/common.sh knobs apply: MODEL_SERVER, LUCEBOX_SERVER_BACKEND
-# (use `cpp` to drive the native dflash_server), MAX_CTX, BUDGET, MODEL_ID,
-# EXTRA_SERVER_ARGS, PORT, etc.
+# All harness/common.sh knobs apply: MODEL_SERVER (set
+# `MODEL_SERVER=lucebox` for the native dflash_server or
+# `MODEL_SERVER=llamacpp` for llama.cpp's server), MAX_CTX, BUDGET,
+# MODEL_ID, EXTRA_SERVER_ARGS, PORT, etc.
 #
 # Output:
 #   $LOG_DIR/lucebench-{area,sweep}.{json,md}  — bench results (per-case rows

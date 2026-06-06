@@ -95,6 +95,15 @@ def _load_or_build() -> config_mod.Config:  # type: ignore[name-defined]
     cfg = config_mod.load()
     if cfg is None:
         cfg = live_config()
+    # Overlay live host facts. When ``config.toml`` exists without a
+    # ``[host]`` block (the common case — operators don't hand-edit
+    # host facts), ``cfg.host`` defaults to a zero-filled ``HostFacts``
+    # and autotune/profile decisions silently fall through to the
+    # "no VRAM signal" path. Re-probe from env so the wrapper-exported
+    # LUCEBOX_HOST_* facts always win over the persisted (possibly
+    # absent) snapshot.
+    live_host = from_env()
+    host = live_host if live_host.vram_gb > 0 or live_host.nproc > 0 else cfg.host
     return replace(
         cfg,
         variant=os.environ.get("LUCEBOX_VARIANT", cfg.variant),
@@ -102,6 +111,7 @@ def _load_or_build() -> config_mod.Config:  # type: ignore[name-defined]
         container_name=os.environ.get("LUCEBOX_CONTAINER", cfg.container_name),
         port=int(os.environ.get("LUCEBOX_PORT", str(cfg.port))),
         models_dir=Path(os.environ.get("LUCEBOX_MODELS", str(cfg.models_dir))),
+        host=host,
     )
 
 

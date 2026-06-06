@@ -29,6 +29,7 @@ def run_bench(
     *,
     base_url: str,
     area: Area | None = None,
+    areas: str | None = None,
     model: str = "default",
     think: bool | None = None,
     max_tokens: int | None = None,
@@ -44,7 +45,14 @@ def run_bench(
 
     Args:
         base_url: Lucebox server's HTTP base, e.g. ``http://localhost:8080``.
-        area: Single area name, or ``None`` for ``--sweep`` (all stdlib areas).
+        area: Single area name, or ``None`` for sweep mode.
+        areas: Optional explicit selector forwarded as luce-bench's
+            ``--areas`` value (a single name, comma list, or ``all``).
+            Use this when invoking from a wrapper that has already
+            resolved a custom area set (e.g. the level1 default
+            ``smoke,code,gsm8k,agent,longctx``); leave it None to let
+            ``area``'s sweep-mode (``area=None`` →  ``--areas all``)
+            drive selection.
         model: Model ID. ``"default"`` triggers luce-bench's ``/v1/models``
             auto-resolve (uses the single exposed model if there's exactly one).
         think: ``True`` → ``--think``, ``False`` → ``--no-think``, ``None`` →
@@ -70,6 +78,8 @@ def run_bench(
     """
     if area is None and (out_dir is None or name is None):
         raise ValueError("sweep mode (area=None) requires out_dir and name")
+    if area is not None and areas is not None:
+        raise ValueError("pass either area=... or areas=..., not both")
 
     argv: list[str] = [
         sys.executable,
@@ -102,7 +112,11 @@ def run_bench(
         # output shape: per-area JSONs + _summary.{json,md} under
         # out_dir/name/. Pre-v0.2.5 luce-bench still accepts --sweep
         # with a deprecation warning, but new callers use --areas.
-        argv += ["--areas", "all", "--out-dir", str(out_dir), "--name", name]
+        # Honor an explicit ``areas=`` selector when the caller has one
+        # (e.g. the shell wrapper forwarding LUCEBENCH_AREA's default
+        # level1 set); fall back to `all` for the default sweep mode.
+        selector = areas if areas is not None else "all"
+        argv += ["--areas", selector, "--out-dir", str(out_dir), "--name", name]
         resolved_json_out = out_dir / name / "_summary.json"
 
     if think is True:
@@ -131,8 +145,18 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(prog="harness-run-bench")
     parser.add_argument("--base-url", required=True)
+    # Two forms accepted for compatibility with the shell wrapper:
+    #   --area <name>          single-area mode (one of the choices below)
+    #   --areas <name|comma|all>  delegate verbatim to luce-bench
+    # The shell wrapper (harness/clients/run_lucebench.sh) emits
+    # `--areas`, so callers downstream of it must accept that form
+    # without an "unrecognized argument" error.
     parser.add_argument("--area", default=None,
                         choices=["ds4-eval", "code", "longctx", "agent", "forge"])
+    parser.add_argument("--areas", default=None,
+                        help="Area selector: a single name, a comma list "
+                        "(e.g. `code,gsm8k`), or `all`. Sweep mode kicks in "
+                        "whenever this contains a comma or equals `all`.")
     parser.add_argument("--model", default="default")
     grp = parser.add_mutually_exclusive_group()
     grp.add_argument("--think", action="store_true")
@@ -158,9 +182,37 @@ def main() -> int:
         print(f"[harness] missing python: {sys.executable}", file=sys.stderr)
         return 2
 
+    # Resolve --area / --areas → the (area, areas_arg) pair that
+    # ``run_bench`` understands. Sweep mode is a comma-list, "all", or
+    # a single area we route through the luce-bench `--areas` flag.
+    area: Area | None = args.area
+    areas_arg: str | None = args.areas
+    if areas_arg is not None and area is not None:
+        print("[harness] pass either --area or --areas, not both",
+              file=sys.stderr)
+        return 2
+    if areas_arg is not None:
+        if "," in areas_arg or areas_arg == "all":
+            # Sweep mode: signal via area=None and pass the literal
+            # selector through to luce-bench via ``extra_body`` is the
+            # wrong path — we plumb a dedicated kwarg below.
+            area = None
+        else:
+            # Single name passed via --areas: treat as --area for
+            # function-form parity. Validate against the allowed set.
+            valid = {"ds4-eval", "code", "longctx", "agent", "forge",
+                     "smoke", "gsm8k", "agent_recorded"}
+            if areas_arg not in valid:
+                print(f"[harness] unknown area {areas_arg!r}; "
+                      f"known: {sorted(valid)}", file=sys.stderr)
+                return 2
+            area = areas_arg  # type: ignore[assignment]
+            areas_arg = None
+
     result = run_bench(
         base_url=args.base_url,
-        area=args.area,
+        area=area,
+        areas=areas_arg,
         model=args.model,
         think=think,
         max_tokens=args.max_tokens,

@@ -28,7 +28,6 @@ dependencies = [
     # It's deliberately NOT a hard dep here because the workspace can't lock
     # against it until #337 (luce-bench in-tree) lands. Install with
     # `uv pip install luce-bench` on the host running the scorer.
-    "luce-bench",
 ]
 
 [project.scripts]

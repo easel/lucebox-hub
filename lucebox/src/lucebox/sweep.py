@@ -732,30 +732,21 @@ def run_sweep(
                 )
                 continue
 
-            # Legacy heuristic path: shell out to `lucebox profile`
-            # and parse mean decode_tps from the snapshot.
-            snapshot_rc = subprocess.run(
-                [
-                    "lucebox",
-                    "profile",
-                    "--level",
-                    "level1",
-                ],
-                check=False,
-                env={
-                    **os.environ,
-                    # Pipe the sweep-cell out-dir through the env so
-                    # run_profile lands snapshots under our sweep
-                    # tree. The profile command honors --out-dir /
-                    # --name via run_profile kwargs — for the sweep
-                    # path we invoke run_profile directly below so the
-                    # env plumbing isn't actually needed; kept here as
-                    # a belt+suspenders override for any out-of-band
-                    # lucebox invocation.
-                    "LUCEBOX_SWEEP_OUT_DIR": str(sweep_root),
-                    "LUCEBOX_SWEEP_CELL_NAME": cell_name,
-                },
-            ).returncode
+            # Legacy heuristic path: call run_profile directly so we
+            # land snapshots in <sweep_root>/<cell_name>/ instead of
+            # the default profile-snapshots dir. Going through
+            # subprocess + env vars was the old plumbing but `lucebox
+            # profile` doesn't read LUCEBOX_SWEEP_* — the per-cell
+            # routing only works via the kwarg form.
+            cell_start = time.time()
+            from lucebox import profile as _profile_mod
+            snapshot_rc = _profile_mod.run_profile(
+                cfg,
+                level="level1",
+                console=console,
+                out_dir=sweep_root,
+                name=cell_name,
+            )
 
             # Locate the snapshot dir luce-bench actually wrote. We
             # asked for cell-NN-<hash>, but the snapshot subcommand
@@ -764,8 +755,13 @@ def run_sweep(
             # the newest dir under sweep_root.
             candidate_dir = sweep_root / cell_name
             if not candidate_dir.exists():
-                # Pick newest dir under sweep_root that isn't a
-                # previously-recorded cell.
+                # Pick newest dir under sweep_root that was written
+                # *after this cell started*. The mtime gate is the key
+                # bit — a previous sweep run's directory may still sit
+                # under sweep_root, and without the gate we'd silently
+                # attribute its TPS to the current cell. Also exclude
+                # dirs we've already attributed to earlier cells in this
+                # run.
                 existing = {r.snapshot_dir for r in results if r.snapshot_dir is not None}
                 newest: Path | None = None
                 newest_mtime = -1.0
@@ -773,12 +769,17 @@ def run_sweep(
                     if not child.is_dir() or child in existing:
                         continue
                     mtime = child.stat().st_mtime
+                    # Stale-dir guard: anything older than this cell's
+                    # start is from a previous run.
+                    if mtime < cell_start:
+                        continue
                     if mtime > newest_mtime:
                         newest_mtime = mtime
                         newest = child
                 candidate_dir = newest or candidate_dir
 
-            tps = _mean_decode_tps_from_snapshot(candidate_dir)
+            tps = _mean_decode_tps_from_snapshot(candidate_dir) \
+                if candidate_dir.exists() else None
             error = None
             if snapshot_rc != 0 and tps is None:
                 error = f"profile exit={snapshot_rc}"
@@ -797,6 +798,19 @@ def run_sweep(
     except KeyboardInterrupt as exc:
         interrupted = True
         console.print(f"\n[yellow]interrupted ({exc})[/yellow]")
+    except Exception as exc:
+        # Unexpected crash mid-sweep — the last cell's _apply_config()
+        # has already written its dflash.* fields to config.toml. Treat
+        # this exactly like a SIGINT: restore the backup and restart so
+        # the server isn't left running with a half-applied bracket
+        # cell. We re-raise after cleanup so the operator still sees
+        # the traceback (and so CI surfaces it as a failure).
+        console.print(f"\n[red]sweep aborted: {type(exc).__name__}: {exc}[/red]")
+        signal.signal(signal.SIGINT, old_sigint)
+        signal.signal(signal.SIGTERM, old_sigterm)
+        _restore_backup(console, backup)
+        _systemctl_restart()
+        raise
     finally:
         signal.signal(signal.SIGINT, old_sigint)
         signal.signal(signal.SIGTERM, old_sigterm)

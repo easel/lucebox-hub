@@ -115,7 +115,7 @@ chat-template rendering, or sampling defaults will show up here the same way
 it would break a real-client launcher above.
 
 ```bash
-# Full sweep (default — runs all 4 stdlib areas)
+# Default — runs the level1 set: smoke, code, gsm8k, agent, longctx
 harness/clients/run_lucebench.sh
 
 # Single area

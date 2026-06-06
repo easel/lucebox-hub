@@ -29,7 +29,7 @@ def find_bin(name: str, *, env_var: str, work_dir_hint: str | None = None) -> st
     Raises FileNotFoundError with a clear install hint otherwise.
     """
     explicit = os.environ.get(env_var)
-    if explicit and Path(explicit).exists():
+    if explicit and _is_executable_file(Path(explicit)):
         return explicit
     on_path = shutil.which(name)
     if on_path:
@@ -37,11 +37,21 @@ def find_bin(name: str, *, env_var: str, work_dir_hint: str | None = None) -> st
     work_dir = os.environ.get("CLIENT_WORK_DIR")
     if work_dir and work_dir_hint:
         candidate = Path(work_dir) / work_dir_hint
-        if candidate.exists():
+        if _is_executable_file(candidate):
             return str(candidate)
     raise FileNotFoundError(
         f"{name!r} binary not found. Install it or set ${env_var} to its path."
     )
+
+
+def _is_executable_file(p: Path) -> bool:
+    """True iff ``p`` is a regular file (or symlink to one) that's +x.
+
+    Used by find_bin so an env-var override pointing at a directory, a
+    non-executable wrapper, or a stale path doesn't get returned to the
+    launcher only to fail at exec time with a worse error.
+    """
+    return p.is_file() and os.access(p, os.X_OK)
 
 
 def mktempdir(prefix: str) -> Path:
