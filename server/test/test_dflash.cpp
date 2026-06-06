@@ -4593,8 +4593,10 @@ int main(int argc, char ** argv) {
                 // allocated with (align_up(max_ctx + n_tokens)). Without this
                 // override build_causal_mask strides rows by align_up(win_len),
                 // so only query row 0 lands at the right offset and rows 1.. read
-                // an unwritten region, zeroing attention (and logits) for every
-                // verify position > 0. DDTree already passes this; chain did not.
+                // an unwritten region, giving NaN/zero attention (and logits)
+                // for every verify position > 0. That is also why the GPU
+                // argmax (sg.argmax_tokens) used to return -1 past position 0.
+                // DDTree already passes this override; chain did not.
                 build_causal_mask(mask_buf, win_len_v, q_len, committed, g_kq_stride_pad, win_start_v,
                                   align_up(cache.max_ctx + q_len, g_kq_stride_pad));
             }
