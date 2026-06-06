@@ -648,6 +648,18 @@ bool LagunaBackend::init_hybrid_mode() {
         }
     }
 
+    // Spark: clamp experts to the --spark-vram target and auto-size the cache ring.
+    if (std::getenv("DFLASH_SPARK")) {
+        uint64_t target = 0;
+        if (const char * t = std::getenv("DFLASH_SPARK_VRAM_MB")) target = (uint64_t)std::atoll(t) << 20;
+        auto sb = dflash::common::spark_budget_split(expert_budget, total_expert_bytes, w_.n_expert,
+                                                     core_bytes + kv_total + safety_bytes, target);
+        expert_budget = sb.hot_bytes;
+        cache_slots_ = sb.cache_slots;
+        std::printf("[spark] vram=%s, hot=%.2f GiB, cache=%d slots/layer\n",
+                    target ? "target" : "auto(card)", expert_budget / 1073741824.0, cache_slots_);
+    }
+
     std::printf("[laguna] dynamic placement: gpu_total=%.2f GiB, core=%.2f GiB, "
                 "kv_cache=%.2f GiB (ctx=%d), warm=%.0f MB, safety=%.0f MB, "
                 "expert_budget=%.2f GiB (of %.2f GiB total experts)\n",
@@ -665,6 +677,10 @@ bool LagunaBackend::init_hybrid_mode() {
         std::fprintf(stderr, "[laguna-hybrid] no VRAM budget for experts\n");
         return false;
     }
+
+    // Stash for the Spark bootstrap rebuild (same budget + cache as this init).
+    spark_expert_budget_ = expert_budget;
+    layer_expert_bytes_  = layer_expert_bytes;
 
     // Step 4: Build placement
     MoeHybridPlacement placement;
@@ -746,8 +762,19 @@ bool LagunaBackend::init_hybrid_mode() {
         routing_stats_->n_layer = w_.n_layer;
         routing_stats_->n_expert = w_.n_expert;
         routing_stats_->n_expert_used = w_.n_expert_used;
-        routing_stats_->counts.assign((size_t)w_.n_layer * (size_t)w_.n_expert, 0);
+        // Spark: seed the live accumulator from the loaded profile so calibration
+        // accumulates across restarts instead of resetting to zero each boot.
+        if (hotness_path && hotness_path[0] &&
+            hotness.counts.size() == (size_t)w_.n_layer * (size_t)w_.n_expert) {
+            routing_stats_->counts = hotness.counts;
+        } else {
+            routing_stats_->counts.assign((size_t)w_.n_layer * (size_t)w_.n_expert, 0);
+        }
         routing_stats_->layer_totals.assign((size_t)w_.n_layer, 0);
+        for (int il = 0; il < w_.n_layer; ++il)
+            for (int ie = 0; ie < w_.n_expert; ++ie)
+                routing_stats_->layer_totals[(size_t)il] +=
+                    routing_stats_->counts[(size_t)il * (size_t)w_.n_expert + ie];
     }
 
     std::fflush(stdout);
@@ -1460,6 +1487,28 @@ GenerateResult LagunaBackend::generate_hybrid(const GenerateRequest & req,
     return result;
 }
 
+bool LagunaBackend::spark_wants_bootstrap() const {
+    return moe_hybrid_ && routing_stats_ && !layer_expert_bytes_.empty() && spark_expert_budget_ > 0;
+}
+
+bool LagunaBackend::spark_bootstrap_finalize(const std::string & profile_path) {
+    if (!spark_wants_bootstrap()) return false;
+    std::string err;
+    routing_stats_->save_csv(profile_path, &err);  // persist the observed routing
+    MoeHybridPlacement placement;
+    if (!MoeHybridPlacement::build_from_stats_with_layer_bytes(
+            *routing_stats_, layer_expert_bytes_, spark_expert_budget_,
+            std::min(w_.n_expert_used, w_.n_expert), placement, &err)) {
+        std::fprintf(stderr, "[spark] bootstrap placement build failed: %s\n", err.c_str());
+        return false;
+    }
+    if (!build_hybrid_storage_from_file(placement, moe_hybrid_, err)) {
+        std::fprintf(stderr, "[spark] bootstrap storage rebuild failed: %s\n", err.c_str());
+        return false;
+    }
+    return true;
+}
+
 bool LagunaBackend::build_hybrid_storage_from_file(
         const MoeHybridPlacement & placement,
         std::shared_ptr<MoeHybridStorage> & out_storage,
@@ -1509,6 +1558,7 @@ bool LagunaBackend::build_hybrid_storage_from_file(
     }
     int cache_slots = 0;
     if (const char * cs = std::getenv("DFLASH_LAGUNA_CACHE_SLOTS")) cache_slots = std::max(0, std::atoi(cs));
+    else if (cache_slots_ >= 0) cache_slots = cache_slots_;
     bool ok = build_moe_hybrid_storage_from_file(hybrid_cfg, backend_, placement,
                                                  layer_descs, layer_file_data, *hybrid, &err, cache_slots);
     ::munmap(mmap_addr, file_size);

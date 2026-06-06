@@ -49,6 +49,8 @@ public:
     bool park(const std::string & what) override;
     bool unpark(const std::string & what) override;
     bool is_target_parked() const override { return target_parked_; }
+    bool spark_wants_bootstrap() const override;
+    bool spark_bootstrap_finalize(const std::string & profile_path) override;
 
     GenerateResult generate_impl(const GenerateRequest & req,
                                  const DaemonIO & io) override;
@@ -87,6 +89,9 @@ private:
     std::shared_ptr<MoeHybridStorage>          moe_hybrid_;
     std::shared_ptr<MoeHybridRoutingStats>     routing_stats_;
     std::string                                routing_stats_out_path_;
+    int                                        cache_slots_ = -1;  // Spark auto-sized (-1=unset)
+    uint64_t                                   spark_expert_budget_ = 0;  // hot budget for rebuild
+    std::vector<uint64_t>                      layer_expert_bytes_;       // per-layer 1-expert bytes
     MoeHybridSwapPolicy                        swap_policy_;
     bool                                       hybrid_telemetry_ = false;
 

@@ -150,6 +150,7 @@ bool Qwen35MoeBackend::load_target_model(ggml_backend_t backend, TargetWeights &
         }
         int cache_slots = 0;
     if (const char * cs = std::getenv("DFLASH_QWEN35MOE_CACHE_SLOTS")) cache_slots = std::max(0, std::atoi(cs));
+    else if (cache_slots_ >= 0) cache_slots = cache_slots_;
     if (!build_moe_hybrid_storage_from_file(hybrid_cfg, backend, placement, layer_descs, layer_file_data, *hybrid, &err, cache_slots)) {
             ::munmap(mmap_addr, file_size);
             gguf_free(gctx);
@@ -1388,6 +1389,18 @@ bool Qwen35MoeBackend::load_dynamic_placement(const char * hotness_path,
         hotness.layer_totals.assign((size_t)w.n_layer, (uint64_t)w.n_expert);
     }
 
+    // Spark: seed the live accumulator from the loaded profile so calibration
+    // accumulates across restarts instead of resetting to zero each boot.
+    if (routing_stats_ && hotness_path && hotness_path[0] &&
+        hotness.counts.size() == (size_t)w.n_layer * (size_t)w.n_expert) {
+        routing_stats_->counts = hotness.counts;
+        routing_stats_->layer_totals.assign((size_t)w.n_layer, 0);
+        for (int il = 0; il < w.n_layer; ++il)
+            for (int ie = 0; ie < w.n_expert; ++ie)
+                routing_stats_->layer_totals[(size_t)il] +=
+                    hotness.counts[(size_t)il * (size_t)w.n_expert + ie];
+    }
+
     // Query GPU memory
     size_t gpu_free = 0, gpu_total = 0;
     ggml_backend_dev_t dev = ggml_backend_get_device(backend);
@@ -1465,6 +1478,18 @@ bool Qwen35MoeBackend::load_dynamic_placement(const char * hotness_path,
                         expert_budget / 1024.0 / 1024.0 / 1024.0, std::atoi(cap_env));
             expert_budget = cap_bytes;
         }
+    }
+
+    // Spark: clamp experts to the --spark-vram target and auto-size the cache ring.
+    if (std::getenv("DFLASH_SPARK")) {
+        uint64_t target = 0;
+        if (const char * t = std::getenv("DFLASH_SPARK_VRAM_MB")) target = (uint64_t)std::atoll(t) << 20;
+        auto sb = dflash::common::spark_budget_split(expert_budget, total_expert_bytes, w.n_expert,
+                                                     core_bytes + kv_total + safety_bytes, target);
+        expert_budget = sb.hot_bytes;
+        cache_slots_ = sb.cache_slots;
+        std::printf("[spark] vram=%s, hot=%.2f GiB, cache=%d slots/layer\n",
+                    target ? "target" : "auto(card)", expert_budget / 1073741824.0, cache_slots_);
     }
 
     std::printf("[qwen35moe] dynamic placement: gpu_total=%.2f GiB, core=%.2f GiB, "
