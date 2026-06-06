@@ -4,23 +4,23 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-05T16:02:26-04:00`
+Last refresh: `2026-06-05T20:15:20-04:00`
 Current base: `origin/main` `f59f2a33`
-Previous integration tip: `cb0885eb`
-Current integration source tip before this refresh: `cb0885eb`
-Post-push integration tip: `cb0885eb`
-refreshed_head: `cb0885eb`
+Previous integration tip: `b15ca997`
+Current integration source tip before this refresh: `b15ca997`
+Post-push integration tip: `46b77a7f`
+refreshed_head: `46b77a7f`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This refresh first fast-forwarded to upstream `origin/main` `f59f2a33`, then merged PR #346 (`fix(test): chain DFlash verify/replay produce valid logits at all positions`) and PR #345 (`feat(optimizations): Luce Spark — calibrated hot/cold expert residency`) cleanly into the stack. PR #335 was probed this run and remains held for later reconciliation because the direct merge hit broad add/add and content conflicts across the new `lucebox`/`harness` packaging, workflow, installer, and pyproject surfaces.
+This branch is maintained as a reproducible patch stack over `origin/main`. This refresh started from `b15ca997`, then merged PR #334 (`build(docker): lucebox-hub container image + CI release pipeline`) cleanly into the stack. PRs #344, #343, #341, #339, #337, #335, #274, #154, #153, and #135 were probed this run and remain held for later reconciliation because direct merges still hit content/add-add/file-location conflicts across the new server/docs/test, harness, docker, and native-MTP surfaces.
 
 ## 2026-06-05 refresh snapshot
 
-- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #276, #309, #310, #312, #321, #322, #324, #325, #326, #334, #336, #337, #338, #339, #340, #341, #344, #345, #346.
-- Open PR heads currently held after direct merge probes this run: #274, #335.
-- Draft / excluded open PRs: #249, #275, #304, #343.
-- Direct-merge probe this run: PR #346 (`fix(test): chain DFlash verify/replay produce valid logits at all positions`) merged cleanly; PR #345 (`feat(optimizations): Luce Spark — calibrated hot/cold expert residency`) merged cleanly; PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at parity`) hit 11 unmerged paths across `.gitignore`, `server/CMakeLists.txt`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_{drafter,graph,loader}.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/{chat_template,http_server,server_main}.cpp`, and `server/test/test_server_unit.cpp`; PR #335 (`feat(lucebox): hub CLI + autotune/sweep/profile + harness adapters + shell wrapper`) hit 21 unmerged paths in a direct-merge probe, including `.github/workflows/ci.yml`, `harness/clients/README.md`, the new `harness` and `lucebox` add/add files, `install.sh`, `lefthook.yml`, `lucebox.sh`, `lucebox/pyproject.toml`, `lucebox/src/lucebox/*`, `lucebox/tests/test_sweep.py`, and `pyproject.toml`.
+- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #276, #310, #312, #321, #322, #324, #325, #334, #345, #346.
+- Open PR heads currently held after direct merge probes this run: #135, #153, #154, #274, #335, #337, #339, #341, #343, #344.
+- Draft / excluded open PRs: #249, #275, #304, #329.
+- Direct-merge probe this run: PR #334 (`build(docker): lucebox-hub container image + CI release pipeline`) merged cleanly; PR #344 (`feat(server): GgufMetadata reader + SHA-256 sidecar for /props schema-4`) hit a content conflict in `server/src/common/gguf_inspect.cpp`; PR #343 (`test(server): CPU-only HTTP server test rig`) hit conflicts in `.github/workflows/ci.yml`, `server/CMakeLists.txt`, `server/src/server/{chat_template,http_server}.cpp`, and `server/test/{stub_model_backend, test_server_unit}.{cpp,h}`; PR #341 (`feat(server): card-driven thinking control + reasoning_content channel + /props schema-4`) hit conflicts in `server/src/server/{chat_template,http_server,server_main,sse_emitter}.cpp` and `server/test/test_server_unit.cpp`; PR #339 (`feat(server): soft-close thinking termination`) hit conflicts in `server/src/common/model_backend.h`, `server/src/qwen35/qwen35_backend.cpp`, and `server/test/test_server_unit.cpp`; PR #337 (`feat(luce-bench): in-tree bench harness + multi-turn agent_recorded + LLM judge`) hit add/add conflicts in `luce-bench/src/lucebench/fixtures/forge_eval/scenarios/{_model_quality,_stateful_model_quality}.py`; PR #335 (`feat(lucebox): hub CLI + autotune/sweep/profile + harness adapters + shell wrapper`) hit 21 unmerged paths in a direct-merge probe, including `.github/workflows/ci.yml`, `harness/clients/README.md`, the new `harness` and `lucebox` add/add files, `install.sh`, `lefthook.yml`, `lucebox.sh`, `lucebox/pyproject.toml`, `lucebox/src/lucebox/*`, `lucebox/tests/test_sweep.py`, and `pyproject.toml`; PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at parity`) hit 11 unmerged paths across `.gitignore`, `server/CMakeLists.txt`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_{drafter,graph,loader}.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/{chat_template,http_server,server_main}.cpp`, and `server/test/test_server_unit.cpp`; PRs #154 and #153 remain blocked by broad modify/delete, file-location, and content conflicts in the renamed `dflash`/`server` MTP surfaces; PR #135 hit conflicts in `server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp`.
 
-- Validation before this docs refresh: `git diff --check -- docs/auto-integration.md` passed, and the direct-merge probes above were run in detached worktrees with no source edits promoted.
+Validation before this docs refresh: `git diff --check HEAD^1 HEAD` and `bash -n server/scripts/entrypoint.sh` passed after the PR #334 merge, and the direct-merge probes above were run in detached worktrees with no source edits promoted.
 
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
@@ -69,6 +69,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #338 | `feat/server-pflash-drafter` | `bfbe07a9` | included | EE7 early-exit drafter with anchor-transitive cascade and regime router; current head is already represented by the stack. |
 | #337 | `feat/lucebench-harness` | `c20a0f23` | included | In-tree bench harness with multi-turn agent_recorded replay and LLM-judge grading; current head is already represented by the stack. |
 | #336 | `feat/server-layer-split` | `2cf8c999` | included | Shared layer-split backend plus GGUF inspection and c2-gate plumbing; current head is already represented by the stack. |
+| #334 | `feat/docker-stack` | `df5d052a` | included | Lucebox-hub container image + CI release pipeline; current head is now represented by the stack after a clean merge of the Docker workflow, Makefile guard, and entrypoint hardening changes. |
 | #329 | `fix/sse-emitter-content-mode-tool-parse` | `ee9cd9e9` | draft / excluded; previous `8218333b` represented | The earlier `8218333b` head is already represented with plain-text `call:<verb>{...}` tool-call detection and SSE/emitter wiring. The PR advanced while draft after this run's first push, so the new draft head is excluded from non-draft target accounting pending contributor readiness. |
 | #332 | `cudagraph-on-main` | `53e5e795` | included | CUDA-graph AR decode + GPU argmax; current head is already represented by the stack. |
 | #326 | `feat/soft-close-thinking-termination` | `f7e8d6f8` | included | Adds soft-close thinking termination via logit-ratio peek, server flags/status props, Qwen35/Qwen35MoE model-backend hooks, HTTP stop-reason propagation, and unit coverage while preserving the current stack's visible-output retry, stall guards, MoE AR dispatch path, and C2 gate tests. |
