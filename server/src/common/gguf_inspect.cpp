@@ -182,7 +182,8 @@ std::string sha256_of_file(const std::string & path) {
         if (got > 0) sha256_update(c, buf.data(), size_t(got));
     }
     // If the loop exited on anything other than clean EOF (disk error, etc.),
-    // bail rather than cache a hash over a partial read.
+    // bail rather than return a finalized hash over a partial read — caching
+    // that as the model's SHA-256 would silently misidentify the file.
     if (f.bad() || (f.fail() && !f.eof())) return {};
     return sha256_final(c);
 }
@@ -276,15 +277,19 @@ bool read_sidecar_sha(const std::string & path, int64_t expected_size, std::stri
     return true;
 }
 
-void write_sidecar_sha(const std::string & path, int64_t size_bytes, const std::string & sha) {
+void write_sidecar_sha(const std::string & path, const std::string & sha, int64_t size_bytes) {
     // Best-effort. If the directory isn't writable (read-only mount, model
     // dir owned by another user), we just skip — the in-memory hash is
     // already what /props will report this run.
-    if (size_bytes < 0) return;
     std::ofstream f(path + ".sha256");
     if (!f) return;
-    f << sha << "\n";
-    f << "# size=" << size_bytes << "\n";
+    // Emit sha256sum-compatible line + our size guard. The basename keeps
+    // `sha256sum -c` happy if a human ever runs it against the sidecar.
+    std::string base = path;
+    auto slash = base.find_last_of('/');
+    if (slash != std::string::npos) base = base.substr(slash + 1);
+    f << sha << "  " << base << "\n";
+    if (size_bytes >= 0) f << "# size=" << size_bytes << "\n";
 }
 
 }  // namespace
@@ -357,7 +362,7 @@ GgufMetadata read_gguf_metadata(const std::string & path,
             std::string hash = sha256_of_file(path);
             if (!hash.empty()) {
                 m.sha256 = hash;
-                write_sidecar_sha(path, m.size_bytes, hash);
+                write_sidecar_sha(path, hash, m.size_bytes);
             }
         }
     }
