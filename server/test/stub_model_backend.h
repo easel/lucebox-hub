@@ -37,16 +37,16 @@ public:
     bool unpark(const std::string &) override { return true; }
     bool is_target_parked() const override { return false; }
 
-    GenerateResult generate(const GenerateRequest & req,
-                            const DaemonIO & io) override;
+    GenerateResult generate_impl(const GenerateRequest & req,
+                                 const DaemonIO & io) override;
 
     bool snapshot_save(int) override { return false; }
     void snapshot_free(int) override {}
     bool snapshot_used(int) const override { return false; }
     int  snapshot_cur_pos(int) const override { return 0; }
-    GenerateResult restore_and_generate(int, const GenerateRequest & req,
-                                        const DaemonIO & io) override {
-        return generate(req, io);
+    GenerateResult restore_and_generate_impl(int, const GenerateRequest & req,
+                                             const DaemonIO & io) override {
+        return generate_impl(req, io);
     }
 
     bool handle_compress(const std::string &, const DaemonIO &) override {

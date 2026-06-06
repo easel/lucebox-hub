@@ -8,8 +8,8 @@
 
 namespace dflash::common::test {
 
-GenerateResult StubModelBackend::generate(const GenerateRequest & req,
-                                          const DaemonIO & io) {
+GenerateResult StubModelBackend::generate_impl(const GenerateRequest & req,
+                                               const DaemonIO & io) {
     GenerateResult r;
 
     const std::string rendered = tokenizer_.decode(req.prompt);

@@ -218,7 +218,6 @@ add_library(dflash_common STATIC
     src/draft/draft_gguf_loader.cpp
     src/draft/draft_safetensors_loader.cpp
     src/draft/draft_graph.cpp
-    src/qwen3/anchor_scan.cpp
     src/qwen3/qwen3_drafter.cpp
     src/qwen3/qwen3_loader.cpp
     src/qwen3/qwen3_graph.cpp
@@ -250,9 +249,6 @@ add_library(dflash_common STATIC
     src/common/dflash_spec_decode.cpp
     src/common/layer_split_backend.cpp
     src/common/layer_split_runtime.cpp
-    src/common/moe_hybrid_placement.cpp
-    src/common/moe_hybrid_routing_stats.cpp
-    src/common/moe_hybrid_swap_manager.cpp
     src/qwen35/graph_builders.cpp
     src/qwen35moe/qwen35moe_ffn.cpp
     src/qwen35moe/qwen35moe_backend.cpp
@@ -269,14 +265,10 @@ add_library(dflash_common STATIC
     src/qwen35/layer_split_daemon.cpp
     src/qwen35/qwen35_backend.cpp
     src/qwen35/qwen35_layer_split_adapter.cpp
-    src/qwen35/qwen35_target_shard_ipc.cpp
-    src/qwen35/qwen35_target_shard_ipc_daemon.cpp
     src/qwen35/qwen35_dflash_target.cpp
     src/qwen35/qwen35_layer_split_dflash_target.cpp
     src/qwen35/layer_split_daemon_loop.cpp
     src/qwen35/qwen35_daemon.cpp
-    src/common/mtp_chain_runner.cpp
-    src/common/mtp_orchestrator.cpp
     src/common/sampler.cpp
     src/common/backend_precision.cpp
     src/common/daemon_loop.cpp
@@ -582,72 +574,6 @@ if(DFLASH27B_TESTS)
         target_include_directories(test_gguf_mmap PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
         target_link_libraries(test_gguf_mmap PRIVATE dflash_common)
     endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_common_mtp_orchestrator.cpp")
-        add_executable(test_common_mtp_orchestrator
-            test/test_common_mtp_orchestrator.cpp)
-        target_include_directories(test_common_mtp_orchestrator PRIVATE
-            ${DFLASH27B_SRC_INCLUDE_DIRS})
-        target_link_libraries(test_common_mtp_orchestrator PRIVATE dflash_common)
-        add_test(NAME common_mtp_orchestrator
-            COMMAND test_common_mtp_orchestrator)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_common_moe_hybrid.cpp")
-        add_executable(test_common_moe_hybrid test/test_common_moe_hybrid.cpp)
-        target_include_directories(test_common_moe_hybrid PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
-        if(DFLASH27B_GPU_BACKEND STREQUAL "cuda")
-            target_include_directories(test_common_moe_hybrid PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
-        endif()
-        target_link_libraries(test_common_moe_hybrid PRIVATE dflash_common)
-        add_test(NAME common_moe_hybrid
-            COMMAND test_common_moe_hybrid)
-    endif()
-
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_early_exit_score_range.cpp")
-        add_executable(test_drafter_early_exit_score_range
-            test/test_drafter_early_exit_score_range.cpp)
-        target_include_directories(test_drafter_early_exit_score_range PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-        add_test(NAME test_drafter_early_exit_score_range
-            COMMAND test_drafter_early_exit_score_range)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_regime_router.cpp")
-        add_executable(test_regime_router
-            test/test_regime_router.cpp)
-        target_include_directories(test_regime_router PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-        add_test(NAME regime_router
-            COMMAND test_regime_router)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_anchor_transitive.cpp")
-        add_executable(test_anchor_transitive
-            test/test_anchor_transitive.cpp
-            src/qwen3/anchor_scan.cpp)
-        target_include_directories(test_anchor_transitive PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/qwen3)
-        add_test(NAME test_anchor_transitive
-            COMMAND test_anchor_transitive)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_warm_path_regression.cpp")
-        add_executable(test_drafter_warm_path_regression
-            test/test_drafter_warm_path_regression.cpp)
-        target_include_directories(test_drafter_warm_path_regression PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-        add_test(NAME test_drafter_warm_path_regression
-            COMMAND test_drafter_warm_path_regression)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_tail_capture_guard.cpp")
-        # GREEN phase: built with TAIL_GUARD_USE_NEW_FORMULA — must pass after Bug #42 fix.
-        add_executable(test_drafter_tail_capture_guard
-            test/test_drafter_tail_capture_guard.cpp)
-        target_compile_definitions(test_drafter_tail_capture_guard PRIVATE
-            TAIL_GUARD_USE_NEW_FORMULA)
-        add_test(NAME test_drafter_tail_capture_guard
-            COMMAND test_drafter_tail_capture_guard)
-        # RED phase binary: same source WITHOUT the fix flag — documents the bug.
-        add_executable(test_drafter_tail_capture_guard_red
-            test/test_drafter_tail_capture_guard.cpp)
-        # No TAIL_GUARD_USE_NEW_FORMULA — uses old (buggy) guard, expected to FAIL.
-    endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_adaptive_keep_ratio.cpp")
         add_executable(test_adaptive_keep_ratio test/test_adaptive_keep_ratio.cpp)
         target_include_directories(test_adaptive_keep_ratio PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
@@ -659,52 +585,6 @@ if(DFLASH27B_TESTS)
         target_include_directories(test_bandit_integration PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
         target_link_libraries(test_bandit_integration PRIVATE dflash_common)
         add_test(NAME bandit_integration COMMAND test_bandit_integration)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_early_exit_score_range.cpp")
-        add_executable(test_drafter_early_exit_score_range
-            test/test_drafter_early_exit_score_range.cpp)
-        target_include_directories(test_drafter_early_exit_score_range PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-        add_test(NAME test_drafter_early_exit_score_range
-            COMMAND test_drafter_early_exit_score_range)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_regime_router.cpp")
-        add_executable(test_regime_router
-            test/test_regime_router.cpp)
-        target_include_directories(test_regime_router PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-        add_test(NAME regime_router
-            COMMAND test_regime_router)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_anchor_transitive.cpp")
-        add_executable(test_anchor_transitive
-            test/test_anchor_transitive.cpp
-            src/qwen3/anchor_scan.cpp)
-        target_include_directories(test_anchor_transitive PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/qwen3)
-        add_test(NAME test_anchor_transitive
-            COMMAND test_anchor_transitive)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_warm_path_regression.cpp")
-        add_executable(test_drafter_warm_path_regression
-            test/test_drafter_warm_path_regression.cpp)
-        target_include_directories(test_drafter_warm_path_regression PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
-        add_test(NAME test_drafter_warm_path_regression
-            COMMAND test_drafter_warm_path_regression)
-    endif()
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_tail_capture_guard.cpp")
-        # GREEN phase: built with TAIL_GUARD_USE_NEW_FORMULA — must pass after Bug #42 fix.
-        add_executable(test_drafter_tail_capture_guard
-            test/test_drafter_tail_capture_guard.cpp)
-        target_compile_definitions(test_drafter_tail_capture_guard PRIVATE
-            TAIL_GUARD_USE_NEW_FORMULA)
-        add_test(NAME test_drafter_tail_capture_guard
-            COMMAND test_drafter_tail_capture_guard)
-        # RED phase binary: same source WITHOUT the fix flag — documents the bug.
-        add_executable(test_drafter_tail_capture_guard_red
-            test/test_drafter_tail_capture_guard.cpp)
-        # No TAIL_GUARD_USE_NEW_FORMULA — uses old (buggy) guard, expected to FAIL.
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_draft_vs_reference.cpp")
         add_executable(test_draft_vs_reference test/test_draft_vs_reference.cpp)
@@ -836,39 +716,31 @@ if(DFLASH27B_TESTS)
 
     # ─── dflash_server: native C++ HTTP server ─────────────────────────
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/server/server_main.cpp")
-        find_package(CURL REQUIRED)
-        add_executable(dflash_server
-            src/server/server_main.cpp
-            src/server/http_server.cpp
-            src/server/model_card.cpp
-        )
-        target_include_directories(dflash_server PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
-        if(DFLASH27B_GPU_BACKEND STREQUAL "hip")
-            target_compile_definitions(dflash_server PRIVATE DFLASH27B_BACKEND_HIP=1 GGML_USE_HIP)
+        find_package(CURL QUIET)
+        if(NOT CURL_FOUND)
+            message(WARNING "CURL not found — skipping dflash_server (passthrough proxy disabled)")
         else()
-            target_compile_definitions(dflash_server PRIVATE
-                DFLASH27B_BACKEND_CUDA=1
-                DFLASH27B_CUDA_MIN_SM=${_dflash_cuda_min_sm})
+            add_executable(dflash_server
+                src/server/server_main.cpp
+                src/server/http_server.cpp
+                src/server/model_card.cpp
+            )
+            target_include_directories(dflash_server PRIVATE ${DFLASH27B_SRC_INCLUDE_DIRS})
+            if(DFLASH27B_GPU_BACKEND STREQUAL "hip")
+                target_compile_definitions(dflash_server PRIVATE DFLASH27B_BACKEND_HIP=1 GGML_USE_HIP)
+            else()
+                target_compile_definitions(dflash_server PRIVATE
+                    DFLASH27B_BACKEND_CUDA=1
+                    DFLASH27B_CUDA_MIN_SM=${_dflash_cuda_min_sm})
+            endif()
+            target_link_libraries(dflash_server PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET} pthread CURL::libcurl)
+            if(DFLASH27B_GPU_BACKEND STREQUAL "cuda")
+                find_package(CUDAToolkit REQUIRED)
+                target_link_libraries(dflash_server PRIVATE CUDA::cudart)
+            else()
+                target_link_libraries(dflash_server PRIVATE hip::host)
+            endif()
         endif()
-        target_link_libraries(dflash_server PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET} pthread CURL::libcurl)
-        if(DFLASH27B_GPU_BACKEND STREQUAL "cuda")
-            find_package(CUDAToolkit REQUIRED)
-            target_link_libraries(dflash_server PRIVATE CUDA::cudart)
-        else()
-            target_link_libraries(dflash_server PRIVATE hip::host)
-        endif()
-
-        # Copy share/status.html next to the binary so it can be found at runtime.
-        add_custom_command(TARGET dflash_server POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                "$<TARGET_FILE_DIR:dflash_server>/share"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${CMAKE_CURRENT_SOURCE_DIR}/share/status.html"
-                "$<TARGET_FILE_DIR:dflash_server>/share/status.html"
-            COMMENT "Copying status.html to build/share/"
-        )
-        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/status.html"
-                DESTINATION share)
     endif()
 
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/ipc/backend_ipc_main.cpp")
@@ -921,6 +793,10 @@ if(DFLASH27B_TESTS)
     # ModelBackend, so CUDA_VISIBLE_DEVICES="" is supported. Driven by
     # test_stub_integration.py.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/replay_http_server.cpp")
+        # http_server.cpp #includes <curl/curl.h> for its upstream-proxy
+        # passthrough; replay_http_server compiles that TU so it must link
+        # libcurl even though the stub backend itself doesn't use it.
+        find_package(CURL REQUIRED)
         add_executable(replay_http_server
             test/replay_http_server.cpp
             test/scenario_store.cpp
@@ -929,7 +805,8 @@ if(DFLASH27B_TESTS)
             src/server/model_card.cpp)
         target_include_directories(replay_http_server PRIVATE
             ${DFLASH27B_SRC_INCLUDE_DIRS}
-            ${CMAKE_CURRENT_SOURCE_DIR}/test)
+            ${CMAKE_CURRENT_SOURCE_DIR}/test
+            ${CURL_INCLUDE_DIRS})
         if(DFLASH27B_GPU_BACKEND STREQUAL "hip")
             target_compile_definitions(replay_http_server PRIVATE DFLASH27B_BACKEND_HIP=1 GGML_USE_HIP)
         else()
@@ -937,7 +814,7 @@ if(DFLASH27B_TESTS)
                 DFLASH27B_BACKEND_CUDA=1
                 DFLASH27B_CUDA_MIN_SM=${_dflash_cuda_min_sm})
         endif()
-        target_link_libraries(replay_http_server PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET} pthread)
+        target_link_libraries(replay_http_server PRIVATE dflash_common ggml ${DFLASH27B_GGML_BACKEND_TARGET} pthread CURL::libcurl)
         if(DFLASH27B_GPU_BACKEND STREQUAL "cuda")
             find_package(CUDAToolkit REQUIRED)
             target_link_libraries(replay_http_server PRIVATE CUDA::cudart)
