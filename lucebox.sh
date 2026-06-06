@@ -452,10 +452,17 @@ build_orchestrator_argv() {
     fi
     argv+=(--name "${CONTAINER_NAME}-cli-$$")
     argv+=(--user "$(id -u):$(id -g)")
+    # Only bind-mount the docker socket when DOCKER_HOST actually points
+    # at a unix socket on this host. With DOCKER_HOST=tcp://… or ssh://…
+    # the path we'd construct is `tcp` or empty, and `docker run -v` would
+    # bark with an "invalid mount" error before the orchestrator even
+    # starts. The orchestrator-in-container relies on docker access only
+    # when actually needed; pulling that mount when the host talks to
+    # docker over TCP/SSH is fine.
     if [ -S "$DOCKER_SOCK_PATH" ]; then
         argv+=(--group-add "$(stat -c '%g' "$DOCKER_SOCK_PATH")")
+        argv+=(-v "$DOCKER_SOCK_PATH:/var/run/docker.sock")
     fi
-    argv+=(-v "$DOCKER_SOCK_PATH:/var/run/docker.sock")
     argv+=(-v "$HOME:$HOME")
     # Bind-mount the XDG models dir explicitly (host = container path) so
     # paths line up in/out. The $HOME mount above already covers it when
@@ -751,8 +758,9 @@ cmd_systemctl_passthrough() {
             for i in 1 2 3 4 5 6 7 8 9 10; do
                 state=$(systemctl --user is-active "$UNIT_NAME" 2>/dev/null || true)
                 case "$state" in
-                    active|activating) ;;
-                    *) break ;;
+                    active) break ;;     # already up — no need to keep polling
+                    activating) ;;       # still booting; keep waiting
+                    *) break ;;          # failed / inactive — fall through to error path
                 esac
                 sleep 1
             done

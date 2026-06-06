@@ -61,6 +61,29 @@ def _cast_prefill_mode(v: Any) -> str:
     return s
 
 
+def _cast_bool(v: Any) -> bool:
+    """Strict-ish boolean coercion for config values.
+
+    - Native booleans pass through.
+    - Strings: 1/true/yes/on → True; 0/false/no/off/"" → False (case-insensitive).
+    - Anything else raises ``ValueError`` rather than silently coercing,
+      because that's what bit ``dflash.debug_thinking_logits`` — the
+      built-in ``bool`` caster turned ``"false"`` into ``True``.
+    """
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        s = v.strip().lower()
+        if s in ("1", "true", "yes", "on"):
+            return True
+        if s in ("0", "false", "no", "off", ""):
+            return False
+        raise ValueError(f"cannot parse boolean: {v!r}")
+    if isinstance(v, int):
+        return bool(v)
+    raise ValueError(f"cannot parse boolean: {v!r}")
+
+
 # Each entry: dotted-key → (toml_path, type_caster, default_getter).
 # ``toml_path`` is the (section, field) pair on disk; ``"_root"`` means the
 # key lives at the top level (no [section]). ``default_getter`` returns the
@@ -76,10 +99,7 @@ KEY_REGISTRY: dict[str, tuple[tuple[str, str], Callable[[Any], Any]]] = {
     "model.draft_file": (("model", "draft_file"), str),
     "dflash.budget": (("dflash", "budget"), int),
     "dflash.max_ctx": (("dflash", "max_ctx"), int),
-    "dflash.lazy": (
-        ("dflash", "lazy"),
-        lambda v: v if isinstance(v, bool) else str(v).lower() in ("1", "true", "yes"),
-    ),
+    "dflash.lazy": (("dflash", "lazy"), _cast_bool),
     "dflash.prefix_cache_slots": (("dflash", "prefix_cache_slots"), int),
     "dflash.prefill_cache_slots": (("dflash", "prefill_cache_slots"), int),
     "dflash.cache_type_k": (("dflash", "cache_type_k"), str),
@@ -93,7 +113,7 @@ KEY_REGISTRY: dict[str, tuple[tuple[str, str], Callable[[Any], Any]]] = {
     "dflash.think_soft_close_min_ratio": (
         ("dflash", "think_soft_close_min_ratio"), float),
     "dflash.debug_thinking_logits": (
-        ("dflash", "debug_thinking_logits"), bool),
+        ("dflash", "debug_thinking_logits"), _cast_bool),
 }
 
 
@@ -167,7 +187,8 @@ def load_doc(path: Path | None = None) -> dict[str, Any]:
 _LEGACY_KEY_MAP: dict[str, tuple[str, str, Callable[[str], Any]]] = {
     "DFLASH_BUDGET": ("dflash", "budget", int),
     "DFLASH_MAX_CTX": ("dflash", "max_ctx", int),
-    "DFLASH_LAZY": ("dflash", "lazy", lambda v: v in ("1", "true", "yes")),
+    "DFLASH_LAZY": ("dflash", "lazy",
+                    lambda v: str(v).strip().lower() in ("1", "true", "yes", "on")),
     "DFLASH_PREFIX_CACHE_SLOTS": ("dflash", "prefix_cache_slots", int),
     "DFLASH_PORT": ("runtime", "port", int),
     "LUCEBOX_VARIANT": ("image", "variant", str),

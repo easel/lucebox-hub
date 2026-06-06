@@ -74,8 +74,15 @@ def _host_info_payload(cfg: Config) -> dict[str, Any]:
     fields stay None.
     """
     host = cfg.host
+    # lucebox.sh::probe_host exports LUCEBOX_HOST_CPU_MODEL from
+    # /proc/cpuinfo; surface it here so the snapshot's host-info block
+    # carries the operator's real CPU rather than a None placeholder.
+    # The wrapper script may have run in a context that didn't probe
+    # (e.g. CI with the var pre-cleared), in which case we fall back to
+    # None — the bench tolerates missing fields.
+    cpu_model = os.environ.get("LUCEBOX_HOST_CPU_MODEL", "").strip() or None
     return {
-        "cpu_model": None,  # not currently probed by lucebox.sh
+        "cpu_model": cpu_model,
         "nproc": host.nproc or None,
         "ram_gb": host.ram_gb or None,
         "gpu_name": host.gpu_name or None,

@@ -119,6 +119,12 @@ def launch(
     argv: list[str] = [claude]
 
     if interactive:
+        # Claude Code's TUI honors `--model` at startup; without it the
+        # user gets whichever default model the CLI shipped with, even
+        # though they passed --model on the host wrapper. Mirror the
+        # non-interactive flag so the model selection is consistent
+        # across both modes.
+        argv += ["--model", model]
         if extra_args:
             argv += extra_args
         # Inherit stdin/out/err so the TUI works. No timeout in interactive mode.
@@ -138,9 +144,16 @@ def launch(
         argv += extra_args
     argv += [prompt]
 
-    if timeout is not None:
-        argv = ["timeout", f"{timeout}s", *argv]
-    return subprocess.run(argv, env=env, stdin=subprocess.DEVNULL).returncode
+    # Use subprocess.run(..., timeout=) instead of the external `timeout`
+    # binary so we don't depend on a GNU coreutils install on the test
+    # box. On timeout, return 124 to match the conventional GNU
+    # `timeout` exit code that any wrapper script branching on $? expects.
+    try:
+        return subprocess.run(
+            argv, env=env, stdin=subprocess.DEVNULL, timeout=timeout
+        ).returncode
+    except subprocess.TimeoutExpired:
+        return 124
 
 
 def main() -> int:

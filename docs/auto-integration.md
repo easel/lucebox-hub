@@ -4,24 +4,23 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-05T20:15:20-04:00`
+Last refresh: `2026-06-06T00:34:32-04:00`
 Current base: `origin/main` `f59f2a33`
-Previous integration tip: `b15ca997`
-Current integration source tip before this refresh: `b15ca997`
-Post-push integration tip: `46b77a7f`
-refreshed_head: `46b77a7f`
+Previous integration tip: `34ba8d02`
+Current integration source tip before this refresh: `34ba8d02`
+Post-push integration tip: `cfd02f5d`
+refreshed_head: `cfd02f5d`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This refresh started from `b15ca997`, then merged PR #334 (`build(docker): lucebox-hub container image + CI release pipeline`) cleanly into the stack. PRs #344, #343, #341, #339, #337, #335, #274, #154, #153, and #135 were probed this run and remain held for later reconciliation because direct merges still hit content/add-add/file-location conflicts across the new server/docs/test, harness, docker, and native-MTP surfaces.
+This branch is maintained as a reproducible patch stack over `origin/main`. This refresh started from `easel/auto-integration` `dc465739` in detached worktree `/tmp/luce-auto-reup-20260605-233455`. It promoted current open PR heads #337, #335, #344, and #343, preserving current-stack fixes where the PRs conflicted with newer server/harness/CI surfaces. PRs #339, #341, #274, #154, #153, and #135 were reprobed and remain held for later reconciliation because direct merges still hit current-layout server/runtime/test conflicts. A follow-up local sync on 2026-06-06 merged the refreshed `easel/auto-integration` tip back into this checkout and resolved only trailing-newline-only add/add conflicts in the two `luce-bench` fixture files; no additional PR heads changed status.
 
-## 2026-06-05 refresh snapshot
+## 2026-06-05 late refresh snapshot
 
-- Included open PR heads that remain exact-head represented in the stack: #48, #94, #137, #142, #152, #276, #310, #312, #321, #322, #324, #325, #334, #345, #346.
-- Open PR heads currently held after direct merge probes this run: #135, #153, #154, #274, #335, #337, #339, #341, #343, #344.
-- Draft / excluded open PRs: #249, #275, #304, #329.
-- Direct-merge probe this run: PR #334 (`build(docker): lucebox-hub container image + CI release pipeline`) merged cleanly; PR #344 (`feat(server): GgufMetadata reader + SHA-256 sidecar for /props schema-4`) hit a content conflict in `server/src/common/gguf_inspect.cpp`; PR #343 (`test(server): CPU-only HTTP server test rig`) hit conflicts in `.github/workflows/ci.yml`, `server/CMakeLists.txt`, `server/src/server/{chat_template,http_server}.cpp`, and `server/test/{stub_model_backend, test_server_unit}.{cpp,h}`; PR #341 (`feat(server): card-driven thinking control + reasoning_content channel + /props schema-4`) hit conflicts in `server/src/server/{chat_template,http_server,server_main,sse_emitter}.cpp` and `server/test/test_server_unit.cpp`; PR #339 (`feat(server): soft-close thinking termination`) hit conflicts in `server/src/common/model_backend.h`, `server/src/qwen35/qwen35_backend.cpp`, and `server/test/test_server_unit.cpp`; PR #337 (`feat(luce-bench): in-tree bench harness + multi-turn agent_recorded + LLM judge`) hit add/add conflicts in `luce-bench/src/lucebench/fixtures/forge_eval/scenarios/{_model_quality,_stateful_model_quality}.py`; PR #335 (`feat(lucebox): hub CLI + autotune/sweep/profile + harness adapters + shell wrapper`) hit 21 unmerged paths in a direct-merge probe, including `.github/workflows/ci.yml`, `harness/clients/README.md`, the new `harness` and `lucebox` add/add files, `install.sh`, `lefthook.yml`, `lucebox.sh`, `lucebox/pyproject.toml`, `lucebox/src/lucebox/*`, `lucebox/tests/test_sweep.py`, and `pyproject.toml`; PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at parity`) hit 11 unmerged paths across `.gitignore`, `server/CMakeLists.txt`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_{drafter,graph,loader}.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/{chat_template,http_server,server_main}.cpp`, and `server/test/test_server_unit.cpp`; PRs #154 and #153 remain blocked by broad modify/delete, file-location, and content conflicts in the renamed `dflash`/`server` MTP surfaces; PR #135 hit conflicts in `server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp`.
-
-Validation before this docs refresh: `git diff --check HEAD^1 HEAD` and `bash -n server/scripts/entrypoint.sh` passed after the PR #334 merge, and the direct-merge probes above were run in detached worktrees with no source edits promoted.
-
+- Included open PR heads now exact-head represented in the stack: #346, #345, #344, #343, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, #48.
+- Open non-draft PR heads currently held after direct merge probes: #341, #339, #274, #154, #153, #135.
+- Draft / excluded open PRs: #304, #275, #249.
+- Promoted this run: #337 (in-tree `luce-bench`, resolving two add/add fixture conflicts that differed only by trailing newline); #335 (lucebox CLI/harness wrapper stack, resolving 21 CI/harness/lucebox add-add/content conflicts by taking the PR's live CLI/harness fixes while retaining the current stack's card-bundle drift guard and root lint/dev config); #344 (GGUF metadata/SHA-256 sidecar, resolving `gguf_inspect.cpp` in favor of the PR's sha256sum-compatible sidecar format); and #343 (CPU-only HTTP replay rig, resolving CMake/libcurl and stub-backend conflicts while preserving newer current-stack chat-template, cancellation, and unit-test behavior).
+- Reprobed but held: #339 (`model_backend.h`, `qwen35_backend.cpp`, `test_server_unit.cpp` conflicts), #341 (`chat_template.cpp`, `http_server.cpp`, `server_main.cpp`, `sse_emitter.cpp`, `test_server_unit.cpp` conflicts), #274 (broad pflash/server conflicts), #154/#153 (old `dflash/` native-MTP file-location/API conflicts), and #135 (scheduler/runtime conflicts in `internal.h`, `qwen35_target_graph.cpp`, `test_dflash.cpp`).
+- Validation before commit: `git diff --check` passed; changed-file conflict-marker search found no `<<<<<<<` / `>>>>>>>` markers; `python3 -m py_compile` passed over 111 Python files under `harness/src`, `lucebox/src`, `lucebox/tests`, and `luce-bench/src`. `python3 -m pytest lucebox/tests/test_sweep.py -q` could not run in this WSL environment because the active Python has no `pytest` module installed.
 
 Latest 01:35 refresh: fetched `origin` and `easel` separately; `origin/main` `bdc706ad` is still already represented. A direct merge probe against PR #340 (`feat(server): plain-text call:<verb>{} tool parsing`) conflicted in `server/src/server/tool_parser.cpp` and `server/test/test_server_unit.cpp`. The current stack already carries a richer call-verb parser and expanded test coverage than PR #340's truncated branch, so #340 was held/superseded rather than promoted. No source edits were applied; the branch remains on `e80f3244`.
 

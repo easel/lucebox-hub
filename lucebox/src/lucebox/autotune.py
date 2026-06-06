@@ -133,13 +133,18 @@ def runtime_from_host(host: HostFacts, preset: str = "") -> DflashRuntime:
     return DflashRuntime(max_ctx=131072)
 
 
-def candidate_configs(host: HostFacts) -> list[DflashRuntime]:
+def candidate_configs(host: HostFacts, preset: str = "") -> list[DflashRuntime]:
     """Empirical bracket worth testing on this host.
 
     Returns ~6-12 DflashRuntime configs around runtime_from_host(host)
     — small enough to sweep in under 30 min on a 24 GB rig, large
     enough that the empirical winner usually beats the heuristic prior
     on the host's real workload.
+
+    ``preset`` flows into ``runtime_from_host`` so the 22-31 GB tier's
+    large-model 32K safety cap (e.g. gemma-4-31b, qwen3.6-moe) seeds the
+    bracket. Without it the base would be the small-model 98K config
+    and every cell on a 24 GB host trying a ≥20 GB preset would OOM.
 
     Per-tier brackets:
       <12 GB  → base only (no sweep — model barely fits)
@@ -155,7 +160,7 @@ def candidate_configs(host: HostFacts) -> list[DflashRuntime]:
     cache_type_k, cache_type_v) tuple-set so a swept axis that happens
     to land on the heuristic value doesn't generate a redundant cell.
     """
-    base = runtime_from_host(host)
+    base = runtime_from_host(host, preset=preset)
 
     # <12 GB → base only. Model barely fits; sweeping risks OOM more
     # than it improves throughput. Caller is expected to treat a
@@ -307,7 +312,13 @@ def _coding_agent_loop_gemma_bracket(
 
     # 22+ GB tier: gemma's 131K ceiling is achievable. Bracket the
     # interesting axes; keep cardinality modest so the full sweep
-    # finishes in ~20 min.
+    # finishes in ~20 min. Seed with the heuristic base (KV cleared to
+    # match gemma4's hardcoded F16, pflash off to match the rest of
+    # the bracket) so the heuristic prior — which on 24 GB tops out at
+    # safer max_ctx than 98K/131K — stays in the bracket. Without this
+    # seed a host that can't actually serve 131K would have every sweep
+    # cell OOM and produce no winner.
+    add(replace(base, cache_type_k="", cache_type_v="", prefill_mode="off"))
     for max_ctx in (98_304, 131_072):
         for fa_window in (0, 2048):
             for budget in (16, 22, 32):
@@ -417,12 +428,14 @@ def _coding_agent_loop_candidates(host: HostFacts, preset: str) -> list[DflashRu
 def _heuristic_candidates(host: HostFacts, preset: str) -> list[DflashRuntime]:
     """Legacy preset-agnostic bracket (the original ``candidate_configs``).
 
-    ``preset`` is accepted but ignored — the heuristic profile sweeps
-    KV-quant axes for every preset, which is wrong for gemma4 (no-op)
-    but preserves the existing behavior for anyone still calling the
-    bare ``candidate_configs`` entry point.
+    ``preset`` is forwarded to ``candidate_configs`` so the large-model
+    safety cap on 22-31 GB hosts (gemma-4-31b, qwen3.6-moe at ≥20 GB)
+    seeds the bracket. The heuristic profile still sweeps KV-quant axes
+    for every preset — that's wrong for gemma4 (cache_type is a no-op
+    there) but preserves the existing bracket shape for callers still
+    on the heuristic path.
     """
-    return candidate_configs(host)
+    return candidate_configs(host, preset=preset)
 
 
 PROFILES: dict[str, Profile] = {

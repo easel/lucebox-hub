@@ -12,7 +12,6 @@ from __future__ import annotations
 import os
 import shlex
 import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -228,43 +227,6 @@ def server_run_spec(cfg: Config) -> DockerRunSpec:
 # ── subprocess helpers ─────────────────────────────────────────────────────
 
 
-def run(argv: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
-    """Run a command, streaming stdout/stderr to the user. `check=False` to
-    inspect exit codes manually."""
-    return subprocess.run(argv, text=True, check=check)
-
-
 def docker_pull(image_tag: str) -> int:
     """Pull an image, streaming progress. Returns docker's exit code."""
     return subprocess.call(["docker", "pull", image_tag])
-
-
-def docker_inspect_running(name: str) -> bool:
-    """True if a container with this name is in the 'running' state."""
-    try:
-        out = subprocess.check_output(
-            ["docker", "inspect", "-f", "{{.State.Running}}", name],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
-        return out.strip() == "true"
-    except subprocess.CalledProcessError:
-        return False
-
-
-def host_path_visible(p: Path) -> bool:
-    """Sanity-check that a host path we plan to bind-mount is actually
-    reachable through the container's view of $HOME. The host wrapper mounts
-    $HOME:$HOME so any path under the user's home appears at the same path
-    in the container.
-    """
-    try:
-        p = p.resolve()
-        home = Path.home().resolve()
-        return p == home or home in p.parents
-    except OSError:
-        return False
-
-
-def stderr(msg: str) -> None:
-    print(msg, file=sys.stderr)

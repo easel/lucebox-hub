@@ -67,7 +67,13 @@ grep -q '^VERSION=' "$tmp" \
 #   3. Else persist LUCEBOX_INSTALL_URL as-is (branch or canonical main).
 channel_url="${LUCEBOX_INSTALL_CHANNEL:-}"
 if [ -z "$channel_url" ]; then
-    if [[ "$LUCEBOX_INSTALL_URL" =~ /[0-9a-fA-F]{7,40}/[^/]+\.sh$ ]]; then
+    # Match a full 40-char hex SHA in the URL path, not the broader
+    # {7,40} range — a 7-39 char hex segment is more likely a branch
+    # name shaped like a short SHA (e.g. `feat/abc1234-hotfix`) than an
+    # actual SHA-pin. Keeping the gate at exactly 40 chars matches what
+    # `git rev-parse HEAD` emits and what `/raw/<sha>/` URLs from
+    # GitHub's CDN actually carry.
+    if [[ "$LUCEBOX_INSTALL_URL" =~ /[0-9a-fA-F]{40}/[^/]+\.sh$ ]]; then
         die "$(cat <<EOM
 LUCEBOX_INSTALL_URL is SHA-pinned ($LUCEBOX_INSTALL_URL).
 Persisting that as LUCEBOX_INSTALLED_FROM would freeze \`lucebox update\`
@@ -87,6 +93,17 @@ fi
 # Bake the channel URL into the file. Use a `|` delimiter since URLs
 # contain `/`. The line is expected to exist in lucebox.sh with a `:-`
 # default; we rewrite the whole assignment.
+#
+# The URL ends up inside a bash double-quoted literal in the installed
+# script, so any of $ ` " \ in `channel_url` would break the installed
+# file (or worse, allow command substitution to run at next sourcing).
+# Validate that the URL is plain http(s)+ASCII-URL-safe characters; we
+# don't expect arbitrary content here, only an upstream raw.github URL
+# (or a forked equivalent). Escape the sed metachars (\&|) separately so
+# the substitution itself round-trips.
+case "$channel_url" in
+    *['"$`\']*) die "channel URL contains unsafe characters: $channel_url" ;;
+esac
 escaped_url=$(printf '%s' "$channel_url" | sed 's/[\\&|]/\\&/g')
 sed "s|^LUCEBOX_INSTALLED_FROM=.*|LUCEBOX_INSTALLED_FROM=\"$escaped_url\"|" "$tmp" > "$tmp.baked"
 mv "$tmp.baked" "$tmp"

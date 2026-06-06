@@ -793,10 +793,6 @@ if(DFLASH27B_TESTS)
     # ModelBackend, so CUDA_VISIBLE_DEVICES="" is supported. Driven by
     # test_stub_integration.py.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/replay_http_server.cpp")
-        # http_server.cpp #includes <curl/curl.h> for its upstream-proxy
-        # passthrough; replay_http_server compiles that TU so it must link
-        # libcurl even though the stub backend itself doesn't use it.
-        find_package(CURL REQUIRED)
         add_executable(replay_http_server
             test/replay_http_server.cpp
             test/scenario_store.cpp

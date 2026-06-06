@@ -20,32 +20,45 @@ from harness.clients._common import (
 )
 
 
+def _yaml_quote(s: str) -> str:
+    """Render ``s`` as a YAML double-quoted scalar with JSON-style escapes.
+
+    YAML's double-quoted style accepts the JSON escape set; ``json.dumps``
+    produces exactly that, so it's the cheapest correct way to embed an
+    arbitrary string (paths containing quotes, backslashes, or even
+    newlines) into the generated config without a YAML library.
+    """
+    import json as _json
+    return _json.dumps(s)
+
+
 def write_config(home: Path, *, base_url: str, model: str, api_key: str,
                  max_ctx: int, max_tokens: int, repo_dir: str) -> None:
     base = f"{base_url.rstrip('/')}/v1"
+    q = _yaml_quote
     (home / "config.yaml").write_text(
         f"""model:
-  default: "{model}"
+  default: {q(model)}
   provider: "lucebox"
-  base_url: "{base}"
-  api_key: "{api_key}"
+  base_url: {q(base)}
+  api_key: {q(api_key)}
   api_mode: "chat_completions"
   context_length: {max_ctx}
   max_tokens: {max_tokens}
 
 custom_providers:
   - name: "lucebox"
-    base_url: "{base}"
-    api_key: "{api_key}"
+    base_url: {q(base)}
+    api_key: {q(api_key)}
     api_mode: "chat_completions"
     models:
-      "{model}":
+      {q(model)}:
         context_length: {max_ctx}
         max_tokens: {max_tokens}
 
 terminal:
   backend: "local"
-  cwd: "{repo_dir}"
+  cwd: {q(repo_dir)}
   timeout: 180
   lifetime_seconds: 300
 """
@@ -79,7 +92,12 @@ def launch(
     bin_path = find_bin("hermes", env_var="HERMES_BIN",
                         work_dir_hint="clients/hermes/home/.local/bin/hermes")
     home = work_dir or mktempdir("hermes")
-    repo_dir = os.environ.get("REPO_DIR", str(Path.cwd()))
+    # Normalize REPO_DIR to an absolute path so Hermes's `terminal.cwd`
+    # resolves consistently regardless of the cwd at launch. A relative
+    # path in REPO_DIR would be re-interpreted against the in-container
+    # cwd (or wherever Hermes's parser anchors it), which has bitten
+    # users running the harness from a sibling directory.
+    repo_dir = str(Path(os.environ.get("REPO_DIR", str(Path.cwd()))).resolve())
     write_config(home, base_url=base_url, model=model, api_key=api_key,
                  max_ctx=max_ctx, max_tokens=max_tokens, repo_dir=repo_dir)
 
@@ -139,7 +157,12 @@ def main() -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL_ID)
     parser.add_argument("--api-key", default=DEFAULT_API_KEY)
     parser.add_argument("--prompt", default=None)
-    parser.add_argument("--timeout", type=int, default=None)
+    # Match the 420s wall timeout the shell harness uses (run_hermes.sh):
+    # Hermes agent loops can hang on a misconfigured server, and the
+    # CLI form should fail in roughly the same wall-time window the
+    # shell form does — otherwise an operator who switches mode gets
+    # surprising "stuck" behavior.
+    parser.add_argument("--timeout", type=int, default=420)
     parser.add_argument("--max-ctx", type=int, default=98304)
     parser.add_argument("--max-tokens", type=int, default=4096)
     parser.add_argument("--max-turns", type=int, default=40,
