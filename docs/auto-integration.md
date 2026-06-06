@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-06T06:54:47-04:00`
+Last refresh: `2026-06-06T09:05:04-04:00`
 Current base: `origin/main` `6dff4e55`
-Previous integration tip: `8921ddb3`
-Current integration source tip before this refresh: `8921ddb3`
-Post-push integration tip: `62f1b15a`
-refreshed_head: `62f1b15a`
+Previous integration tip: `72a286ab`
+Current integration source tip before this refresh: `72a286ab`
+Post-push integration tip: `eb9bb4e0`
+refreshed_head: `eb9bb4e0`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This refresh merged the new upstream base `origin/main` `6dff4e55` into `easel/auto-integration` `8921ddb3`, resolving the single content conflict in `server/test/test_dflash.cpp` by keeping the explicit `align_up(...)` mask padding and the upstream explanatory note about NaN/zero attention and GPU argmax `-1`. The long-lived stack itself was otherwise left intact, and the held PRs remain the same non-ancestor set until a narrower safe slice is found.
+This branch is maintained as a reproducible patch stack over `origin/main`. This refresh merged PR #345 (`feat(optimizations): Luce Spark calibrated hot/cold expert residency`) into `easel/auto-integration`, resolving the single content conflict in `server/src/server/server_main.cpp` by keeping the current stack's GGUF/props plumbing and adding the PR's Spark autotune/bootstrap path (`--spark-vram`, cached hotness, and day-one placement seeding). The long-lived stack itself was otherwise left intact, and the held PRs remain the same non-ancestor set.
 
-Latest 06:54 refresh: fetched `origin` and `easel` separately; merged `origin/main` `6dff4e55` into `auto-integration`, resolving the single `server/test/test_dflash.cpp` conflict while preserving the current mask-stride fix and the upstream commentary on verify attention/logit behavior. Open PR accounting is now 24 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor PRs remain #274, #154, #153, and #135. No additional source slices were promoted in this refresh.
+Latest 09:05 refresh: fetched `origin` and `easel` separately; merged PR #345 into `auto-integration`, resolving the single `server/src/server/server_main.cpp` conflict while preserving the current stack's server metadata handlers and adding Spark autotune/bootstrap support. Open PR accounting remains 24 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor PRs remain #274, #154, #153, and #135. No additional source slices were promoted in this refresh.
 
 ## 2026-06-05 late refresh snapshot
 
