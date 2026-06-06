@@ -4,12 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-06T15:20:12-04:00`
+Last refresh: `2026-06-06T17:25:41-04:00`
 Current base: `origin/main` `0bfbae49`
-Previous integration tip: `847b20f2`
-Current integration source tip before this refresh: `847b20f2`
-Post-merge integration tip: `50ee2ede`
-refreshed_head: `50ee2ede`
+Previous integration tip: `e8eeea44`
+Current integration source tip before this refresh: `e8eeea44`
+Post-merge integration tip: `e8eeea44`
+refreshed_head: `e8eeea44`
+
+Latest 17:24 refresh: fetched `origin` and `easel` separately; `origin/main` `0bfbae49` is still already represented. A direct-merge probe of PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at  parity`) against the refreshed stack still conflicts broadly across `.gitignore`, `server/src/common/model_backend.h`, `server/src/qwen3/{qwen3_drafter,qwen3_graph,qwen3_loader}.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/{chat_template,http_server}.cpp`, and `server/test/test_server_unit.cpp`, so #274 remains held for now. No source edits were promoted; the primary checkout stayed clean and the probe worktree was discarded after the failed merge.
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
 
@@ -90,6 +92,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #294 | `feat/server-passthrough-proxy` | `5c873adb` | included | Passthrough proxy, keep-ratio curve, query survival checks, multimodal text extraction, unit coverage, and CURL-optional CI fix are carried exactly; the advanced head merged cleanly this refresh after one usage-text conflict. |
 | #291 | `feat-gemma4-draft-residency-followup` | `91ff48fa` | included | Current head is carried exactly. Adds draft residency policy (`auto` / `persistent` / `request-scoped`), `--draft-residency` CLI and `/props.runtime` surfacing, PFlash and decode-draft request-scoped release actions, and Gemma4 draft-only park/unpark helpers while preserving current stack passthrough PFlash, transitive compression, cancellation, visible-empty retry, and status behavior. |
 | #289 | `pipeline_moe` | `caf2b112` | included | Carries pipelined hybrid Qwen35 MoE decode plus the sub-batch hybrid prefill FFN safety fix. |
+| #274 | `feat/pflash-drafter-ee7` | `65ebb7a4` | held | PR #274 no longer sits in the current integration ancestry. A fresh direct-merge probe against the refreshed stack still conflicts broadly across `.gitignore`, `model_backend.h`, `qwen3_{drafter,graph,loader}.cpp`, `qwen35_backend.cpp`, `chat_template.cpp`, `http_server.cpp`, and `test_server_unit.cpp`, so it remains on the held list for follow-up. |
 | #285 | `feat/lucebox-docker` | `e13e8203` | held / advanced; prior `93959170` tree represented | The earlier `93959170` Docker stack / `lucebox` CLI / harness / `luce-bench` content remains represented in the current integration tree, but the live PR head has advanced into a much larger unstable continuation (docs, Docker, harness, and bench/profile material, 68k+ additions). A fresh direct-merge probe against the current head still explodes into broad conflicts, so it stays on the held list for follow-up rather than being re-merged this refresh. |
 | #276 | `fix/qwen36-claude-code-tool-calling` | `5e861b4d` | included | Qwen3.6-27B tool-calling fix for Claude-code Anthropic path is carried exactly. |
 
