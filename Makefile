@@ -119,5 +119,24 @@ clean:  ## Drop stopped containers, dangling images, build cache (~10 GB+).
 
 .PHONY: clean-models
 clean-models:  ## Remove downloaded models from $(MODELS_DIR). Destructive.
-	@echo "WARN: about to rm -rf $(MODELS_DIR)/*"
-	@read -p "Continue? [y/N] " ans && [ "$$ans" = "y" ] && rm -rf $(MODELS_DIR)/*
+	@# Guard against catastrophic overrides: MODELS_DIR=/ or empty would
+	@# rm -rf the host. Also reject $$HOME and other top-level user dirs to
+	@# avoid surprising blast radius when someone runs this with
+	@# MODELS_DIR=~ in muscle memory.
+	@set -eu; \
+	  dir='$(MODELS_DIR)'; \
+	  if [ -z "$$dir" ]; then \
+	    echo "ERROR: MODELS_DIR is empty; refusing to clean." >&2; exit 1; \
+	  fi; \
+	  resolved=$$(cd "$$dir" 2>/dev/null && pwd -P || echo "$$dir"); \
+	  case "$$resolved" in \
+	    /|/home|/root|/Users|"$$HOME"|/usr|/etc|/var|/opt|/bin|/sbin|/lib|/lib64|/boot|/dev|/proc|/sys|/tmp) \
+	      echo "ERROR: refusing to rm -rf $$resolved/*" >&2; exit 1 ;; \
+	  esac; \
+	  if [ ! -d "$$resolved" ]; then \
+	    echo "MODELS_DIR=$$resolved does not exist; nothing to clean."; exit 0; \
+	  fi; \
+	  echo "WARN: about to rm -rf $$resolved/*"; \
+	  read -r -p "Continue? [y/N] " ans; \
+	  [ "$$ans" = "y" ] || { echo "Aborted."; exit 0; }; \
+	  rm -rf -- "$$resolved"/*

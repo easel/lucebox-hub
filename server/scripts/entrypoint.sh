@@ -169,14 +169,17 @@ _emit_gpu_array() {
         [ -z "$line" ] && continue
         # Trim surrounding whitespace from each field. nvidia-smi prints
         # `0, GPU-abc..., 00000000:01:00.0, NVIDIA RTX 5090, 12.0, 24576 MiB, 175.00 W`.
+        # Some driver builds emit bare `,` delimiters with no trailing space —
+        # split on `,` alone and trim whitespace per field so both forms parse.
         local idx uuid pci name cc mem plimit
-        idx=$(printf '%s' "$line" | awk -F', ' '{print $1}' | sed 's/^ *//; s/ *$//')
-        uuid=$(printf '%s' "$line" | awk -F', ' '{print $2}' | sed 's/^ *//; s/ *$//')
-        pci=$(printf '%s' "$line" | awk -F', ' '{print $3}' | sed 's/^ *//; s/ *$//')
-        name=$(printf '%s' "$line" | awk -F', ' '{print $4}' | sed 's/^ *//; s/ *$//')
-        cc=$(printf '%s' "$line" | awk -F', ' '{print $5}' | sed 's/^ *//; s/ *$//')
-        mem=$(printf '%s' "$line" | awk -F', ' '{print $6}' | sed 's/^ *//; s/ *$//')
-        plimit=$(printf '%s' "$line" | awk -F', ' '{print $7}' | sed 's/^ *//; s/ *$//')
+        IFS=',' read -r idx uuid pci name cc mem plimit <<<"$line"
+        idx=$(printf '%s' "$idx" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        uuid=$(printf '%s' "$uuid" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        pci=$(printf '%s' "$pci" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        name=$(printf '%s' "$name" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        cc=$(printf '%s' "$cc" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        mem=$(printf '%s' "$mem" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        plimit=$(printf '%s' "$plimit" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
         # Strip units. "24576 MiB" → 24576; "175.00 W" → 175 (truncate).
         local mem_mib vram_gb power_w
         mem_mib=$(printf '%s' "$mem" | awk '{print $1+0}')
@@ -341,14 +344,15 @@ if [ -z "$DFLASH_TARGET" ] && [ -d "$DFLASH_DIR/models" ]; then
             info "Auto-detected target: $(basename "$DFLASH_TARGET")"
             ;;
         *)
-            warn "Multiple candidate targets in $DFLASH_DIR/models — running the FIRST alphabetically."
-            warn "To pick a specific one, set DFLASH_TARGET=<path>. Candidates:"
+            # Refuse to guess: silently picking the wrong target has burned
+            # us before (bench numbers come out wrong, only noticed after the
+            # fact). Force the operator to disambiguate via DFLASH_TARGET.
+            warn "Multiple candidate target GGUFs in $DFLASH_DIR/models. Refusing to auto-select."
+            warn "Set DFLASH_TARGET=<path> to choose one. Candidates:"
             for c in "${TARGET_CANDIDATES[@]}"; do
-                marker=" "
-                [ "$c" = "${TARGET_CANDIDATES[0]}" ] && marker="*"
-                warn "  ${marker} $c"
+                warn "    $c"
             done
-            DFLASH_TARGET="${TARGET_CANDIDATES[0]}"
+            die "Ambiguous target: set DFLASH_TARGET=<path> from the candidates above."
             ;;
     esac
 fi
@@ -436,7 +440,10 @@ if [ -d "$DFLASH_DRAFT" ]; then
     family_count="${#FAMILY_GLOBS[@]}"
     i=0
     for pattern in "${FAMILY_GLOBS[@]}" "${GENERIC_GLOBS[@]}"; do
-        DRAFT_FILE="$(find -L "$DFLASH_DRAFT" -maxdepth 4 -type f -iname "$pattern" -print -quit 2>/dev/null)"
+        # Sort matches lexicographically so the pick is deterministic across
+        # filesystems (find's traversal order is filesystem-dependent without
+        # an explicit sort). First lexicographic match wins.
+        DRAFT_FILE="$(find -L "$DFLASH_DRAFT" -maxdepth 4 -type f -iname "$pattern" -print 2>/dev/null | sort | head -n 1)"
         if [ -n "$DRAFT_FILE" ]; then
             # Mark the family-specific match so the log line below can
             # distinguish "matched on family hint" from "generic fallback".
