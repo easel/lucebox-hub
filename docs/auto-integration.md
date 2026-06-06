@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-06T13:15:34-04:00`
-Current base: `origin/main` `548ba19d`
-Previous integration tip: `b67dec4b`
-Current integration source tip before this refresh: `b67dec4b`
-Post-push integration tip: `87806c60`
-refreshed_head: `87806c60`
+Last refresh: `2026-06-06T15:20:12-04:00`
+Current base: `origin/main` `0bfbae49`
+Previous integration tip: `847b20f2`
+Current integration source tip before this refresh: `847b20f2`
+Post-merge integration tip: `50ee2ede`
+refreshed_head: `50ee2ede`
 
-Latest 13:15 refresh: fetched `origin` and `easel` separately; merged `origin/main` `548ba19d` into `auto-integration`, then merged PR #345 (`feat(optimizations): Luce Spark — calibrated hot/cold expert residency`) current head `568f1dff` cleanly on top of the refreshed stack. The merge preserved the upstream `origin/main` sync, carried forward the existing stack, and auto-merged the Spark deltas in `server/src/laguna/laguna_backend.cpp`, `server/src/qwen35moe/qwen35moe_backend.cpp`, and `server/src/qwen35moe/qwen35moe_backend.h` without manual conflict resolution.
+Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
 
-Open PR accounting is 25 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack now shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor PRs remain #347, #274, #154, #153, and #135. PR #347 (`ci: run GPU tests on self-hosted lucebox3 (3090 + Radeon 8060S)`) was probed and held: the hosted build passed, the AMD HIP smoke passed, but the RTX 3090 `test_flash_attn_sparse` job failed with `max_diff` values in the `0.66`–`0.99` range, so no source-stack changes were promoted. Validation for this refresh: `git diff --check` passed, and a fresh `cmake -S server -B /tmp/luce2-server-build-make2 -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON` configure failed during CUDA compiler detection because local `ptxas` rejects the default `sm_52` code path in this WSL environment.
+Open PR accounting is 24 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor open PRs remain #274, #154, #153, and #135. PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at  parity`) was probed again on the refreshed stack and still conflicts broadly across `.gitignore`, `model_backend.h`, `qwen3_{drafter,graph,loader}.cpp`, `qwen35_backend.cpp`, `chat_template.cpp`, `http_server.cpp`, and `test_server_unit.cpp`, so it remains held. Validation for this refresh: `git merge` of `origin/main` was clean; `git diff --check` passed for the manifest update; and no full build/test rerun was needed because the only tree change from upstream was the CI workflow/file update under `.github/`.
 
 ## 2026-06-05 late refresh snapshot
 
