@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-06T02:41:34-04:00`
+Last refresh: `2026-06-06T04:49:46-04:00`
 Current base: `origin/main` `f59f2a33`
-Previous integration tip: `34ba8d02`
-Current integration source tip before this refresh: `76ded7e6`
-Post-push integration tip: `cfd02f5d`
-refreshed_head: `cfd02f5d`
+Previous integration tip: `34276023`
+Current integration source tip before this refresh: `34276023`
+Post-push integration tip: `34276023`
+refreshed_head: `34276023`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This refresh started from `easel/auto-integration` `dc465739` in detached worktree `/tmp/luce-auto-reup-20260605-233455`. It promoted current open PR heads #337, #335, #344, and #343, preserving current-stack fixes where the PRs conflicted with newer server/harness/CI surfaces. PRs #339, #341, #274, #154, #153, and #135 were reprobed and remain held for later reconciliation because direct merges still hit current-layout server/runtime/test conflicts. A follow-up local sync on 2026-06-06 merged the refreshed `easel/auto-integration` tip back into this checkout and resolved only trailing-newline-only add/add conflicts in the two `luce-bench` fixture files; no additional PR heads changed status.
+This branch is maintained as a reproducible patch stack over `origin/main`. This refresh started from `easel/auto-integration` `34276023` in detached worktree `/tmp/luce-auto-reup-20260606-044946`. It kept the current stack unchanged and re-probed the remaining held PRs, with #274 staying held after a direct merge still collided in `.gitignore`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_drafter.cpp`, `server/src/qwen3/qwen3_graph.cpp`, `server/src/qwen3/qwen3_loader.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/chat_template.cpp`, `server/src/server/http_server.cpp`, and `server/test/test_server_unit.cpp`. The merge probe also showed that PR #274's current tree-state would drag in unrelated pflash-router / `server_main` / CMake deltas, so I left the stack unchanged and kept the PR on the held list for a narrower future slice.
 
-Latest 02:41 refresh: fetched `origin` and `easel` separately; `origin/main` `f59f2a33` is still already represented in `HEAD` `76ded7e6`. Open PR accounting is now 28 total: 22 exact-head included and 6 held. The new held candidate is PR #274 (`65ebb7a4`), which is mergeable on `main` but still conflicts against this stack in `.gitignore`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_drafter.cpp`, `server/src/qwen3/qwen3_graph.cpp`, `server/src/qwen3/qwen3_loader.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/chat_template.cpp`, `server/src/server/http_server.cpp`, and `server/test/test_server_unit.cpp`. No source edits were promoted from the probe; this docs-only refresh committed the manifest on `auto-integration` and preserved the source stack tip at `76ded7e6` for the underlying integration tree.
+Latest 04:49 refresh: fetched `origin` and `easel` separately; `origin/main` `f59f2a33` is still already represented in `HEAD` `34276023`. Open PR accounting is now 25 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack shows 21 current open non-draft PR heads integrated: #346, #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor PRs are #274, #154, #153, and #135. No source edits were promoted from this probe; this refresh is docs-only and keeps the integration tree otherwise unchanged.
 
 ## 2026-06-05 late refresh snapshot
 
