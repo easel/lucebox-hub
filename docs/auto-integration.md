@@ -4,18 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-06T11:08:28-04:00`
-Current base: `origin/main` `6dff4e55`
-Previous integration tip: `96a287c0`
-Current integration source tip before this refresh: `96a287c0`
-Post-push integration tip: `de5da71f`
-refreshed_head: `de5da71f`
+Last refresh: `2026-06-06T13:15:34-04:00`
+Current base: `origin/main` `548ba19d`
+Previous integration tip: `b67dec4b`
+Current integration source tip before this refresh: `b67dec4b`
+Post-push integration tip: `87806c60`
+refreshed_head: `87806c60`
 
-Latest 11:08 refresh: fetched `origin` and `easel` separately; verified `origin/main` `6dff4e55` is already represented in the branch history. Open PR accounting is 25 non-draft and 3 draft/excluded (#304, #275, #249). PR #347 (`ci: run GPU tests on self-hosted lucebox3 (3090 + Radeon 8060S)`) was probed and held: the hosted build passed, the AMD HIP smoke passed, but the RTX 3090 `test_flash_attn_sparse` job failed with `max_diff` values in the `0.66`–`0.99` range, so no source-stack changes were promoted. The source stack before this docs-only refresh remained at `96a287c0`, with no new included PR head from this refresh.
+Latest 13:15 refresh: fetched `origin` and `easel` separately; merged `origin/main` `548ba19d` into `auto-integration`, then merged PR #345 (`feat(optimizations): Luce Spark — calibrated hot/cold expert residency`) current head `568f1dff` cleanly on top of the refreshed stack. The merge preserved the upstream `origin/main` sync, carried forward the existing stack, and auto-merged the Spark deltas in `server/src/laguna/laguna_backend.cpp`, `server/src/qwen35moe/qwen35moe_backend.cpp`, and `server/src/qwen35moe/qwen35moe_backend.h` without manual conflict resolution.
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This refresh merged PR #345 (`feat(optimizations): Luce Spark calibrated hot/cold expert residency`) into `easel/auto-integration`, resolving the single content conflict in `server/src/server/server_main.cpp` by keeping the current stack's GGUF/props plumbing and adding the PR's Spark autotune/bootstrap path (`--spark-vram`, cached hotness, and day-one placement seeding). The long-lived stack itself was otherwise left intact, and the held PRs remain the same non-ancestor set.
-
-Latest 09:05 refresh: fetched `origin` and `easel` separately; merged PR #345 into `auto-integration`, resolving the single `server/src/server/server_main.cpp` conflict while preserving the current stack's server metadata handlers and adding Spark autotune/bootstrap support. Open PR accounting remains 24 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor PRs remain #274, #154, #153, and #135. No additional source slices were promoted in this refresh.
+Open PR accounting is 25 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack now shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor PRs remain #347, #274, #154, #153, and #135. PR #347 (`ci: run GPU tests on self-hosted lucebox3 (3090 + Radeon 8060S)`) was probed and held: the hosted build passed, the AMD HIP smoke passed, but the RTX 3090 `test_flash_attn_sparse` job failed with `max_diff` values in the `0.66`–`0.99` range, so no source-stack changes were promoted. Validation for this refresh: `git diff --check` passed, and a fresh `cmake -S server -B /tmp/luce2-server-build-make2 -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON` configure failed during CUDA compiler detection because local `ptxas` rejects the default `sm_52` code path in this WSL environment.
 
 ## 2026-06-05 late refresh snapshot
 
