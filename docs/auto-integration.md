@@ -4,12 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-06T09:05:04-04:00`
+Last refresh: `2026-06-06T11:08:28-04:00`
 Current base: `origin/main` `6dff4e55`
-Previous integration tip: `72a286ab`
-Current integration source tip before this refresh: `72a286ab`
-Post-push integration tip: `eb9bb4e0`
-refreshed_head: `eb9bb4e0`
+Previous integration tip: `96a287c0`
+Current integration source tip before this refresh: `96a287c0`
+Post-push integration tip: `de5da71f`
+refreshed_head: `de5da71f`
+
+Latest 11:08 refresh: fetched `origin` and `easel` separately; verified `origin/main` `6dff4e55` is already represented in the branch history. Open PR accounting is 25 non-draft and 3 draft/excluded (#304, #275, #249). PR #347 (`ci: run GPU tests on self-hosted lucebox3 (3090 + Radeon 8060S)`) was probed and held: the hosted build passed, the AMD HIP smoke passed, but the RTX 3090 `test_flash_attn_sparse` job failed with `max_diff` values in the `0.66`–`0.99` range, so no source-stack changes were promoted. The source stack before this docs-only refresh remained at `96a287c0`, with no new included PR head from this refresh.
 
 This branch is maintained as a reproducible patch stack over `origin/main`. This refresh merged PR #345 (`feat(optimizations): Luce Spark calibrated hot/cold expert residency`) into `easel/auto-integration`, resolving the single content conflict in `server/src/server/server_main.cpp` by keeping the current stack's GGUF/props plumbing and adding the PR's Spark autotune/bootstrap path (`--spark-vram`, cached hotness, and day-one placement seeding). The long-lived stack itself was otherwise left intact, and the held PRs remain the same non-ancestor set.
 
