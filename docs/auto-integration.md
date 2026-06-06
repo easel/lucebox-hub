@@ -4,16 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-06T04:49:46-04:00`
-Current base: `origin/main` `f59f2a33`
-Previous integration tip: `34276023`
-Current integration source tip before this refresh: `34276023`
-Post-push integration tip: `34276023`
-refreshed_head: `34276023`
+Last refresh: `2026-06-06T06:54:47-04:00`
+Current base: `origin/main` `6dff4e55`
+Previous integration tip: `8921ddb3`
+Current integration source tip before this refresh: `8921ddb3`
+Post-push integration tip: `62f1b15a`
+refreshed_head: `62f1b15a`
 
-This branch is maintained as a reproducible patch stack over `origin/main`. This refresh started from `easel/auto-integration` `34276023` in detached worktree `/tmp/luce-auto-reup-20260606-044946`. It kept the current stack unchanged and re-probed the remaining held PRs, with #274 staying held after a direct merge still collided in `.gitignore`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_drafter.cpp`, `server/src/qwen3/qwen3_graph.cpp`, `server/src/qwen3/qwen3_loader.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/chat_template.cpp`, `server/src/server/http_server.cpp`, and `server/test/test_server_unit.cpp`. The merge probe also showed that PR #274's current tree-state would drag in unrelated pflash-router / `server_main` / CMake deltas, so I left the stack unchanged and kept the PR on the held list for a narrower future slice.
+This branch is maintained as a reproducible patch stack over `origin/main`. This refresh merged the new upstream base `origin/main` `6dff4e55` into `easel/auto-integration` `8921ddb3`, resolving the single content conflict in `server/test/test_dflash.cpp` by keeping the explicit `align_up(...)` mask padding and the upstream explanatory note about NaN/zero attention and GPU argmax `-1`. The long-lived stack itself was otherwise left intact, and the held PRs remain the same non-ancestor set until a narrower safe slice is found.
 
-Latest 04:49 refresh: fetched `origin` and `easel` separately; `origin/main` `f59f2a33` is still already represented in `HEAD` `34276023`. Open PR accounting is now 25 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack shows 21 current open non-draft PR heads integrated: #346, #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor PRs are #274, #154, #153, and #135. No source edits were promoted from this probe; this refresh is docs-only and keeps the integration tree otherwise unchanged.
+Latest 06:54 refresh: fetched `origin` and `easel` separately; merged `origin/main` `6dff4e55` into `auto-integration`, resolving the single `server/test/test_dflash.cpp` conflict while preserving the current mask-stride fix and the upstream commentary on verify attention/logit behavior. Open PR accounting is now 24 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor PRs remain #274, #154, #153, and #135. No additional source slices were promoted in this refresh.
 
 ## 2026-06-05 late refresh snapshot
 
@@ -100,10 +100,12 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #94 | `feat/dflash-qwen36-swa-draft` | `d2f9c9dd` | included / superseded | Recorded with an `ours` merge because the current tree already has SWA draft support (`DraftLayer::is_swa`, `DraftWeights::swa_window`, safetensors SWA metadata parsing, SWA-aware draft masks, and GGUF SWA metadata support). |
 | #48 | `fix/consumer-blackwell-auto-detect` | `858b84b6` | included / superseded | Merged by preserving deletion of retired `dflash/CMakeLists.txt`; current `server/CMakeLists.txt` already conditionally handles Blackwell/CUDA-version flags. |
 
-Closed, upstreamed, or no-longer-open PRs still represented by the stack/base include #342, #328, #317, #316, #314, #313, #311, #307, #303, #302, #301, #300, #299, #298, #297, #295, #292, and #290.
+Closed, upstreamed, or no-longer-open PRs still represented by the stack/base include #346, #342, #328, #317, #316, #314, #313, #311, #307, #303, #302, #301, #300, #299, #298, #297, #295, #292, and #290.
 ## Validation run
 
 This run performed (latest first):
+
+- `git diff --check --cached -- server/test/test_dflash.cpp` passed after resolving the upstream `origin/main` merge conflict in `server/test/test_dflash.cpp`; targeted conflict-marker search found no `<<<<<<<` / `>>>>>>>` markers. This was a merge-only upstream sync, so no repo-wide build or test rerun was needed beyond the conflict-resolution validation.
 
 - `git diff --check --cached && git diff --check` passed after fixing the trailing blank line in `server/src/common/moe_hybrid_types.h`; `cmake -S server -B /tmp/luce2-server-build-make -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON` (with `CC=gcc CXX=g++`) failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path. Commit `0691e7a` records the integration-only MoE hybrid refactor and build/docs/test cleanup on top of `99b9ace5`. Exact-head containment against the current open PR set remains 20 included / 10 held, with no PR head advances this run.
 
