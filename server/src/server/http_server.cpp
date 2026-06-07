@@ -2903,8 +2903,8 @@ void HttpServer::worker_loop() {
             // Gemma4 thinking channel: map <|channel>* → <think>, <channel|> → </think>\n
             // raw vocab token is "<|channel>thought", not just "<|channel>".
             if (raw.starts_with("<|channel>")) {
-                broadcast_token("<think>");
                 visible_output_seen = true;
+                broadcast_token("<think>");
                 if (req.stream) {
                     auto chunks = emitter.emit_token("<think>");
                     for (const auto & chunk : chunks)
@@ -2913,8 +2913,8 @@ void HttpServer::worker_loop() {
                 return true;
             }
             if (raw == "<channel|>") {
-                broadcast_token("</think>\n");
                 visible_output_seen = true;
+                broadcast_token("</think>\n");
                 if (req.stream) {
                     auto chunks = emitter.emit_token("</think>\n");
                     for (const auto & chunk : chunks)
@@ -2932,8 +2932,8 @@ void HttpServer::worker_loop() {
             // form into the emitter so parse_reasoning() can split correctly.
             if (raw == "<think>" || raw == "</think>") {
                 const char * mapped = raw == "</think>" ? "</think>\n" : "<think>";
-                broadcast_token(mapped);
                 visible_output_seen = true;
+                broadcast_token(mapped);
                 if (req.stream) {
                     auto chunks = emitter.emit_token(mapped);
                     for (const auto & chunk : chunks)
@@ -2953,8 +2953,8 @@ void HttpServer::worker_loop() {
 
             // Send token text to status page clients (browser accumulates).
             if (!text.empty()) {
-                broadcast_token(text);
                 visible_output_seen = true;
+                broadcast_token(text);
             }
 
             if (req.stream && !text.empty()) {
