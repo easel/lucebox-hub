@@ -14,6 +14,25 @@
 
 namespace dflash::common {
 
+// File region for one expert tensor (offset into mmap).
+struct ExpertFileRegion {
+    size_t offset = 0;
+    size_t size   = 0;
+};
+
+// Per-layer file regions for all expert tensors (used by streaming prefill).
+struct LayerExpertRegions {
+    ExpertFileRegion gate_exps;
+    ExpertFileRegion up_exps;
+    ExpertFileRegion down_exps;
+    ExpertFileRegion gate_up_exps;  // optional fused
+    size_t expert_bytes_gate    = 0;
+    size_t expert_bytes_up      = 0;
+    size_t expert_bytes_down    = 0;
+    size_t expert_bytes_gate_up = 0;
+    bool   fused_gate_up        = false;
+};
+
 // Cached FFN graph for a fixed number of selected experts.
 // Built once, reused every token to avoid per-call graph rebuild overhead.
 struct CachedFfnGraph {
@@ -78,8 +97,18 @@ struct MoeHybridStorage {
     MoeHybridPlacement placement;
     std::vector<MoeHybridLayerStorage> layers;
 
+    // Persistent mmap for streaming prefill (nullptr if not available).
+    // When set, the streaming engine can DMA cold experts directly from here.
+    const void * mmap_data = nullptr;
+    size_t mmap_size = 0;
+    int mmap_fd = -1;  // POSIX fd for madvise; -1 on Windows or if not available
+
+    // Per-layer file region metadata for streaming (populated when mmap is active).
+    std::vector<LayerExpertRegions> layer_regions;
+
     bool matches(const MoeHybridConfig & cfg) const;
     bool empty() const;
+    bool has_mmap() const { return mmap_data != nullptr && mmap_size > 0; }
 };
 
 // Expert tensor file data for split loading (one entry per expert tensor).
@@ -112,6 +141,22 @@ bool build_moe_hybrid_storage_from_file(
     const MoeHybridPlacement & placement,
     const std::vector<MoeLayerDesc> & layer_descs,
     const std::vector<LayerExpertFileData> & file_data,
+    MoeHybridStorage & out,
+    std::string * err = nullptr);
+
+// Build hybrid storage from file AND retain mmap for streaming prefill.
+// The caller must keep the mmap region alive for the lifetime of the storage.
+// mmap_base: pointer to start of mmap'd file.
+// mmap_total_size: total file size.
+// This variant populates out.layer_regions for use by MoeHybridStreamEngine.
+bool build_moe_hybrid_storage_from_file_with_mmap(
+    const MoeHybridConfig & cfg,
+    ggml_backend_t gpu_backend,
+    const MoeHybridPlacement & placement,
+    const std::vector<MoeLayerDesc> & layer_descs,
+    const std::vector<LayerExpertFileData> & file_data,
+    const void * mmap_base,
+    size_t mmap_total_size,
     MoeHybridStorage & out,
     std::string * err = nullptr);
 

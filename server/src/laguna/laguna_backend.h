@@ -14,6 +14,7 @@
 #include "../common/moe_hybrid_storage.h"
 #include "../common/moe_hybrid_routing_stats.h"
 #include "../common/moe_hybrid_swap_manager.h"
+#include "../common/moe_hybrid_stream.h"
 
 #include "ggml.h"
 #include "ggml-backend.h"
@@ -89,6 +90,7 @@ private:
     std::string                                routing_stats_out_path_;
     MoeHybridSwapPolicy                        swap_policy_;
     bool                                       hybrid_telemetry_ = false;
+    MoeHybridStreamEngine                      stream_engine_;
 
     bool ensure_slot(int slot);
 
