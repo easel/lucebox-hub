@@ -2448,8 +2448,9 @@ struct MockLayerSplitAdapter : LayerSplitAdapter {
     bool can_dflash_decode() const override { return dflash_enabled; }
     bool decode_dflash(const std::vector<int32_t> & prompt, int base_pos,
                        int last_tok, int n_gen, std::vector<int32_t> & out_tokens,
-                       const DaemonIO & io) override {
+                       const DaemonIO & io, float & accept_rate_out) override {
         (void)prompt;
+        accept_rate_out = 0.0f;
         dflash_called = true;
         dflash_base = base_pos;
         dflash_last = last_tok;
