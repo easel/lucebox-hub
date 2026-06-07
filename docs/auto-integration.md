@@ -4,19 +4,19 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-07T12:10:41-04:00`
+Last refresh: `2026-06-07T14:14:29-04:00`
 Current base: `origin/main` `757e6e26`
 Previous integration tip: `7616bb56`
 Current integration source tip before this refresh: `7616bb56`
 Post-merge integration tip: `9975fc62`
 refreshed_head: `9975fc62`
 
-Latest 2026-06-07 refresh: fetched `origin` and `easel` separately; merged `origin/main` `757e6e26` cleanly into `auto-integration` at `9975fc62`. This sync was merge-only: no additional PR promotions were attempted, and the current stack remains the same patch set atop the refreshed upstream base. Validation for this refresh: `git diff --check --cached` passed after the merge resolution, `cmake -S server -B /tmp/luce2-merge-build -G Ninja -DDFLASH27B_TESTS=ON -DCMAKE_BUILD_TYPE=Release` was blocked because Ninja and the configured C/C++/CUDA compilers are unavailable in this environment, and targeted conflict-marker search found none. Open PR accounting and exact-head containment are unchanged from the prior refresh. Previous 15:20 upstream-base refresh remains recorded below as historical context.
+Latest 2026-06-07 refresh: fetched `origin` and `easel` separately; `origin/main` `757e6e26` is still already represented, and the current stack already contains the live open PR heads that are worth carrying forward. Open PR accounting remains 22 non-draft and 3 draft/excluded (`#304`, `#275`, `#249`). Exact-head containment against the refreshed stack now shows 19 current open non-draft PR heads integrated: `#349`, `#345`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#325`, `#324`, `#322`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. Held / non-ancestor open PRs remain `#154`, `#153`, and `#135`. No source edits or PR promotions were needed this run; the branch stays on the same integration tip after the upstream-base check.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
 
-Open PR accounting is now 22 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack still shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor open PRs remain #274, #154, #153, and #135. PRs #345, #344, and #343 advanced since the last snapshot and are already represented. PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at  parity`) was probed again on the refreshed stack and still conflicts broadly across `.gitignore`, `model_backend.h`, `qwen3_{drafter,graph,loader}.cpp`, `qwen35_backend.cpp`, `chat_template.cpp`, `http_server.cpp`, and `test_server_unit.cpp`, so it remains held. Validation for this refresh: `git merge` of `origin/main` was clean; `git diff --check` passed for the manifest update; and no full build/test rerun was needed because the only tree change from upstream was the CI workflow/file update under `.github/`.
+Open PR accounting is now 22 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack shows 19 current open non-draft PR heads integrated: #349, #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #276, #274, #152, #142, #137, #94, and #48. Held / non-ancestor open PRs remain #154, #153, and #135. PR #349 (`MoE Prefill Streaming & DDTree Batched Verify`) is now part of the exact-head set already carried by the stack; no merge work was required. PRs #345, #344, and #343 remain represented from prior refreshes. Validation for this refresh: `git diff --check` passed for the manifest update, and no repo code changes were needed because the stack was already aligned with upstream main and the open PR head set.
 
 ## 2026-06-05 late refresh snapshot
 
