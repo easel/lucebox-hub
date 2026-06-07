@@ -205,6 +205,11 @@ struct ServerConfig {
     // Enable via PFLASH_ROUTER_ENABLE=1 env var at server startup.
     RouterPolicyV2 pflash_router;          // enabled=false by default
 
+    // TYPE-gate compression router (v2).
+    // Default: disabled (exact no-op, correct-by-construction).
+    // Enable via PFLASH_ROUTER_ENABLE=1 env var at server startup.
+    RouterPolicyV2 pflash_router;          // enabled=false by default
+
     // Disk prefix cache
     std::string disk_cache_dir;             // empty = disabled
     size_t      disk_cache_budget_mb = 4096; // max disk usage in MB
