@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-07T08:00:22-04:00`
-Current base: `origin/main` `0bfbae49`
-Previous integration tip: `80f51099`
-Current integration source tip before this refresh: `80f51099`
-Post-merge integration tip: `b63b4e18`
-refreshed_head: `b63b4e18`
+Last refresh: `2026-06-07T12:10:41-04:00`
+Current base: `origin/main` `757e6e26`
+Previous integration tip: `7616bb56`
+Current integration source tip before this refresh: `7616bb56`
+Post-merge integration tip: `9975fc62`
+refreshed_head: `9975fc62`
 
-Latest 2026-06-07 refresh: fetched `origin` and `easel` separately; merged PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at  parity`) cleanly into `auto-integration` at `b63b4e18`. The merge resolved overlapping edits in `.gitignore`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_drafter.cpp`, `server/src/qwen3/qwen3_graph.cpp`, `server/src/qwen3/qwen3_loader.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/chat_template.cpp`, `server/src/server/http_server.cpp`, and `server/test/test_server_unit.cpp` by keeping the current stack's overlapping pflash/admission paths, while preserving the PR's non-conflicting additions already present in the tree. Open PR accounting is 25 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment now shows 22 current open non-draft PR heads integrated: #349 (`246c26c2`), #345 (`568f1dff`), #344 (`c6700479`), #343 (`57b6d14f`), #341 (`b3990d0a`), #339 (`10c6e886`), #337 (`ac972b73`), #335 (`bb7bb119`), #334 (`df5d052a`), #325 (`b47fb3aa`), #324 (`3f44fc84`), #322 (`5c6d51c3`), #321 (`87fe7655`), #312 (`9ca3d9b6`), #310 (`bf9f4b57`), #276 (`5e861b4d`), #274 (`65ebb7a4`), #152 (`cf735bee`), #142 (`f2fbf62f`), #137 (`297fc74e`), #94 (`d2f9c9dd`), and #48 (`858b84b6`). Held / non-ancestor open PRs remain #154, #153, and #135. Validation for this refresh: `git diff --check --cached` passed after merge conflict resolution, and a configure attempt (`cmake -S server -B /tmp/luce2-pr274-build -G Ninja -DDFLASH27B_TESTS=ON -DCMAKE_BUILD_TYPE=Release`) was blocked by the environment lacking Ninja and compiler settings. Previous 15:20 upstream-base refresh remains recorded below as historical context.
+Latest 2026-06-07 refresh: fetched `origin` and `easel` separately; merged `origin/main` `757e6e26` cleanly into `auto-integration` at `9975fc62`. This sync was merge-only: no additional PR promotions were attempted, and the current stack remains the same patch set atop the refreshed upstream base. Validation for this refresh: `git diff --check --cached` passed after the merge resolution, `cmake -S server -B /tmp/luce2-merge-build -G Ninja -DDFLASH27B_TESTS=ON -DCMAKE_BUILD_TYPE=Release` was blocked because Ninja and the configured C/C++/CUDA compilers are unavailable in this environment, and targeted conflict-marker search found none. Open PR accounting and exact-head containment are unchanged from the prior refresh. Previous 15:20 upstream-base refresh remains recorded below as historical context.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
