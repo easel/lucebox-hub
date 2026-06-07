@@ -4,18 +4,18 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-06T19:28:25-04:00`
+Last refresh: `2026-06-06T21:32:39-04:00`
 Current base: `origin/main` `0bfbae49`
 Previous integration tip: `546caf74`
 Current integration source tip before this refresh: `546caf74`
 Post-merge integration tip: `546caf74`
 refreshed_head: `546caf74`
 
-Latest 19:28 refresh: fetched `origin` and `easel` separately; `origin/main` `0bfbae49` is still already represented. PR #329 is now closed, so open PR accounting remains 24 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack still shows 20 current open non-draft PR heads integrated, with the held non-ancestor open PRs remaining #274, #154, #153, and #135. No source edits were promoted; the primary checkout stayed clean and the stack remained unchanged aside from this manifest refresh.
+Latest 21:32 refresh: fetched `origin` and `easel` separately; `origin/main` `0bfbae49` is still already represented. Open PR accounting is now 22 non-draft and 3 draft/excluded (#304, #275, #249). PRs #345, #344, and #343 advanced since the last snapshot and are already exact-head represented in the stack. Exact-head containment still shows 20 current open non-draft PR heads integrated, with the held non-ancestor open PRs remaining #274, #154, #153, and #135. No source edits were promoted; the primary checkout stayed clean and the stack remained unchanged aside from this manifest refresh.
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
 
-Open PR accounting is 24 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor open PRs remain #274, #154, #153, and #135. PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at  parity`) was probed again on the refreshed stack and still conflicts broadly across `.gitignore`, `model_backend.h`, `qwen3_{drafter,graph,loader}.cpp`, `qwen35_backend.cpp`, `chat_template.cpp`, `http_server.cpp`, and `test_server_unit.cpp`, so it remains held. Validation for this refresh: `git merge` of `origin/main` was clean; `git diff --check` passed for the manifest update; and no full build/test rerun was needed because the only tree change from upstream was the CI workflow/file update under `.github/`.
+Open PR accounting is now 22 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment against the refreshed stack still shows 20 current open non-draft PR heads integrated: #345, #344, #343, #341, #339, #337, #335, #334, #325, #324, #322, #321, #312, #310, #276, #152, #142, #137, #94, and #48. Held / non-ancestor open PRs remain #274, #154, #153, and #135. PRs #345, #344, and #343 advanced since the last snapshot and are already represented. PR #274 (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at  parity`) was probed again on the refreshed stack and still conflicts broadly across `.gitignore`, `model_backend.h`, `qwen3_{drafter,graph,loader}.cpp`, `qwen35_backend.cpp`, `chat_template.cpp`, `http_server.cpp`, and `test_server_unit.cpp`, so it remains held. Validation for this refresh: `git merge` of `origin/main` was clean; `git diff --check` passed for the manifest update; and no full build/test rerun was needed because the only tree change from upstream was the CI workflow/file update under `.github/`.
 
 ## 2026-06-05 late refresh snapshot
 
