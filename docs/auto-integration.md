@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-06T21:32:39-04:00`
+Last refresh: `2026-06-06T23:35:24-04:00`
 Current base: `origin/main` `0bfbae49`
 Previous integration tip: `546caf74`
 Current integration source tip before this refresh: `546caf74`
 Post-merge integration tip: `546caf74`
 refreshed_head: `546caf74`
 
-Latest 21:32 refresh: fetched `origin` and `easel` separately; `origin/main` `0bfbae49` is still already represented. Open PR accounting is now 22 non-draft and 3 draft/excluded (#304, #275, #249). PRs #345, #344, and #343 advanced since the last snapshot and are already exact-head represented in the stack. Exact-head containment still shows 20 current open non-draft PR heads integrated, with the held non-ancestor open PRs remaining #274, #154, #153, and #135. No source edits were promoted; the primary checkout stayed clean and the stack remained unchanged aside from this manifest refresh.
+Latest 23:35 refresh: fetched `origin` and `easel` separately; `origin/main` `0bfbae49` is still already represented. Open PR accounting is now 24 non-draft and 3 draft/excluded (#304, #275, #249). PRs #345 (`568f1dff`), #344 (`c6700479`), and #343 (`57b6d14f`) advanced again and are already exact-head represented in the stack. Exact-head containment still shows 20 current open non-draft PR heads integrated, with the held non-ancestor open PRs remaining #274, #154, #153, and #135. No source edits were promoted; the primary checkout stayed clean and the stack remained unchanged aside from this manifest refresh. Validation: `git diff --check -- docs/auto-integration.md` passed.
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
 
@@ -66,8 +66,9 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 |---:|---|---:|---|---|
 | #342 | `missing` | `d49bc49c` | included | Fix main build; restores the missing brace in `server/test/test_server_unit.cpp` so the current stack compiles against the latest base and keeps the unit-test translation unit valid. |
 | #346 | `fix/dflash-chain-verify-mask-argmax` | `dcfa10aa` | included | Chained DFlash verify/replay logits fix; current head is now represented by the stack after a clean merge. |
-| #345 | `feat/optimizations-spark` | `31778662` | included | Luce Spark calibrated hot/cold expert residency; current head is now represented by the stack after a clean merge. |
-| #344 | `feat/server-gguf-inspect` | `f7d8278a` | included | GgufMetadata reader + SHA-256 sidecar for `/props` schema-4; current head is already represented by the stack. |
+| #345 | `feat/optimizations-spark` | `568f1dff` | included | Luce Spark calibrated hot/cold expert residency; current head is now represented by the stack after a clean merge. |
+| #344 | `feat/server-gguf-inspect` | `c6700479` | included | GgufMetadata reader + SHA-256 sidecar for `/props` schema-4; current head is already represented by the stack. |
+| #343 | `feat/server-cpu-test-rig` | `57b6d14f` | included | CPU-only HTTP server test rig with stub backend scenarios; current head is already represented by the stack. |
 | #340 | `feat/server-call-verb-parser` | `4472aa94` | included | Plain-text `call:<verb>{...}` tool-call parsing for Gemma4; current head is already represented by the stack. |
 | #338 | `feat/server-pflash-drafter` | `bfbe07a9` | included | EE7 early-exit drafter with anchor-transitive cascade and regime router; current head is already represented by the stack. |
 | #337 | `feat/lucebench-harness` | `c20a0f23` | included | In-tree bench harness with multi-turn agent_recorded replay and LLM-judge grading; current head is already represented by the stack. |
