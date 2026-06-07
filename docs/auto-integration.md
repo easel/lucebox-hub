@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-07T01:40:10-04:00`
+Last refresh: `2026-06-07T03:47:57-04:00`
 Current base: `origin/main` `0bfbae49`
-Previous integration tip: `c29dac6c`
-Current integration source tip before this refresh: `c29dac6c`
-Post-merge integration tip: `396ca5ab`
-refreshed_head: `396ca5ab`
+Previous integration tip: `2b4d2e2d`
+Current integration source tip before this refresh: `2b4d2e2d`
+Post-merge integration tip: `74aeb58f`
+refreshed_head: `74aeb58f`
 
-Latest 2026-06-07 refresh: fetched `origin` and `easel` separately; `origin/main` `0bfbae49` is still already represented. Open PR accounting is 24 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment still shows 20 current open non-draft PR heads integrated: #345 (`568f1dff`), #344 (`c6700479`), #343 (`57b6d14f`), #341 (`b3990d0a`), #339 (`10c6e886`), #337 (`ac972b73`), #335 (`bb7bb119`), #334 (`df5d052a`), #325 (`b47fb3aa`), #324 (`3f44fc84`), #322 (`5c6d51c3`), #321 (`87fe7655`), #312 (`9ca3d9b6`), #310 (`bf9f4b57`), #276 (`5e861b4d`), #152 (`cf735bee`), #142 (`f2fbf62f`), #137 (`297fc74e`), #94 (`d2f9c9dd`), and #48 (`858b84b6`). Held / non-ancestor open PRs remain #274, #154, #153, and #135. A fresh isolated merge probe for #274 still conflicted broadly across `.gitignore`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_drafter.cpp`, `server/src/qwen3/qwen3_graph.cpp`, `server/src/qwen3/qwen3_loader.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/chat_template.cpp`, `server/src/server/http_server.cpp`, and `server/test/test_server_unit.cpp`, so it remains held. No source edits were promoted; the branch stayed on the docs refresh commit and the validation for this update is `git diff --check -- docs/auto-integration.md`.
+Latest 2026-06-07 refresh: fetched `origin` and `easel` separately; `origin/main` `0bfbae49` is still already represented. Open PR accounting is 24 non-draft and 3 draft/excluded (#304, #275, #249). Exact-head containment now shows 21 current open non-draft PR heads integrated: #349 (`aad40666`), #345 (`568f1dff`), #344 (`c6700479`), #343 (`57b6d14f`), #341 (`b3990d0a`), #339 (`10c6e886`), #337 (`ac972b73`), #335 (`bb7bb119`), #334 (`df5d052a`), #325 (`b47fb3aa`), #324 (`3f44fc84`), #322 (`5c6d51c3`), #321 (`87fe7655`), #312 (`9ca3d9b6`), #310 (`bf9f4b57`), #276 (`5e861b4d`), #152 (`cf735bee`), #142 (`f2fbf62f`), #137 (`297fc74e`), #94 (`d2f9c9dd`), and #48 (`858b84b6`). PR #349 (`feat(dflash): MoE prefill streaming engine with mmap + batched GPU eval`) merged cleanly after resolving four content conflicts in `server/src/common/moe_hybrid_storage.{cpp,h}`, `server/src/laguna/laguna_backend.cpp`, and `server/src/qwen35moe/qwen35moe_backend.cpp` by combining the PR's mmap streaming path with the current stack's cache-slot logic; `git diff --check HEAD~1..HEAD` passed and a targeted conflict-marker search in the touched server source tree found no `<<<<<<<` / `>>>>>>>` markers. Held / non-ancestor open PRs remain #274, #154, #153, and #135. A fresh isolated merge probe for #274 still conflicted broadly across `.gitignore`, `server/src/common/model_backend.h`, `server/src/qwen3/qwen3_drafter.cpp`, `server/src/qwen3/qwen3_graph.cpp`, `server/src/qwen3/qwen3_loader.cpp`, `server/src/qwen35/qwen35_backend.cpp`, `server/src/server/chat_template.cpp`, `server/src/server/http_server.cpp`, and `server/test/test_server_unit.cpp`, so it remains held.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
