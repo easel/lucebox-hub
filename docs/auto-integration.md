@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-07T18:23:25-04:00`
-Current base: `origin/main` `613b7787`
-Previous integration tip: `c103708e`
-Current integration source tip before this refresh: `c103708e`
-Post-merge integration tip: `84d836f0`
-refreshed_head: `84d836f0`
+Last refresh: `2026-06-07T20:32:08-04:00`
+Current base: `origin/main` `33c31228`
+Previous integration tip: `665203dc`
+Current integration source tip before this refresh: `665203dc`
+Post-merge integration tip: `c8baf8eb`
+refreshed_head: `c8baf8eb`
 
-Latest 2026-06-07 refresh: fetched `origin` and `easel` separately; merged `origin/main` `613b7787` cleanly into `auto-integration`, bringing in PR #351 (`fix(server): guard status.html post-build on dflash_server target`) via upstream main. Then merged open PR #325 (`feat(server): add DFlash disk prefix cache for target layer split`) into the refreshed stack, resolving a single header-order conflict in `server/src/laguna/laguna_layer_split_adapter.h`. Open PR accounting is now 21 non-draft and 3 draft/excluded (`#304`, `#275`, `#249`); exact-head containment against the refreshed stack shows 19 current open non-draft PR heads integrated: `#349`, `#345`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#325`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, `#48`, and `#322`. Held / non-ancestor open PRs remain `#154`, `#153`, and `#135`. No other source edits or PR promotions were needed this run. Validation: `git diff --check --cached` passed after the merge resolutions; a fresh Unix Makefiles CMake configure in `/tmp/luce2-merge-check2` failed at CUDA compiler identification because local `ptxas` rejects `sm_52`.
+Latest 2026-06-07 refresh: fetched `origin` and `easel` separately; merged `origin/main` `33c31228` cleanly into `auto-integration`, which already carried upstream PR #351 (`fix(server): guard status.html post-build on dflash_server target`). Then merged open PR #345 (`feat(optimizations): Luce Spark — calibrated hot/cold expert residency`) into the refreshed stack, resolving a single `README.md` conflict by combining the existing "Why this exists" framing with PR #345's Spark-specific language. PR #345's source changes merged cleanly, including `optimizations/spark/README.md`, new `optimizations/spark/spark/bench.py`, and the Laguna hybrid MoE plumbing in `server/src/common/moe_hybrid_storage.cpp`, `server/src/common/step_graph.h`, `server/src/laguna/laguna_backend.cpp`, `server/src/laguna/laguna_internal.h`, and `server/src/laguna/laguna_target_graph.cpp`. Open PR accounting is now 20 non-draft and 3 draft/excluded (`#304`, `#275`, `#249`); exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, `#48`, and `#345`. Held / non-ancestor open PRs remain `#154`, `#153`, and `#135`. Validation: `git diff --check --cached` passed after the merge resolution, and `python3 -m py_compile optimizations/spark/spark/bench.py` passed. No full CMake rerun was attempted this refresh because the source delta is already validated by the merge, and prior CUDA compiler-ID setup in this checkout remains noisy around `ptxas` / `sm_52`.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
