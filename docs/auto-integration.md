@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-08T02:44:07-04:00`
+Last refresh: `2026-06-08T04:53:20-04:00`
 Current base: `origin/main` `33c31228`
-Previous integration tip: `0bf8ea5b`
-Current integration source tip before this refresh: `0bf8ea5b`
-Post-merge integration tip: `d7117d7b`
-refreshed_head: `d7117d7b`
+Previous integration tip: `60c03957`
+Current integration source tip before this refresh: `60c03957`
+Post-merge integration tip: `4bb1b139`
+refreshed_head: `4bb1b139`
 
-Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then re-enumerated the live open PR set. GitHub now reports 20 non-draft and 3 draft/excluded open PRs (`#304`, `#275`, `#249`). Exact-head containment against the current `auto-integration` tip shows 17 current open non-draft PR heads integrated: `#349`, `#345`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held / non-ancestor open PRs remain `#154`, `#153`, and `#135`. No source merge work was needed this run; the branch was already aligned with the live stack and the repository tree stayed clean apart from this manifest update.
+Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then merged draft PR #352 into `auto-integration` after resolving conflicts in `server/src/qwen35/qwen35_layer_split_adapter.cpp` and `server/src/server/server_main.cpp`. GitHub now reports 20 non-draft and 4 draft/excluded open PRs (`#352`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#349`, `#345`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The stack also now carries draft PRs `#352` and `#275`; the remaining held / non-ancestor open PRs are `#154`, `#153`, and `#135`, while the still-excluded draft PRs are `#304` and `#249`. Validation for this refresh: `git diff --check` passed, and a CMake configure/build attempt in `/tmp/luce2-pr352-build-make80` failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
@@ -75,6 +75,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | #337 | `feat/lucebench-harness` | `c20a0f23` | included | In-tree bench harness with multi-turn agent_recorded replay and LLM-judge grading; current head is already represented by the stack. |
 | #336 | `feat/server-layer-split` | `2cf8c999` | included | Shared layer-split backend plus GGUF inspection and c2-gate plumbing; current head is already represented by the stack. |
 | #334 | `feat/docker-stack` | `df5d052a` | included | Lucebox-hub container image + CI release pipeline; current head is now represented by the stack after a clean merge of the Docker workflow, Makefile guard, and entrypoint hardening changes. |
+| #352 | `feat-mixed-backend-disk-prefix-cache` | `6a5a84a5` | draft / included | Mixed-backend DFlash disk prefix cache follow-up for target layer split; current head is carried by the stack after resolving the layer-split adapter and `server_main.cpp` conflicts to enable remote-shard snapshot export/import on top of the existing same-backend disk prefix cache support. |
 | #329 | `fix/sse-emitter-content-mode-tool-parse` | `ee9cd9e9` | draft / excluded; previous `8218333b` represented | The earlier `8218333b` head is already represented with plain-text `call:<verb>{...}` tool-call detection and SSE/emitter wiring. The PR advanced while draft after this run's first push, so the new draft head is excluded from non-draft target accounting pending contributor readiness. |
 | #332 | `cudagraph-on-main` | `53e5e795` | included | CUDA-graph AR decode + GPU argmax; current head is already represented by the stack. |
 | #326 | `feat/soft-close-thinking-termination` | `f7e8d6f8` | included | Adds soft-close thinking termination via logit-ratio peek, server flags/status props, Qwen35/Qwen35MoE model-backend hooks, HTTP stop-reason propagation, and unit coverage while preserving the current stack's visible-output retry, stall guards, MoE AR dispatch path, and C2 gate tests. |
@@ -109,6 +110,8 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 ## Validation run
 
 This run performed (latest first):
+
+- `git diff --check` passed after merging draft PR #352. `CC=gcc CXX=g++ CUDAARCHS=80 cmake -S /tmp/luce-auto-cron-20260608-pr352/server -B /tmp/luce2-pr352-build-make80 -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON` failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path, so no further build or test validation was possible in this environment.
 
 - `git diff --check --cached -- server/test/test_dflash.cpp` passed after resolving the upstream `origin/main` merge conflict in `server/test/test_dflash.cpp`; targeted conflict-marker search found no `<<<<<<<` / `>>>>>>>` markers. This was a merge-only upstream sync, so no repo-wide build or test rerun was needed beyond the conflict-resolution validation.
 
