@@ -204,6 +204,8 @@ Each one is self-contained with setup instructions and benchmark notes.
 
 <p align="center">
   <a href="optimizations/pflash/"><img src="assets/cards/pflash_card.png" alt="PFlash speculative prefill" width="46%"></a>
+  &nbsp;&nbsp;
+  <a href="optimizations/spark/"><img src="assets/cards/spark_card.png" alt="Luce Spark MoE expert offload" width="46%"></a>
 </p>
 
 ---
@@ -497,6 +499,8 @@ cmake --build build --target test_dflash -j
 Local AI should be a default, not a privilege: private data, no per-token bill, no vendor lock-in. The hardware to run capable models already sits on desks. The software to run those chips well doesn't.
 
 General-purpose frameworks dominated the last decade because hand-tuning kernels per chip was too expensive to justify. One stack, decent on everything, great on nothing. Most of the silicon's capability stays on the floor.
+
+Nothing was built for local AI inference. Most machines bolt a stock GPU onto a desktop CPU and run a stock runtime, never tuning the kernels to the silicon underneath. On the same 27B model, a DGX Spark or Mac Studio leaves four to six times the real throughput on the table. General-purpose frameworks won the last decade because hand-tuning per chip cost more than it returned: one stack, decent on everything, great on nothing. Speculative decoding, speculative prefill, fused megakernels, and calibrated MoE expert offload turn idle silicon into 3-10× speedups, but they stay locked to BF16 weights on data-center GPUs. Consumer cards inherit the leftovers.
 
 AI-assisted development flips that calculus. Rewrites that took a quarter now fit in a release cycle. Lucebox is where we publish them, one chip and one model family at a time. Apache 2.0 source, full writeup, reproducible benchmarks.
 

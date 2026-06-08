@@ -2,6 +2,8 @@
 #include "moe_hybrid_types.h"
 
 #include "ggml-cpu.h"
+#include "ggml-backend.h"
+#include "ggml-cuda.h"
 
 #include <algorithm>
 #include <cstring>
@@ -320,7 +322,7 @@ bool build_moe_hybrid_storage(const MoeHybridConfig & cfg,
                 dst.up_cold   = new_like_with_expert_count(dst.cold_ctx, desc.ffn_up_exps, cold_count);
                 dst.down_cold = new_like_with_expert_count(dst.cold_ctx, desc.ffn_down_exps, cold_count);
             }
-            dst.cold_buf = ggml_backend_alloc_ctx_tensors(dst.cold_ctx, out.cpu_backend);
+            dst.cold_buf = ggml_backend_alloc_ctx_tensors_from_buft(dst.cold_ctx, ggml_backend_cuda_host_buffer_type());
             if (!dst.cold_buf) {
                 if (err) *err = "failed to allocate cold expert buffer";
                 return false;
@@ -513,7 +515,7 @@ bool build_moe_hybrid_storage_from_file(
                 dst.up_cold   = new_like_with_expert_count(dst.cold_ctx, desc.ffn_up_exps, cold_count);
                 dst.down_cold = new_like_with_expert_count(dst.cold_ctx, desc.ffn_down_exps, cold_count);
             }
-            dst.cold_buf = ggml_backend_alloc_ctx_tensors(dst.cold_ctx, out.cpu_backend);
+            dst.cold_buf = ggml_backend_alloc_ctx_tensors_from_buft(dst.cold_ctx, ggml_backend_cuda_host_buffer_type());
             if (!dst.cold_buf) {
                 if (err) *err = "failed to allocate cold expert CPU buffer";
                 return false;
@@ -584,7 +586,9 @@ int moe_hybrid_cache_swap_in(MoeHybridLayerStorage & st, int global_expert,
     const int hslot = st.hot_active + slot;  // hot-local index of the spare slot
     auto copy_slice = [&](ggml_tensor * cold_t, ggml_tensor * hot_t, size_t ebytes) {
         const uint8_t * src = (const uint8_t *)cold_t->data + (size_t)cold_local * ebytes;
-        ggml_backend_tensor_set(hot_t, src, (size_t)hslot * ebytes, ebytes);
+        // Pinned cold store + async H2D on cudaStreamPerThread -> overlaps the
+        // compute stream. Pinned makes cudaMemcpyAsync truly asynchronous.
+        ggml_backend_tensor_set_async(gpu_backend, hot_t, src, (size_t)hslot * ebytes, ebytes);
     };
     if (st.fused_gate_up) {
         copy_slice(st.gate_up_cold, st.gate_up_hot, st.gate_up_expert_bytes);

@@ -1150,6 +1150,56 @@ bool LagunaBackend::hybrid_forward_one_token(int32_t tok, int kv_pos,
     // Embed token
     if (!w_.embedder.embed(&tok, 1, act_cur.data())) return false;
 
+    // Single-graph hybrid decode: whole token in one graph (residency LUTs
+    // set once), instead of 40 per-layer graphs. Removes the per-layer host
+    // glue that caps the multi-graph path. Default ON for the hybrid-offload
+    // path; set DFLASH_LAGUNA_NO_SINGLE_GRAPH=1 to fall back to per-layer decode.
+    static const bool g_single_graph = (std::getenv("DFLASH_LAGUNA_NO_SINGLE_GRAPH") == nullptr);
+    if (g_single_graph && moe_hybrid_) {
+        static const bool _nm = (std::getenv("DFLASH_NO_MASK") != nullptr);
+        static std::vector<float> _sg_logits;
+        static std::vector<int32_t> _sg_sel;
+        if (!laguna_step_hybrid(backend_, w_, cache_, act_cur.data(), 1, kv_pos, _nm,
+                                *moe_hybrid_, _sg_logits, &_sg_sel))
+            return false;
+        // Reactive cache warm + routing observe, POST-compute (off the
+        // single-graph critical path): make each selected expert resident
+        // for the next token; over warmup drops fall to ~0 -> exact decode.
+        {
+            const int _nu = w_.n_expert_used;
+            static uint64_t _sg_cold = 0, _sg_calls = 0;
+            static const bool _sg_pf = (std::getenv("DFLASH_LAGUNA_PROFILE") != nullptr);
+            uint64_t _cold_this = 0;
+            for (int il = w_.n_layer_dense_lead; il < w_.n_layer; ++il) {
+                const int32_t * _sl = _sg_sel.data() + (size_t)il * _nu;
+                if (routing_stats_) routing_stats_->observe(il, _sl, _nu);
+                auto & _cst = moe_hybrid_->layers[(size_t)il];
+                for (int k = 0; k < _nu; ++k) {
+                    const int _g = _sl[k];
+                    if (_g < 0) continue;
+                    // Was this expert resident when the graph computed? (pre-swap residency)
+                    if (_g < (int)_cst.hot_local_by_global.size() &&
+                        _cst.hot_local_by_global[(size_t)_g] < 0)
+                        _cold_this++;
+                    if (_cst.cache_slots > 0)
+                        dflash::common::moe_hybrid_cache_swap_in(_cst, _g, backend_);
+                }
+            }
+            if (_sg_pf) {
+                _sg_cold += _cold_this;
+                if (++_sg_calls % 32 == 0) {
+                    std::fprintf(stderr, "[sg-prof] cold_experts/tok=%.2f (over 32)\n", _sg_cold / 32.0);
+                    _sg_cold = 0;
+                }
+            }
+        }
+        int _best = 0; float _bv = _sg_logits[0];
+        for (size_t i = 1; i < _sg_logits.size(); ++i)
+            if (_sg_logits[i] > _bv) { _bv = _sg_logits[i]; _best = (int)i; }
+        argmax_out = _best;
+        return true;
+    }
+
     // GPU-resident state for MoE layers
     GpuResidentState gpu_state;
     if (!init_gpu_resident_state(gpu_state, backend_, hidden)) return false;
