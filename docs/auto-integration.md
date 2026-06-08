@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-08T13:15:34-04:00`
+Last refresh: `2026-06-08T15:19:26-04:00`
 Current base: `origin/main` `7c27e33a`
-Previous integration tip: `fc2c6bff`
-Current integration source tip before this refresh: `fc2c6bff`
-Post-merge integration tip: `78834be2`
-refreshed_head: `78834be2`
+Previous integration tip: `3517ec6a`
+Current integration source tip before this refresh: `3517ec6a`
+Post-merge integration tip: `6735c2ee`
+refreshed_head: `6735c2ee`
 
-Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then merged the already-represented `origin/main` `7c27e33a` base and the advanced PR #352 head `4e22769f` (`feat(server): add mixed-backend DFlash disk prefix cache for target layer split`) cleanly on top of `auto-integration`. Exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#352`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The draft PR `#275` is also exact-head represented; the remaining held / non-ancestor open non-draft PRs are `#154`, `#153`, and `#135`; the draft / excluded open PRs are `#304` and `#249`. Validation for this refresh: `git diff --check` passed, and a CMake configure attempt in `/tmp/luce2-pr352-build-make80` failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path.
+Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then merged the advanced PR #352 head `ef4f724e` (`feat(server): add mixed-backend DFlash disk prefix cache for target layer split`) cleanly on top of `auto-integration`. Exact-head containment against the refreshed stack now shows 18 current open non-draft PR heads integrated: `#352`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#275`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs are `#154`, `#153`, and `#135`; the draft / excluded open PRs are `#304` and `#249`. Validation for this refresh: `git diff --check` passed after the merge.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
