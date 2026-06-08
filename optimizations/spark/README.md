@@ -11,24 +11,35 @@
 <p align="center">
   <strong>Run a big MoE on a smaller GPU by keeping only the active units lit.</strong><br/>
   Calibrate which experts stay hot from real traffic, swap the rest through a bounded GPU cache.<br/>
-  Laguna-XS.2 (3B active / <strong>33B total</strong>) on a single RTX 3090: <strong>85-88 tok/s on 14.6 GiB</strong>,<br/>
-  vs 66 tok/s for naive offload and 111 tok/s for the full model at 18.8 GiB.<br/><br/>
+  Laguna-XS.2 (3B active / <strong>33B total</strong>) on a single RTX 3090: a 33B-total MoE in <strong>14.6 GiB</strong>,<br/>
+  decoding at <strong>~100 tok/s</strong> with one fused graph, near the <strong>119 tok/s all-GPU ceiling</strong>, vs 66 for naive offload.<br/>
+  <strong>Qwen3.6 35B-A3B</strong> fits the same way, in <strong>13.3 GiB</strong> (down from ~20.5). One flag, both backends.<br/><br/>
   <a href="https://lucebox.com">lucebox.com</a> · <a href="https://discord.gg/yHfswqZmJQ">Discord</a>
 </p>
 
 ---
 
 ```
-Laguna-XS.2 Q4_K_M (33B total MoE) · RTX 3090 · held-out Claude Code sessions
+Laguna-XS.2 Q4_K_M (33B total MoE) · RTX 3090 · 60% of experts resident on GPU
 
-                          tok/s   % all-GPU   cold-hit   VRAM
-  all on GPU               111       100%        -       18.8 GiB
-  naive offload 60%         66        59%        36%      10.6 GiB
-  Spark calibrated 60%      81        73%       6.6%      10.6 GiB
-  Spark + expert cache      88        79%       ~0%       14.6 GiB
+                                tok/s   % of all-GPU speed
+  all on GPU (needs >16 GB)      119           100%
+  naive offload (uniform)         66            55%
+  Spark, calibrated               81            68%
+  Spark + cache + fused decode    100           85%
+
+  60% of the experts on the GPU keeps 85% of the full-GPU decode speed.
+  (residency = share of expert weight on GPU; the % column is throughput.)
+  reproduce: python -m spark.bench --bin ../../server/build/test_dflash ...
 ```
 
 > A 33B-total mixture-of-experts only fires ~8 of 256 experts per token, but a naive hot/cold offload still pays for it: pick the wrong experts to keep resident and you hit the CPU tier a third of the time. Spark exploits **activation sparsity** as a product: it calibrates the hot set from the traffic you actually serve, then a bounded GPU cache swaps the long tail in and out so cold-misses fall to ~zero, all inside a fixed VRAM budget.
+
+<p align="center">
+  <img src="demo.gif" width="760" alt="Naive expert offload vs Luce Spark: same 33B MoE, same RTX 3090, same 60% GPU residency, same output. Spark decodes at 100 tok/s vs 66 for naive offload." />
+</p>
+
+<p align="center"><sub>Same model, same card, same 60% residency, same output. Spark finishes first: 66 to 100 tok/s, 1.5x the decode.</sub></p>
 
 ## What Spark is
 
@@ -45,12 +56,16 @@ actually fast on a small card:
 2. **A bounded expert cache.** Calibration is static; real generations still hit
    a per-session tail. A fixed ring of spare GPU slots swaps cold experts in on
    first use (LRU evict) and serves them on-GPU afterward. The distinct cold set
-   saturates within a session, so a small cache drives cold-misses to ~0 and
-   recovers most of the remaining gap (**81 → 88 tok/s**) without growing VRAM.
-3. **A pre-gate predictor (research).** The last ~20% to all-GPU needs the
-   per-layer graphs fused, which needs experts known one step early. We capture
-   routing traces and train a predictor; the finding (below) is that this needs
-   a model fine-tune, not a fitted predictor.
+   saturates within a session, so a small cache drives cold-misses to **~0**
+   without growing VRAM, removing the cold-tail penalty on throughput.
+3. **Per-token fused decode.** Under offload the engine was building 40 separate
+   per-layer GPU graphs per token; that submission overhead, not where the experts
+   live, was the remaining gap. Spark folds the routed FFN into the attention graph
+   and runs the whole token as **one fused graph** (`laguna_step_hybrid`, default-on):
+   **bit-identical to all-GPU at full residency (119 tok/s)** and **~100 tok/s at
+   60% residency** on the decode bench. Closing the last ~15% needs the next experts
+   known one step early; token-level prediction caps near **53% recall**, so that
+   part stays open research, not a shipped win.
 
 It generalizes beyond experts: the same hot/cold residency applies to
 fine-grain neuron sparsity (Deja Vu / PowerInfer style). MoE experts are the
@@ -58,19 +73,31 @@ coarse-grain case Spark ships today.
 
 ## Results
 
-Full tables and methodology in [RESULTS.md](RESULTS.md). Single RTX 3090,
-Laguna-XS.2 Q4_K_M, 333-chunk / ~171K-token calibration corpus from real Claude
-Code sessions, validated on 60 held-out sessions.
+Single RTX 3090, Laguna-XS.2 Q4_K_M. Calibrated from a 333-chunk / ~171K-token
+corpus of real Claude Code sessions; cold-hit rates validated on 60 held-out
+sessions. Decode tok/s reproduce with [`spark/bench.py`](spark/bench.py); full
+methodology in [RESULTS.md](RESULTS.md).
 
-| Config (held-out) | tok/s | % all-GPU | cold-hit | VRAM |
+| Config (60% resident) | decode tok/s | % of all-GPU speed | cold-hit | VRAM |
 |---|---:|---:|---:|---:|
-| All-GPU | 111 | 100% | - | 18.8 GiB |
-| Uniform 60% | 66 | 59% | 36% | 10.6 GiB |
-| **Spark calibrated 60%** | **81** | 73% | 6.6% | 10.6 GiB |
-| **Spark + cache (32 slots)** | **85-88** | ~79% | ~0% | **14.6 GiB** |
+| All-GPU (needs >16 GB) | 119 | 100% | - | 18.8 GiB |
+| Naive offload (uniform) | 66 | 55% | 36% | ~10.6 GiB |
+| **Spark, calibrated** | **81** | 68% | 6.6% | ~10.6 GiB |
+| **Spark + cache + fused decode** | **100** | **85%** | **~0%** | **14.6 GiB** |
 
-Peak VRAM at the operating point (60% hot + 32 cache slots) measured at
-**14.59 GiB** — a 33B-total MoE at ~85-88 tok/s, under 16 GiB.
+Calibration drives the cold-hit rate from 36% (uniform) to 6.6%, the bounded
+cache to ~0; the single-graph fused decode (`laguna_step_hybrid`, default-on) is
+**bit-identical to all-GPU at full residency** (128/128 tokens, 119 tok/s) and
+holds **~100 tok/s at 60% residency**. Peak VRAM at the operating point (60% hot
++ 32 cache slots) measured at **14.59 GiB**: a 33B-total MoE under 16 GiB.
+
+**Both backends, same idea.** `--spark` works for laguna and qwen35moe alike;
+peak VRAM on the RTX 3090, Q4_K_M:
+
+| Model | All-GPU | Spark | Fits 16 GB |
+|---|---:|---:|:---:|
+| Laguna XS.2 (33B-A3B) | 18.8 GiB | **14.6 GiB** | yes |
+| Qwen3.6 35B-A3B | ~20.5 GiB | **13.3 GiB** | yes |
 
 ## How it works
 
