@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-08T15:19:26-04:00`
+Last refresh: `2026-06-08T17:23:06-04:00`
 Current base: `origin/main` `7c27e33a`
 Previous integration tip: `6735c2ee`
 Current integration source tip before this refresh: `6735c2ee`
 Post-merge integration tip: `30f5620d`
 refreshed_head: `30f5620d`
 
-Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then merged the advanced PR #352 head `ef4f724e` (`feat(server): add mixed-backend DFlash disk prefix cache for target layer split`) cleanly on top of `auto-integration`, then recorded this manifest checkpoint in docs commit `30f5620d`. Exact-head containment against the refreshed stack now shows 18 current open non-draft PR heads integrated: `#352`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#275`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs are `#154`, `#153`, and `#135`; the draft / excluded open PRs are `#304` and `#249`. Validation for this refresh: `git diff --check` passed after the merge and manifest update.
+Latest 2026-06-08 refresh: fetched `origin` and `easel` separately; `origin/main` is still `7c27e33a` and already represented. Exact-head containment against the current stack shows 17 current open non-draft PR heads integrated: `#352`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs remain `#154`, `#153`, and `#135`; the draft / excluded open PRs remain `#304`, `#275`, and `#249`. No merge work was needed this run because the local stack already contains every worthwhile currently-open non-draft PR except the held trio. Validation for this refresh: `git diff --check` passed after the manifest update.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
