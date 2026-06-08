@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-08T11:11:17-04:00`
+Last refresh: `2026-06-08T13:15:34-04:00`
 Current base: `origin/main` `7c27e33a`
-Previous integration tip: `b9f8bf20`
-Current integration source tip before this refresh: `b9f8bf20`
-Post-merge integration tip: `2668339e`
-refreshed_head: `2668339e`
+Previous integration tip: `fc2c6bff`
+Current integration source tip before this refresh: `fc2c6bff`
+Post-merge integration tip: `78834be2`
+refreshed_head: `78834be2`
 
-Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, merged `origin/main` `7c27e33a` into `auto-integration`, and then merged PR #352 (`feat(server): add mixed-backend DFlash disk prefix cache for target layer split`) cleanly on top. PR #335 (`feat/lucebox-cli`) also advanced to a new head and is now exact-head represented in the stack with no additional merge work required. Exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#352`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The draft PR `#275` is also exact-head represented; the remaining held / non-ancestor open non-draft PRs are `#154`, `#153`, and `#135`; the draft / excluded open PRs are `#304` and `#249`. Validation for this refresh: `git diff --check` passed, and a CMake configure attempt in `/tmp/luce2-pr352-build-make80-2` failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path.
+Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then merged the already-represented `origin/main` `7c27e33a` base and the advanced PR #352 head `4e22769f` (`feat(server): add mixed-backend DFlash disk prefix cache for target layer split`) cleanly on top of `auto-integration`. Exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#352`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The draft PR `#275` is also exact-head represented; the remaining held / non-ancestor open non-draft PRs are `#154`, `#153`, and `#135`; the draft / excluded open PRs are `#304` and `#249`. Validation for this refresh: `git diff --check` passed, and a CMake configure attempt in `/tmp/luce2-pr352-build-make80` failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
@@ -111,7 +111,7 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 
 This run performed (latest first):
 
-- `git diff --check` passed after merging draft PR #352. `CC=gcc CXX=g++ CUDAARCHS=80 cmake -S /tmp/luce-auto-cron-20260608-pr352/server -B /tmp/luce2-pr352-build-make80 -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON` failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path, so no further build or test validation was possible in this environment.
+- `git diff --check` passed after merging the advanced PR #352 head. `CC=gcc CXX=g++ CUDAARCHS=80 cmake -S server -B /tmp/luce2-pr352-build-make80 -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON` failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path, so no further build or test validation was possible in this environment. Exact-head containment after the merge shows 17 current open non-draft PR heads integrated, plus the draft PR #275 still exact-head represented; the remaining held / non-ancestor open non-draft PRs are #154, #153, and #135, and the draft / excluded open PRs are #304 and #249.
 
 - `git diff --check --cached -- server/test/test_dflash.cpp` passed after resolving the upstream `origin/main` merge conflict in `server/test/test_dflash.cpp`; targeted conflict-marker search found no `<<<<<<<` / `>>>>>>>` markers. This was a merge-only upstream sync, so no repo-wide build or test rerun was needed beyond the conflict-resolution validation.
 
