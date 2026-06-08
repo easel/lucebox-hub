@@ -8,8 +8,8 @@ Last refresh: `2026-06-08T04:53:20-04:00`
 Current base: `origin/main` `33c31228`
 Previous integration tip: `60c03957`
 Current integration source tip before this refresh: `60c03957`
-Post-merge integration tip: `4bb1b139`
-refreshed_head: `4bb1b139`
+Post-merge integration tip: `0280e724`
+refreshed_head: `0280e724`
 
 Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then merged draft PR #352 into `auto-integration` after resolving conflicts in `server/src/qwen35/qwen35_layer_split_adapter.cpp` and `server/src/server/server_main.cpp`. GitHub now reports 20 non-draft and 4 draft/excluded open PRs (`#352`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#349`, `#345`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The stack also now carries draft PRs `#352` and `#275`; the remaining held / non-ancestor open PRs are `#154`, `#153`, and `#135`, while the still-excluded draft PRs are `#304` and `#249`. Validation for this refresh: `git diff --check` passed, and a CMake configure/build attempt in `/tmp/luce2-pr352-build-make80` failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path.
 
