@@ -217,14 +217,43 @@ static bool validate_server_placement(const BackendArgs & bargs,
                          placement_error.c_str());
             return false;
         }
-        if (!sconfig.disk_cache_dir.empty()) {
+    }
+    const bool mixed_target_split =
+        bargs.device.is_layer_split() && bargs.device.is_mixed_layer_split();
+    if (mixed_target_split) {
+        if (!bargs.remote_target_shard.enabled()) {
             std::fprintf(stderr,
-                "[server] --kv-cache-dir is not supported with --target-devices yet; "
-                "sharded disk snapshot/restore will be added separately\n");
+                "[server] mixed-backend target layer split requires "
+                "--target-shard-ipc-bin\n");
             return false;
         }
-    }
-    if (bargs.device.is_layer_split() && target != compiled) {
+        size_t remote_begin = 0;
+        while (remote_begin < bargs.device.layer_split_gpus.size() &&
+               bargs.device.layer_split_backend(remote_begin) == compiled) {
+            ++remote_begin;
+        }
+        if (remote_begin == 0 || remote_begin >= bargs.device.layer_split_gpus.size()) {
+            std::fprintf(stderr,
+                "[server] mixed-backend target layer split currently supports "
+                "one local backend group followed by one remote backend group\n");
+            return false;
+        }
+        const PlacementBackend remote_backend =
+            bargs.device.layer_split_backend(remote_begin);
+        bool one_boundary = true;
+        for (size_t i = remote_begin; i < bargs.device.layer_split_gpus.size(); ++i) {
+            if (bargs.device.layer_split_backend(i) != remote_backend) {
+                one_boundary = false;
+                break;
+            }
+        }
+        if (!one_boundary) {
+            std::fprintf(stderr,
+                "[server] mixed-backend target layer split currently supports "
+                "only one backend boundary\n");
+            return false;
+        }
+    } else if (bargs.device.is_layer_split() && target != compiled) {
         std::fprintf(stderr,
             "[server] target layer split must use this binary's compiled "
             "backend (target=%s compiled=%s)\n",
