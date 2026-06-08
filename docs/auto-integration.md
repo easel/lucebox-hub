@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-07T20:32:08-04:00`
+Last refresh: `2026-06-08T01:12:00-04:00`
 Current base: `origin/main` `33c31228`
-Previous integration tip: `665203dc`
-Current integration source tip before this refresh: `665203dc`
-Post-merge integration tip: `c8baf8eb`
-refreshed_head: `c8baf8eb`
+Previous integration tip: `0bf8ea5b`
+Current integration source tip before this refresh: `0bf8ea5b`
+Post-merge integration tip: `d7117d7b`
+refreshed_head: `d7117d7b`
 
-Latest 2026-06-07 refresh: fetched `origin` and `easel` separately; merged `origin/main` `33c31228` cleanly into `auto-integration`, which already carried upstream PR #351 (`fix(server): guard status.html post-build on dflash_server target`). Then merged open PR #345 (`feat(optimizations): Luce Spark — calibrated hot/cold expert residency`) into the refreshed stack, resolving a single `README.md` conflict by combining the existing "Why this exists" framing with PR #345's Spark-specific language. PR #345's source changes merged cleanly, including `optimizations/spark/README.md`, new `optimizations/spark/spark/bench.py`, and the Laguna hybrid MoE plumbing in `server/src/common/moe_hybrid_storage.cpp`, `server/src/common/step_graph.h`, `server/src/laguna/laguna_backend.cpp`, `server/src/laguna/laguna_internal.h`, and `server/src/laguna/laguna_target_graph.cpp`. Open PR accounting is now 20 non-draft and 3 draft/excluded (`#304`, `#275`, `#249`); exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, `#48`, and `#345`. Held / non-ancestor open PRs remain `#154`, `#153`, and `#135`. Validation: `git diff --check --cached` passed after the merge resolution, and `python3 -m py_compile optimizations/spark/spark/bench.py` passed. No full CMake rerun was attempted this refresh because the source delta is already validated by the merge, and prior CUDA compiler-ID setup in this checkout remains noisy around `ptxas` / `sm_52`.
+Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then fetched the updated PR #345 head (`fc79c0de`) and merged it cleanly into `auto-integration`. The merge was conflict-free and only touched `README.md`, `server/README.md`, `assets/cards/spark_card.png`, and `optimizations/spark/hero.png`; PR #345 now reflects the updated Spark head in the stack. Open PR accounting remains 22 non-draft and 3 draft/excluded (`#304`, `#275`, `#249`). Held / non-ancestor open PRs remain `#154`, `#153`, and `#135`. Validation: `git diff --check HEAD^1 HEAD` passed after the merge, and the repository tree remained clean aside from this manifest update. No full CMake or test rerun was needed because the promoted delta is documentation / asset refresh only.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
@@ -67,7 +67,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 |---:|---|---:|---|---|
 | #342 | `missing` | `d49bc49c` | included | Fix main build; restores the missing brace in `server/test/test_server_unit.cpp` so the current stack compiles against the latest base and keeps the unit-test translation unit valid. |
 | #346 | `fix/dflash-chain-verify-mask-argmax` | `dcfa10aa` | included | Chained DFlash verify/replay logits fix; current head is now represented by the stack after a clean merge. |
-| #345 | `feat/optimizations-spark` | `568f1dff` | included | Luce Spark calibrated hot/cold expert residency; current head is now represented by the stack after a clean merge. |
+| #345 | `feat/optimizations-spark` | `fc79c0de` | included | Luce Spark calibrated hot/cold expert residency; updated head is now represented by the stack after a clean merge of the refreshed PR #345 branch. |
 | #344 | `feat/server-gguf-inspect` | `c6700479` | included | GgufMetadata reader + SHA-256 sidecar for `/props` schema-4; current head is already represented by the stack. |
 | #343 | `feat/server-cpu-test-rig` | `57b6d14f` | included | CPU-only HTTP server test rig with stub backend scenarios; current head is already represented by the stack. |
 | #340 | `feat/server-call-verb-parser` | `4472aa94` | included | Plain-text `call:<verb>{...}` tool-call parsing for Gemma4; current head is already represented by the stack. |
