@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-08T01:12:00-04:00`
+Last refresh: `2026-06-08T02:44:07-04:00`
 Current base: `origin/main` `33c31228`
 Previous integration tip: `0bf8ea5b`
 Current integration source tip before this refresh: `0bf8ea5b`
 Post-merge integration tip: `d7117d7b`
 refreshed_head: `d7117d7b`
 
-Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then fetched the updated PR #345 head (`fc79c0de`) and merged it cleanly into `auto-integration`. The merge was conflict-free and only touched `README.md`, `server/README.md`, `assets/cards/spark_card.png`, and `optimizations/spark/hero.png`; PR #345 now reflects the updated Spark head in the stack. Open PR accounting remains 22 non-draft and 3 draft/excluded (`#304`, `#275`, `#249`). Held / non-ancestor open PRs remain `#154`, `#153`, and `#135`. Validation: `git diff --check HEAD^1 HEAD` passed after the merge, and the repository tree remained clean aside from this manifest update. No full CMake or test rerun was needed because the promoted delta is documentation / asset refresh only.
+Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then re-enumerated the live open PR set. GitHub now reports 20 non-draft and 3 draft/excluded open PRs (`#304`, `#275`, `#249`). Exact-head containment against the current `auto-integration` tip shows 17 current open non-draft PR heads integrated: `#349`, `#345`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held / non-ancestor open PRs remain `#154`, `#153`, and `#135`. No source merge work was needed this run; the branch was already aligned with the live stack and the repository tree stayed clean apart from this manifest update.
 
 
 Latest 15:20 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `0bfbae49` into `auto-integration`. The upstream merge was clean and brought in the self-hosted GPU CI update from PR #347 (`ci: point optional dflash smoke at /opt/models, use dflash_server+curl`) via `origin/main`; no repository source edits were made beyond the merge itself. The local stack remains intact on top of the refreshed base.
