@@ -8,8 +8,8 @@ Last refresh: `2026-06-08T07:02:20-04:00`
 Current base: `origin/main` `4bc46a9c`
 Previous integration tip: `b90f577a`
 Current integration source tip before this refresh: `b90f577a`
-Post-merge integration tip: `ea7b2f00`
-refreshed_head: `ea7b2f00`
+Post-merge integration tip: `b9f8bf20`
+refreshed_head: `b9f8bf20`
 
 Latest 2026-06-08 refresh: fetched `origin` and `easel` separately, then merged `origin/main` `4bc46a9c` into `auto-integration`. The merge was clean after taking the current-stack `README.md` version through the single conflict while accepting upstream Spark doc updates in `optimizations/spark/README.md`, `optimizations/spark/RESULTS.md`, and `optimizations/spark/demo.gif`. GitHub now reports 20 non-draft and 3 draft/excluded open PRs (`#304`, `#275`, `#249`); exact-head containment against the refreshed stack shows 18 current open non-draft PR heads integrated: `#352`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. PR #352 is now a non-draft exact-head match; the remaining held / non-ancestor open PRs are `#154`, `#153`, and `#135`, while the draft PRs are `#304`, `#275`, and `#249`. Validation for this refresh: `git diff --check` passed, and a CMake configure/build attempt in `/tmp/luce2-pr352-build-make80` failed during CUDA compiler identification because local `ptxas` rejects the default `sm_52` code path.
 
