@@ -5,7 +5,9 @@
 
 #include "http_server.h"
 #include "sse_emitter.h"
+#include "prompt_normalize.h"
 #include "tool_hint.h"
+#include "freeze_history.h"
 
 #include <curl/curl.h>
 
@@ -30,6 +32,9 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include <array>
+#include <cstdint>
 
 namespace dflash::common {
 
@@ -850,27 +855,10 @@ json build_props_body(const ServerConfig & config,
 // one helper guarantees token counting and generation can't drift.
 static void normalize_anthropic_system(const json & body, json & messages) {
     if (!body.contains("system")) return;
-    json sys_content = body["system"];
-    if (sys_content.is_array()) {
-        json filtered = json::array();
-        for (const auto & block : sys_content) {
-            if (block.is_object() && block.value("type", "") == "text") {
-                std::string text = block.value("text", "");
-                if (text.rfind("x-anthropic-billing-header:", 0) == 0) {
-                    continue;  // skip Claude Code billing header block
-                }
-            }
-            filtered.push_back(block);
-        }
-        sys_content = std::move(filtered);
-    } else if (sys_content.is_string()) {
-        std::string s = sys_content.get<std::string>();
-        if (s.rfind("x-anthropic-billing-header:", 0) == 0) {
-            sys_content = "";
-        }
-    }
-    if (!sys_content.empty()) {
-        json sys_msg = {{"role", "system"}, {"content", sys_content}};
+    // Delegate strip to the pure fn; insert as system message.
+    std::string text = dflash::common::normalize_system_for_cache(body["system"]);
+    if (!text.empty()) {
+        json sys_msg = {{"role", "system"}, {"content", text}};
         messages.insert(messages.begin(), sys_msg);
     }
 }
@@ -1210,6 +1198,102 @@ std::vector<ChatMessage> normalize_chat_messages(
     return chat_msgs;
 }
 
+// ─── Disk-cache identity salt ───────────────────────────────────────────
+// Inline SHA-1 (same algorithm as prefix_cache.cpp / disk_prefix_cache.cpp).
+static void disk_sha1(const void * data, size_t len, uint8_t out[20]) {
+    auto rotl = [](uint32_t x, int n) -> uint32_t {
+        return (x << n) | (x >> (32 - n));
+    };
+    uint32_t h0 = 0x67452301, h1 = 0xEFCDAB89, h2 = 0x98BADCFE,
+             h3 = 0x10325476, h4 = 0xC3D2E1F0;
+    size_t new_len = len + 1;
+    while (new_len % 64 != 56) new_len++;
+    std::vector<uint8_t> msg(new_len + 8, 0);
+    std::memcpy(msg.data(), data, len);
+    msg[len] = 0x80;
+    uint64_t bit_len = (uint64_t)len * 8;
+    for (int i = 0; i < 8; i++) msg[new_len + i] = (uint8_t)(bit_len >> (56 - 8 * i));
+    for (size_t offset = 0; offset < msg.size(); offset += 64) {
+        uint32_t w[80];
+        for (int i = 0; i < 16; i++) {
+            w[i] = ((uint32_t)msg[offset + 4*i]   << 24) |
+                   ((uint32_t)msg[offset + 4*i+1] << 16) |
+                   ((uint32_t)msg[offset + 4*i+2] <<  8) |
+                   ((uint32_t)msg[offset + 4*i+3]);
+        }
+        for (int i = 16; i < 80; i++)
+            w[i] = rotl(w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16], 1);
+        uint32_t a = h0, b = h1, c = h2, d = h3, e = h4;
+        for (int i = 0; i < 80; i++) {
+            uint32_t f, k;
+            if      (i < 20) { f = (b & c) | (~b & d); k = 0x5A827999; }
+            else if (i < 40) { f = b ^ c ^ d;           k = 0x6ED9EBA1; }
+            else if (i < 60) { f = (b&c)|(b&d)|(c&d);  k = 0x8F1BBCDC; }
+            else              { f = b ^ c ^ d;           k = 0xCA62C1D6; }
+            uint32_t temp = rotl(a, 5) + f + e + k + w[i];
+            e = d; d = c; c = rotl(b, 30); b = a; a = temp;
+        }
+        h0+=a; h1+=b; h2+=c; h3+=d; h4+=e;
+    }
+    auto s32 = [](uint8_t * p, uint32_t v) {
+        p[0]=(uint8_t)(v>>24); p[1]=(uint8_t)(v>>16); p[2]=(uint8_t)(v>>8); p[3]=(uint8_t)v;
+    };
+    s32(out,    h0); s32(out+4, h1); s32(out+8, h2); s32(out+12,h3); s32(out+16,h4);
+}
+
+// Compute a 16-byte identity salt from the inputs that affect KV cache validity:
+//   - target GGUF path + stat(size + mtime)  [covers model weights + rope/yarn]
+//   - max_ctx
+//   - SHA-1 of chat_template_src (empty string if none)
+//
+// Rope/yarn params have no CLI override: they come purely from the GGUF, so
+// GGUF path+stat is a sufficient proxy without re-hashing weight content.
+//
+// kv_dtype (tq3_0 etc.) is already captured by tensor types in compute_layout_id
+// and is NOT included here to avoid double-counting.
+//
+// Returns all-zeroes if the model_path is empty (disk cache disabled or no model).
+static std::array<uint8_t, 16> compute_disk_cache_salt(const ServerConfig & cfg) {
+    std::array<uint8_t, 16> salt{};
+    if (cfg.model_path.empty()) return salt;
+
+    // 1. GGUF file identity: path + size + mtime.
+    std::string path = cfg.model_path;
+    struct stat st{};
+    int64_t file_size = 0;
+    int64_t file_mtime = 0;
+    if (stat(path.c_str(), &st) == 0) {
+        file_size  = (int64_t)st.st_size;
+        file_mtime = (int64_t)st.st_mtime;
+    } else {
+        // Model stat failed — log and fall through. Zero size+mtime still
+        // incorporates the path into the fingerprint.
+        std::fprintf(stderr, "[disk-cache] salt: stat(%s) failed — path-only fingerprint\n",
+                     path.c_str());
+    }
+
+    // 2. SHA-1 of chat_template_src (empty string hashes deterministically).
+    uint8_t tmpl_digest[20] = {};
+    disk_sha1(cfg.chat_template_src.data(), cfg.chat_template_src.size(), tmpl_digest);
+
+    // 3. Build serialization buffer:
+    //    path_len(4) + path_bytes + file_size(8) + file_mtime(8) + max_ctx(4) + tmpl_digest(20)
+    std::vector<uint8_t> buf;
+    uint32_t plen = (uint32_t)path.size();
+    buf.insert(buf.end(), (uint8_t *)&plen, (uint8_t *)&plen + 4);
+    buf.insert(buf.end(), (uint8_t *)path.data(), (uint8_t *)path.data() + path.size());
+    buf.insert(buf.end(), (uint8_t *)&file_size, (uint8_t *)&file_size + 8);
+    buf.insert(buf.end(), (uint8_t *)&file_mtime, (uint8_t *)&file_mtime + 8);
+    int32_t mc = (int32_t)cfg.max_ctx;
+    buf.insert(buf.end(), (uint8_t *)&mc, (uint8_t *)&mc + 4);
+    buf.insert(buf.end(), tmpl_digest, tmpl_digest + 20);
+
+    uint8_t digest[20];
+    disk_sha1(buf.data(), buf.size(), digest);
+    std::memcpy(salt.data(), digest, 16);
+    return salt;
+}
+
 // ─── HttpServer ─────────────────────────────────────────────────────────
 
 HttpServer::HttpServer(ModelBackend & backend,
@@ -1227,6 +1311,15 @@ HttpServer::HttpServer(ModelBackend & backend,
                    config.disk_cache_cold_max_tokens}, backend)
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
+#endif
+    // Set identity salt BEFORE init() so compute_layout_id sees it on the
+    // very first layout learn/verify call. This folds model path+stat,
+    // max_ctx, and chat_template into the layout_id, preventing stale-hit
+    // corruption when the server is restarted with a different model or config
+    // over the same --kv-cache-dir.
+    if (!disk_cache_.disabled()) {
+        disk_cache_.set_identity_salt(compute_disk_cache_salt(config));
+    }
     disk_cache_.init();
     status_html_path_ = resolve_status_html();
 }
@@ -1841,6 +1934,14 @@ bool HttpServer::route_request(int fd, const HttpRequest & hr) {
             req.format = ApiFormat::OPENAI_CHAT;
             req.response_id = generate_id("chatcmpl");
             req.messages = body["messages"];
+            // Strip volatile billing header from messages[0] (OpenAI system).
+            if (req.messages.is_array() && !req.messages.empty()) {
+                auto & m0 = req.messages[0];
+                if (m0.is_object() && m0.value("role", "") == "system" &&
+                    m0.contains("content") && m0["content"].is_string()) {
+                    m0["content"] = dflash::common::normalize_system_for_cache(req.messages);
+                }
+            }
         } else if (hr.path == "/v1/messages/count_tokens") {
             req.format = ApiFormat::ANTHROPIC;
             req.response_id = generate_id("count");
@@ -2325,6 +2426,239 @@ void HttpServer::worker_loop() {
                 should_compress = (n_prompt >= config_.pflash_threshold);
             }
 
+            // Detect whether this is a multi-turn continuation.
+            // Used both by the freeze-history path and the standard skip.
+            bool is_continuation = false;
+            if (should_compress && req.messages.is_array()) {
+                for (const auto & _m : req.messages) {
+                    if (!_m.is_object()) continue;
+                    const std::string _role = _m.value("role", "");
+                    if (_role == "assistant") { is_continuation = true; break; }
+                    if (_m.contains("tool_calls")) {
+                        const auto & _tc = _m["tool_calls"];
+                        if (_tc.is_array() && !_tc.empty()) { is_continuation = true; break; }
+                    }
+                    if (_m.contains("content") && _m["content"].is_array()) {
+                        for (const auto & _b : _m["content"]) {
+                            if (_b.is_object() &&
+                                (_b.value("type", "") == "tool_result" ||
+                                 _b.value("type", "") == "tool_use")) {
+                                is_continuation = true; break;
+                            }
+                        }
+                    }
+                    const std::string _itype = _m.value("type", "");
+                    if (_itype == "function_call" || _itype == "function_call_output") {
+                        is_continuation = true; break;
+                    }
+                    if (is_continuation) break;
+                }
+            }
+
+            // FlowKV freeze-history (PFLASH_FREEZE_HISTORY=1, default OFF):
+            // On continuations, compress each AGED message once and cache the result.
+            // system message (messages[0]) and the hot tail (last hot_window messages)
+            // stay verbatim. Because aged content is compressed deterministically, the
+            // [system + compressed-aged] prefix is byte-stable → existing inline prefix
+            // cache delta-prefills only the hot tail. Flag OFF is a strict no-op.
+            if (should_compress && is_continuation &&
+                env_flag_enabled("PFLASH_FREEZE_HISTORY"))
+            {
+                int hot_window = 2;
+                {
+                    const char * hwe = std::getenv("PFLASH_FREEZE_HOT_WINDOW");
+                    if (hwe && *hwe) {
+                        int v = std::atoi(hwe);
+                        if (v > 0) hot_window = v;
+                    }
+                }
+                const int n_msgs = (int)req.messages.size();
+                // Need: messages[0] (system) + ≥1 aged + hot_window hot = 2+hot_window.
+                if (n_msgs >= 2 + hot_window) {
+                    // Partition:
+                    //   messages[0]              → system (verbatim)
+                    //   messages[1..aged_end)     → aged (compress once, cache)
+                    //   messages[aged_end..end)   → hot tail (verbatim)
+                    const int aged_begin = 1;
+                    const int aged_end   = n_msgs - hot_window;  // exclusive
+
+                    json modified_messages = req.messages;
+                    bool any_compressed = false;
+                    int n_cache_hits = 0;
+
+                    for (int mi = aged_begin; mi < aged_end; ++mi) {
+                        auto & msg = modified_messages[mi];
+                        if (!msg.is_object()) continue;
+
+                        // Extract text content.
+                        std::string msg_content;
+                        if (msg.contains("content")) {
+                            const auto & c = msg["content"];
+                            if (c.is_string()) {
+                                msg_content = c.get<std::string>();
+                            } else if (c.is_array()) {
+                                for (const auto & part : c) {
+                                    if (!part.is_object()) continue;
+                                    const std::string ptype = part.value("type", "");
+                                    if (ptype == "text" || ptype == "input_text" ||
+                                        ptype == "output_text")
+                                        msg_content += part.value("text", "");
+                                }
+                            }
+                        }
+                        if (msg_content.empty()) continue;
+
+                        // Drafter-encode to get size + compression input.
+                        auto msg_drafter_ids = drafter_tokenizer_->encode(msg_content);
+                        // Below-threshold messages stay verbatim (same floor as whole-prompt).
+                        if ((int)msg_drafter_ids.size() < config_.pflash_threshold) continue;
+
+                        // Cache key = SHA-1 of the drafter token slice.
+                        const PrefixHash msg_key = frozen_block_key(
+                            msg_drafter_ids.data(), 0, (int)msg_drafter_ids.size());
+
+                        std::string compressed_text;
+                        auto cache_it = frozen_content_cache_.find(msg_key);
+                        if (cache_it != frozen_content_cache_.end()) {
+                            compressed_text = cache_it->second;
+                            ++n_cache_hits;
+                            std::fprintf(stderr,
+                                "[pflash-freeze] msg[%d] cache hit (%zu drafter toks)\n",
+                                mi, msg_drafter_ids.size());
+                        } else {
+                            // Compress this message in isolation.
+                            ModelBackend::CompressRequest creq;
+                            creq.input_ids    = std::move(msg_drafter_ids);
+                            creq.keep_ratio   = pflash_keep_ratio(config_, (int)creq.input_ids.size());
+                            creq.drafter_path = config_.pflash_drafter_path;
+                            creq.drafter_gpu  = config_.pflash_drafter_gpu;
+                            creq.skip_park    = config_.pflash_skip_park;
+                            creq.use_transitive       = -1;  // env default
+                            creq.attn_primary_override = 1;
+                            creq.residency_action = resolve_draft_residency_action(
+                                config_.draft_residency,
+                                DraftResidencyContext{
+                                    DraftResidencyUse::PFlashCompress,
+                                    config_.lazy_draft,
+                                    !config_.draft_path.empty(),
+                                });
+
+                            auto cresult = backend_.compress(creq);
+                            if (!cresult.ok || cresult.compressed_ids.empty()) {
+                                std::fprintf(stderr,
+                                    "[pflash-freeze] msg[%d] compress failed — kept verbatim\n", mi);
+                                continue;
+                            }
+                            compressed_text = drafter_tokenizer_->decode(cresult.compressed_ids);
+                            std::fprintf(stderr,
+                                "[pflash-freeze] msg[%d] %zu → %zu drafter toks (keep=%.2f)\n",
+                                mi, creq.input_ids.size(),
+                                cresult.compressed_ids.size(), creq.keep_ratio);
+
+                            // Store in cache; clear on overflow (simple bounded eviction).
+                            if (frozen_content_cache_.size() >= kFrozenCacheMax) {
+                                std::fprintf(stderr,
+                                    "[pflash-freeze] cache full (%zu entries) — clearing\n",
+                                    frozen_content_cache_.size());
+                                frozen_content_cache_.clear();
+                            }
+                            frozen_content_cache_.emplace(msg_key, compressed_text);
+                        }
+
+                        // Replace message content with the compressed string.
+                        // Role is preserved; content is flattened to a plain string.
+                        msg["content"] = compressed_text;
+                        any_compressed = true;
+                    }
+
+                    if (any_compressed) {
+                        // Re-render the modified messages through the same pipeline
+                        // as the initial render above: normalize → chat_msgs → render
+                        // → tokenize.  enable_thinking and tools_json are worker_loop-
+                        // local: derive them from req (which carries the parsed values).
+                        const bool   freeze_enable_thinking = req.thinking_enabled;
+                        std::string  freeze_tools_json;
+                        if (req.tools.is_array() && !req.tools.empty()) {
+                            freeze_tools_json = req.tools.dump();
+                        }
+                        std::vector<ChatMessage> freeze_chat_msgs =
+                            normalize_chat_messages(modified_messages, req.format,
+                                                    tool_memory_);
+                        std::string freeze_rendered;
+                        bool freeze_render_ok = true;
+                        if (!config_.chat_template_src.empty()) {
+                            const std::string & bos_str = (tokenizer_.bos_id() >= 0)
+                                ? tokenizer_.raw_token(tokenizer_.bos_id())
+                                : std::string();
+                            const std::string & eos_str = (tokenizer_.eos_id() >= 0)
+                                ? tokenizer_.raw_token(tokenizer_.eos_id())
+                                : std::string();
+                            try {
+                                freeze_rendered = render_chat_template_jinja(
+                                    config_.chat_template_src,
+                                    freeze_chat_msgs,
+                                    bos_str, eos_str,
+                                    /*add_generation_prompt=*/true,
+                                    freeze_enable_thinking,
+                                    freeze_tools_json,
+                                    chat_format_);
+                            } catch (const std::exception & e) {
+                                std::fprintf(stderr,
+                                    "[pflash-freeze] jinja re-render failed (%s) — skipping freeze\n",
+                                    e.what());
+                                freeze_render_ok = false;
+                            }
+                        } else {
+                            freeze_rendered = render_chat_template(
+                                freeze_chat_msgs, chat_format_,
+                                true, freeze_enable_thinking, freeze_tools_json);
+                        }
+                        if (freeze_render_ok) {
+                            effective_prompt  = tokenizer_.encode(freeze_rendered);
+                            pflash_compressed = true;
+                            std::fprintf(stderr,
+                                "[pflash-freeze] %d → %d target toks "
+                                "(%d aged msgs, %d cache hits, hot_window=%d)\n",
+                                n_prompt, (int)effective_prompt.size(),
+                                aged_end - aged_begin, n_cache_hits, hot_window);
+                        }
+                        should_compress = false;
+                    } else {
+                        // No aged messages compressed — suppress whole-prompt compress.
+                        should_compress = false;
+                        std::fprintf(stderr,
+                            "[pflash-freeze] no aged msgs above threshold — skip\n");
+                    }
+                } else {
+                    // Too few turns for freeze partition — standard skip.
+                    should_compress = false;
+                    std::fprintf(stderr,
+                        "[pflash] skip-compress (continuation: too few turns for freeze)\n");
+                }
+            } else if (should_compress && is_continuation) {
+                // Standard continuation gate (PFLASH_FREEZE_HISTORY off).
+                // Warm multi-turn conversations are already served by the raw prefix
+                // KV cache at ~22x. Compressing poisons the cache (raw SHA1 !=
+                // compressed SHA1) — net loss.
+                should_compress = false;
+                std::fprintf(stderr,
+                    "[pflash] skip-compress (continuation: prior assistant/tool history)\n");
+            }
+
+            // FlowKV cold-poison fix (WS1): never whole-prompt-compress a turn-1
+            // (non-continuation) request when freeze-history is on.  Compressing
+            // the system prompt on turn-1 keys the inline snapshot on the compressed
+            // effective_prompt; turn-2's verbatim system cannot match that key →
+            // cold-poison (+39 s observed).  Keeping turn-1 verbatim makes the
+            // system prompt a stable prefix anchor for the KV cache.
+            // Flag OFF → condition is false → byte-identical to prior behaviour.
+            if (should_compress && !is_continuation &&
+                env_flag_enabled("PFLASH_FREEZE_HISTORY")) {
+                should_compress = false;
+                std::fprintf(stderr,
+                    "[pflash-freeze] turn-1 verbatim (system kept as cache anchor)\n");
+            }
+
             if (should_compress) {
                 // Check full-compress cache FIRST — if we've seen this exact
                 // raw prompt before, skip the expensive compress cycle entirely.
@@ -2453,6 +2787,10 @@ void HttpServer::worker_loop() {
                                     !config_.draft_path.empty(),
                                 });
                         creq.residency_action = pflash_residency;
+                        // attn_primary is a compression-time strategy; only
+                        // meaningful when we are actually compressing.  Force on
+                        // so the per-request field overrides any stale env state.
+                        creq.attn_primary_override = 1;
 
                         ModelBackend::CompressResult cresult;
                         if (config_.pflash_remote_drafter) {
@@ -2776,7 +3114,13 @@ void HttpServer::worker_loop() {
         // so slot 63 is safe as long as total cache slots < 63.
         static constexpr int DISK_STAGING_SLOT = ModelBackend::kMaxSlots - 1;
         bool disk_hit = false;
+        // Compute turn boundaries once — used by both the boundary-prefix lookup
+        // and the cold-prefix save below.
+        auto disk_boundaries = !disk_cache_.disabled()
+            ? find_all_boundaries(effective_prompt, prefix_cache_.chat_markers())
+            : std::vector<int>{};
         if (!using_restore && !disk_cache_.disabled()) {
+            // First: try exact full-prompt lookup.
             if (disk_cache_.lookup(effective_prompt, DISK_STAGING_SLOT)) {
                 cache_slot = DISK_STAGING_SLOT;
                 prefix_len = backend_.snapshot_cur_pos(DISK_STAGING_SLOT);
@@ -2785,6 +3129,22 @@ void HttpServer::worker_loop() {
                 std::fprintf(stderr, "[disk-cache] hit, loaded to slot=%d pos=%d\n",
                              DISK_STAGING_SLOT, prefix_len);
             }
+            // Second: boundary-prefix lookup — cross-session system-anchor hit.
+            // Finds the longest boundary-prefix (e.g. system-only boundary) on
+            // disk even when the full prompt differs across sessions.
+            if (!using_restore && !disk_boundaries.empty()) {
+                auto [bp_hit, bp_len] = disk_cache_.lookup_boundary_prefix(
+                    effective_prompt, disk_boundaries, DISK_STAGING_SLOT);
+                if (bp_hit) {
+                    cache_slot = DISK_STAGING_SLOT;
+                    prefix_len = backend_.snapshot_cur_pos(DISK_STAGING_SLOT);
+                    using_restore = true;
+                    disk_hit = true;
+                    std::fprintf(stderr,
+                        "[disk-cache] boundary-prefix hit, loaded to slot=%d pos=%d\n",
+                        DISK_STAGING_SLOT, prefix_len);
+                }
+            }
         }
 
         // Cold prefix save: for long prompts with no cache hit, prefill to a
@@ -2792,7 +3152,7 @@ void HttpServer::worker_loop() {
         // This makes subsequent requests to similar (but not identical) prompts
         // much faster by reusing the cold prefix.
         if (!using_restore && !disk_cache_.disabled()) {
-            auto boundaries = find_all_boundaries(effective_prompt, prefix_cache_.chat_markers());
+            const auto & boundaries = disk_boundaries;
             int cold_boundary = disk_cache_.cold_prefix_boundary(effective_prompt, boundaries);
             if (cold_boundary > 0) {
                 std::fprintf(stderr, "[disk-cache] cold prefix: prefilling to boundary=%d\n",
@@ -3058,6 +3418,16 @@ void HttpServer::worker_loop() {
                 if (!disk_cache_.disabled()) {
                     disk_cache_.learn_layout(snap_slot);
                     disk_cache_.save(snap_slot, effective_prompt);
+                    // Cross-session anchor: also save a snapshot keyed at the
+                    // system-only boundary (disk_boundaries[0]) so the next session
+                    // with the same system prompt but a different first user message
+                    // gets a boundary-prefix hit instead of a cold 30K-token prefill.
+                    if (!disk_boundaries.empty() && disk_boundaries[0] >= disk_cache_.min_tokens()) {
+                        int sys_boundary = disk_boundaries[0];
+                        std::vector<int32_t> sys_prefix(effective_prompt.begin(),
+                                                         effective_prompt.begin() + sys_boundary);
+                        disk_cache_.save(snap_slot, sys_prefix);
+                    }
                 }
             } else {
                 prefix_cache_.abort_inline_snap(snap_slot);

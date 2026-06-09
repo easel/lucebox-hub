@@ -227,6 +227,10 @@ struct GenerateRequest {
     // path returns success but emits no tokens, so each backend can route the
     // retry through its existing AR path without copying retry policy.
     bool                       force_ar_decode = false;
+    // Per-request stochastic spec-decode override. -1 = unset (use env
+    // DFLASH_STOCHASTIC default); 0 = force off; 1 = force on.
+    // Additionally gated on sampler_.temp > 0 at the consumer site.
+    int                        stochastic_override = -1;
 };
 
 struct GenerateResult {
@@ -370,6 +374,13 @@ struct ModelBackend {
     // Returns empty ref (ctx==nullptr) if slot is invalid or unused.
     virtual SnapshotRef snapshot_ref(int slot) const { (void)slot; return {}; }
 
+    // Return a lightweight ggml_context containing tensors with the same names,
+    // types, and shapes as a real snapshot — but with no_alloc=true (no data).
+    // Used by DiskPrefixCache::verify_layout_at_init() to verify the disk-loaded
+    // layout fingerprint against the live model before the first request.
+    // Caller must ggml_free() the returned context. Returns nullptr if not supported.
+    virtual ggml_context * snapshot_layout_ctx() const { return nullptr; }
+
     // Import a deserialized snapshot into the given slot. Backend takes
     // ownership of ctx and buf on success. On failure (returns false),
     // the caller is responsible for freeing ctx and buf.
@@ -393,6 +404,9 @@ struct ModelBackend {
         // 0 = off (agentic path: suppress cascade to avoid anchor bloat).
         // 1 = on  (retrieval path: full expansion, same as today).
         int                  use_transitive = -1;
+        // Per-request PFLASH_ATTN_PRIMARY override. -1 = unset (use env
+        // default); 0 = force off; 1 = force on (attention-top-K selector).
+        int                  attn_primary_override = -1;
         DraftResidencyAction residency_action = DraftResidencyAction::KeepLoaded;
     };
 

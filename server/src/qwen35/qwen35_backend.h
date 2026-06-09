@@ -105,6 +105,7 @@ public:
     bool snapshot_adopt(int slot, ggml_context * ctx,
                         ggml_backend_buffer_t buf, int cur_pos,
                         int32_t last_tok = -1) override;
+    ggml_context * snapshot_layout_ctx() const override;
 
     CompressResult compress(const CompressRequest & req) override;
     bool handle_compress(const std::string & line,
@@ -197,6 +198,10 @@ private:
     // ── Sampler state ────────────────────────────────────────────────
     SamplerCfg      sampler_;
     std::mt19937_64 sampler_rng_{std::random_device{}()};
+
+    // Per-request stochastic mode resolved from stochastic_override + env.
+    // Set in generate_impl/restore_and_generate_impl before do_spec_decode.
+    bool            stochastic_req_ = false;
 
     // Last prefill chunk metadata, used to sample the first generated token
     // without deriving a chunk-local offset from absolute KV position.

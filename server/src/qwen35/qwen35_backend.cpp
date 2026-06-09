@@ -19,10 +19,15 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
 #include <cstring>
+#include <random>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -378,6 +383,59 @@ ModelBackend::SnapshotRef Qwen35Backend::snapshot_ref(int slot) const {
     return ref;
 }
 
+ggml_context * Qwen35Backend::snapshot_layout_ctx() const {
+    const int n_full_attn = (int)cache_.attn_k.size();
+    const int n_delta     = (int)cache_.ssm_state.size();
+    if (n_full_attn <= 0 || n_delta <= 0) return nullptr;
+    if (cache_.attn_k.empty() || !cache_.attn_k[0]) return nullptr;
+    if (cache_.ssm_state.empty() || !cache_.ssm_state[0]) return nullptr;
+
+    // One layout-ctx tensor per snapshot tensor: 2*n_full_attn KV + 2*n_delta
+    // SSM/conv + 1 target_feat (if present). Mirrors snapshot_target_cache().
+    const int n_tensors = n_full_attn * 2 + n_delta * 2 + (cache_.target_feat ? 1 : 0);
+    ggml_init_params ip{};
+    ip.mem_size = ggml_tensor_overhead() * (size_t)(n_tensors + 4) + 4096;
+    ip.no_alloc = true;
+    ggml_context * ctx = ggml_init(ip);
+    if (!ctx) return nullptr;
+
+    char name[64];
+
+    // KV tensors (full-attn layers): "snap_cache_k_N" / "snap_cache_v_N".
+    // ggml_dup_tensor preserves type + shape; compute_layout_id normalises
+    // ne[1]=1 so max_ctx vs snap_pos is irrelevant to the fingerprint.
+    for (int i = 0; i < n_full_attn; ++i) {
+        if (!cache_.attn_k[i] || !cache_.attn_v[i]) { ggml_free(ctx); return nullptr; }
+        ggml_tensor * k = ggml_dup_tensor(ctx, cache_.attn_k[i]);
+        std::snprintf(name, sizeof(name), "snap_cache_k_%d", i);
+        ggml_set_name(k, name);
+        ggml_tensor * v = ggml_dup_tensor(ctx, cache_.attn_v[i]);
+        std::snprintf(name, sizeof(name), "snap_cache_v_%d", i);
+        ggml_set_name(v, name);
+    }
+
+    // SSM/conv tensors (delta-net layers): "snap_ssm_state_N" / "snap_conv_state_N".
+    // Snapshot uses full-size copies (same shape as live cache tensors).
+    for (int i = 0; i < n_delta; ++i) {
+        if (!cache_.ssm_state[i] || !cache_.conv_state[i]) { ggml_free(ctx); return nullptr; }
+        ggml_tensor * s = ggml_dup_tensor(ctx, cache_.ssm_state[i]);
+        std::snprintf(name, sizeof(name), "snap_ssm_state_%d", i);
+        ggml_set_name(s, name);
+        ggml_tensor * c = ggml_dup_tensor(ctx, cache_.conv_state[i]);
+        std::snprintf(name, sizeof(name), "snap_conv_state_%d", i);
+        ggml_set_name(c, name);
+    }
+
+    // target_feat (optional): "snap_target_feat".
+    // ne[1] is normalised away by compute_layout_id, so live cap == snap feat_len.
+    if (cache_.target_feat) {
+        ggml_tensor * tf = ggml_dup_tensor(ctx, cache_.target_feat);
+        ggml_set_name(tf, "snap_target_feat");
+    }
+
+    return ctx;
+}
+
 bool Qwen35Backend::snapshot_adopt(int slot, ggml_context * ctx,
                                    ggml_backend_buffer_t buf, int cur_pos,
                                    int32_t last_tok) {
@@ -495,7 +553,7 @@ ModelBackend::CompressResult Qwen35Backend::compress(const CompressRequest & req
     result.compressed_ids = drafter_score_and_compress(
         drafter_ctx_, req.input_ids, req.keep_ratio,
         /*chunk_size=*/32, /*n_lookahead=*/8, /*pool_kernel=*/13,
-        req.use_transitive);
+        req.use_transitive, req.attn_primary_override);
     result.ok = !result.compressed_ids.empty();
     if (result.ok) {
         std::fprintf(stderr, "[compress] %zu -> %zu tokens\n",
@@ -653,6 +711,15 @@ GenerateResult Qwen35Backend::generate_impl(const GenerateRequest & req,
     if (req.do_sample && sampler_.seed != 0) {
         sampler_rng_.seed(sampler_.seed);
     }
+    // Resolve per-request stochastic mode: override takes precedence over env.
+    // Also gated on temp>0 — stochastic with temp=0 is nonsensical.
+    {
+        const bool env_stochastic = std::getenv("DFLASH_STOCHASTIC") != nullptr;
+        const bool want_stochastic = (req.stochastic_override >= 0)
+            ? (req.stochastic_override != 0)
+            : env_stochastic;
+        stochastic_req_ = want_stochastic && (sampler_.temp > 0.0f);
+    }
 
     // Design 1: apply the per-request verify fa_window override (set by
     // http_server when pflash compresses), then restore cfg_.fa_window after
@@ -691,11 +758,12 @@ GenerateResult Qwen35Backend::generate_impl(const GenerateRequest & req,
     // Both paths see all kept tokens. See docs/pflash-adaptive-composition.md.
     // fa_window=0 is full-attention (tool calls) — the spec budget must not
     // collapse to 0, so resolve to kSpecCompressFaRef when no --fa-window given.
+    // Stochastic is the acceptance rule (Leviathan), NOT an engagement override.
+    // Engagement is ALWAYS C2-gated so long-ctx spec-decode is suppressed
+    // regardless of stochastic mode (net-negative: accept 33%->12% on long ctx).
     const int spec_fa_cfg = dflash::common::spec_fa_ref(cfg_.fa_window);
-    const bool fa_within_budget =
-        dflash::common::c2_spec_decode_permitted(req.fa_window_override,
-                                                 spec_fa_cfg,
-                                                 /*kv_committed*/ 0);
+    const bool fa_within_budget = dflash::common::c2_spec_decode_permitted(
+        req.fa_window_override, spec_fa_cfg, committed);
 
     // Decode (speculative or AR)
     if (req.n_gen > 0) {
@@ -765,6 +833,13 @@ GenerateResult Qwen35Backend::restore_and_generate_impl(int slot,
     if (req.do_sample && sampler_.seed != 0) {
         sampler_rng_.seed(sampler_.seed);
     }
+    {
+        const bool env_stochastic = std::getenv("DFLASH_STOCHASTIC") != nullptr;
+        const bool want_stochastic = (req.stochastic_override >= 0)
+            ? (req.stochastic_override != 0)
+            : env_stochastic;
+        stochastic_req_ = want_stochastic && (sampler_.temp > 0.0f);
+    }
 
     const int snap_pos = prefix_snapshots_[slot].cur_pos;
     cache_.cur_pos = snap_pos;
@@ -827,8 +902,11 @@ GenerateResult Qwen35Backend::restore_and_generate_impl(int slot,
         // without sacrificing spec-decode throughput for the bulk of
         // generation. Most requests never hit the tail because the
         // model closes </think> naturally well before the budget edge.
+        const int spec_fa_cfg_r = dflash::common::spec_fa_ref(cfg_.fa_window);
+        const bool fa_within_budget_r = dflash::common::c2_spec_decode_permitted(
+            req.fa_window_override, spec_fa_cfg_r, committed);
         bool decode_ok = false;
-        if (req.force_ar_decode) {
+        if (req.force_ar_decode || !fa_within_budget_r) {
             decode_ok = do_ar_decode(committed, req.n_gen, result.tokens, out_io,
                                      req.budget_hook,
                                      &result.budget_forced_close,
@@ -1459,6 +1537,88 @@ bool Qwen35Backend::sync_remote_draft_features(int start_pos, int n_tokens) {
 
 // ── DFlash speculative decode loop ─────────────────────────────────────
 
+// ── Leviathan stochastic acceptance over top-K dists (temp>0) ──
+// Pairs target slot i (p) with draft slot i+1 (q) — same alignment as greedy
+// draft_tok[i+1] vs target_tok[i]. Returns accept_n (>=1, incl. anchor) and the
+// correction/bonus token sampled from the residual (reject) or target (all-accept).
+// Expected per-position accept = Σ min(p,q) = the measured α (when draft~q).
+namespace {
+std::unordered_map<int32_t, float> topk_softmax(
+        const std::vector<std::pair<int32_t, float>> & tk, float temp) {
+    std::unordered_map<int32_t, float> m;
+    if (tk.empty()) return m;
+    const float inv = 1.0f / std::max(1e-3f, temp);
+    float mx = tk[0].second, s = 0.0f;
+    for (auto & e : tk) mx = std::max(mx, e.second);
+    for (auto & e : tk) { float v = std::exp((e.second - mx) * inv); m[e.first] = v; s += v; }
+    if (s > 0) for (auto & kv : m) kv.second /= s;
+    return m;
+}
+int stochastic_accept(const TopKDist & tgt, const TopKDist & drf,
+                      const std::vector<int32_t> & draft_tok, int q_len,
+                      float temp, std::mt19937_64 & rng, int & bonus_out) {
+    std::uniform_real_distribution<float> U(0.0f, 1.0f);
+    bonus_out = -1;
+    int accept_n = 1;  // anchor draft_tok[0] always committed
+    auto sample_map = [&](const std::vector<std::pair<int32_t,float>> & items, float total) -> int {
+        if (items.empty() || total <= 0) return -1;
+        float u = U(rng) * total, acc = 0;
+        for (auto & e : items) { acc += e.second; if (u <= acc) return e.first; }
+        return items.back().first;
+    };
+    for (int i = 0; i < q_len - 1; i++) {
+        if (i >= (int)tgt.size() || (i + 1) >= (int)drf.size()) break;
+        auto p = topk_softmax(tgt[i], temp);
+        auto q = topk_softmax(drf[i + 1], temp);
+        const int x = draft_tok[i + 1];
+        const float px = p.count(x) ? p[x] : 0.0f;
+        // Hard-reject when the draft token was outside the drafter's top-K:
+        // qx=1e-9 would make min(1,px/qx)≈1 and force-accept any token the
+        // drafter never actually proposed.  Treat missing-from-q as p/q → ∞
+        // which the rejection branch handles correctly via the (p-q)+ residual.
+        if (!q.count(x)) {
+            // reject → correction ~ normalize((p - q)+)
+            std::set<int32_t> ids;
+            for (auto & kv : p) ids.insert(kv.first);
+            for (auto & kv : q) ids.insert(kv.first);
+            std::vector<std::pair<int32_t,float>> resid; float rs = 0;
+            for (int id : ids) {
+                float r = (p.count(id) ? p[id] : 0.0f) - (q.count(id) ? q[id] : 0.0f);
+                if (r > 0) { resid.push_back({id, r}); rs += r; }
+            }
+            bonus_out = (rs > 0) ? sample_map(resid, rs)
+                                 : (p.empty() ? -1 : std::max_element(p.begin(), p.end(),
+                                      [](auto&a, auto&b){ return a.second < b.second; })->first);
+            return accept_n;
+        }
+        const float qx = q[x];
+        if (U(rng) < std::min(1.0f, px / qx)) { accept_n++; continue; }
+        // reject → correction ~ normalize((p - q)+)
+        std::set<int32_t> ids;
+        for (auto & kv : p) ids.insert(kv.first);
+        for (auto & kv : q) ids.insert(kv.first);
+        std::vector<std::pair<int32_t,float>> resid; float rs = 0;
+        for (int id : ids) {
+            float r = (p.count(id) ? p[id] : 0.0f) - (q.count(id) ? q[id] : 0.0f);
+            if (r > 0) { resid.push_back({id, r}); rs += r; }
+        }
+        bonus_out = (rs > 0) ? sample_map(resid, rs)
+                             : (p.empty() ? -1 : std::max_element(p.begin(), p.end(),
+                                  [](auto&a, auto&b){ return a.second < b.second; })->first);
+        return accept_n;
+    }
+    // all draft tokens accepted → bonus ~ target dist at last slot
+    const int li = q_len - 1;
+    if (li < (int)tgt.size()) {
+        auto p = topk_softmax(tgt[li], temp);
+        std::vector<std::pair<int32_t,float>> items(p.begin(), p.end()); float s = 0;
+        for (auto & e : items) s += e.second;
+        bonus_out = sample_map(items, s);
+    }
+    return accept_n;
+}
+}  // namespace
+
 bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
                                     std::vector<int32_t> & out_tokens,
                                     const DaemonIO & io,
@@ -1484,16 +1644,22 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
     // out-of-bounds tensor read.  cache_.last_tok is always correct.
     int32_t last_tok = cache_.last_tok;
 
+    // Stochastic (Leviathan) acceptance: per-request mode resolved in
+    // generate_impl/restore_and_generate_impl from stochastic_override + env.
+    // stochastic_req_ is already gated on sampler_.temp > 0.
+    const bool stochastic = stochastic_req_;
+    const float spec_temp = sampler_.temp > 0.0f ? sampler_.temp : 1.0f;
+
     // Check if we can use speculative decode:
     // - draft model loaded and not parked
     // - feature mirror initialized
-    // - greedy decoding (no logit processing) — spec decode uses argmax verification
+    // - greedy decoding (no logit processing), OR stochastic mode (handles temp>0)
     const bool can_spec = cfg_.draft_path
         && !draft_parked_
         && (cfg_.remote_draft.enabled()
             ? remote_draft_.active()
             : feature_mirror_.target_feat != nullptr)
-        && !sampler_.needs_logit_processing();
+        && (!sampler_.needs_logit_processing() || stochastic);
 
     if (!can_spec) {
         // AR fallback consumes the final prefill position itself, then advances
@@ -1515,6 +1681,7 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
     // ── DFlash spec-decode: draft → verify → accept → replay ──────────
 
     DFlashTarget * target = dflash_target();
+    target->set_stochastic_capture(stochastic);  // fill top-K dists for Leviathan accept
     const bool use_remote_draft = cfg_.remote_draft.enabled() && remote_draft_.active();
     const int q_len = dw_.block_size > 0 ? dw_.block_size : DFLASH27B_DRAFT_BLOCK_SIZE;
 
@@ -1682,6 +1849,53 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
         }
         draft_tok[0] = last_tok;
 
+        // Stochastic mode: resample draft tokens 1..q_len-1 from q@T (Leviathan
+        // requires the draft token to be drawn from q, not argmax).
+        // Apply the same rep/freq/presence penalties as the AR path so the draft
+        // distribution respects the client's penalty config.
+        if (stochastic) {
+            const TopKDist & dq = target->last_draft_topk();
+            std::uniform_real_distribution<float> Us(0.0f, 1.0f);
+            // Build penalty lookup tables once per verify step (history = out_tokens).
+            std::unordered_set<int32_t> rep_seen;
+            std::unordered_map<int32_t, int> freq_counts;
+            const bool has_rep  = sampler_.rep_pen > 1.0f && !out_tokens.empty();
+            const bool has_addp = (sampler_.freq_pen != 0.0f || sampler_.pres_pen != 0.0f)
+                                  && !out_tokens.empty();
+            if (has_rep || has_addp) {
+                const int win  = std::min((int)out_tokens.size(), sampler_.rep_window);
+                const int from = (int)out_tokens.size() - win;
+                for (int ii = from; ii < (int)out_tokens.size(); ii++) {
+                    if (has_rep)  rep_seen.insert(out_tokens[ii]);
+                    if (has_addp) freq_counts[out_tokens[ii]]++;
+                }
+            }
+            for (int j = 1; j < q_len && j < (int)dq.size(); j++) {
+                // Copy the top-K logit pairs and apply penalties before softmax.
+                auto penalized = dq[j];  // copy of vector<pair<int32_t,float>>
+                if (has_rep || has_addp) {
+                    for (auto & e : penalized) {
+                        if (has_rep && rep_seen.count(e.first)) {
+                            e.second = (e.second > 0.0f)
+                                           ? e.second / sampler_.rep_pen
+                                           : e.second * sampler_.rep_pen;
+                        }
+                        if (has_addp) {
+                            auto it = freq_counts.find(e.first);
+                            if (it != freq_counts.end()) {
+                                e.second -= sampler_.freq_pen * it->second;
+                                e.second -= sampler_.pres_pen;
+                            }
+                        }
+                    }
+                }
+                auto qm = topk_softmax(penalized, spec_temp);
+                float u = Us(sampler_rng_), acc = 0; int pick = -1;
+                for (auto & kv : qm) { acc += kv.second; if (u <= acc) { pick = kv.first; break; } }
+                if (pick >= 0) draft_tok[j] = pick;
+            }
+        }
+
         // 3b. Tool call hint injection: override draft tokens with pre-known
         // structural tokens for near-100% acceptance.
         int hint_fill = 0;
@@ -1713,18 +1927,30 @@ bool Qwen35Backend::do_spec_decode(int committed, int n_gen,
             return false;
         }
 
-        // 5. Acceptance: longest matching prefix between draft and target argmax
-        int accept_n = 1;
-        for (int i = 0; i < q_len - 1; i++) {
-            if (draft_tok[i + 1] == target_tok[i]) accept_n++;
-            else break;
+        // 5. Acceptance.
+        int accept_n;
+        int bonus_tok;
+        if (stochastic) {
+            // Leviathan stochastic accept (temp>0): draft sampled from q, accept
+            // min(1,p/q) per position, correction sampled from (p-q)+ on reject.
+            int sb = -1;
+            accept_n = stochastic_accept(target->last_target_topk(), target->last_draft_topk(),
+                                         draft_tok, q_len, spec_temp, sampler_rng_, sb);
+            bonus_tok = sb;
+        } else {
+            // longest matching prefix between draft and target argmax (greedy, temp=0)
+            accept_n = 1;
+            for (int i = 0; i < q_len - 1; i++) {
+                if (draft_tok[i + 1] == target_tok[i]) accept_n++;
+                else break;
+            }
+            bonus_tok = (accept_n < q_len) ? target_tok[accept_n - 1] : -1;
         }
         // Track hint acceptance telemetry.
         if (hint_fill > 0) {
             n_hint_proposed += hint_fill;
             n_hint_accepted += std::min(hint_fill, accept_n - 1);
         }
-        int bonus_tok = (accept_n < q_len) ? target_tok[accept_n - 1] : -1;
         int commit_n  = accept_n + (bonus_tok >= 0 ? 1 : 0);
         if (commit_n > need_commit_budget) {
             commit_n = need_commit_budget;

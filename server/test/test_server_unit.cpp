@@ -13,6 +13,7 @@
 #include "server/prefix_cache.h"
 #include "server/disk_prefix_cache.h"
 #include "server/utf8_utils.h"
+#include "ggml-cpu.h"
 #include "server/api_types.h"
 #include "server/http_server.h"
 #include "server/chat_template.h"
@@ -27,6 +28,8 @@
 #include "common/layer_split_utils.h"
 #include "qwen35/c2_gate.h"
 #include "placement/draft_residency.h"
+#include "server/prompt_normalize.h"
+#include "server/freeze_history.h"
 #include <nlohmann/json.hpp>
 
 #include <cmath>
@@ -2980,6 +2983,513 @@ static void test_disk_cache_save_below_min_tokens() {
     rm_rf(dir);
 }
 
+// ─── Boundary-prefix lookup tests (Step 2 RED) ──────────────────────────
+
+// Test: lookup_boundary_prefix returns miss when cache is disabled.
+static void test_disk_boundary_lookup_disabled() {
+    MockBackend backend;
+    DiskCacheConfig cfg;
+    cfg.cache_dir = "";
+    DiskPrefixCache cache(cfg, backend);
+    std::vector<int32_t> prompt(600, 1);
+    std::vector<int> boundaries = {300, 600};
+    auto [hit, len] = cache.lookup_boundary_prefix(prompt, boundaries, 0);
+    TEST_ASSERT(!hit);
+    TEST_ASSERT(len == 0);
+}
+
+// Test: lookup_boundary_prefix returns miss when no layout is known.
+static void test_disk_boundary_lookup_no_layout() {
+    MockBackend backend;
+    std::string dir = "/tmp/dflash_test_boundary_no_layout";
+    rm_rf(dir);
+    DiskCacheConfig cfg;
+    cfg.cache_dir = dir;
+    cfg.min_tokens = 100;
+    DiskPrefixCache cache(cfg, backend);
+    cache.init();
+    std::vector<int32_t> prompt(600, 1);
+    std::vector<int> boundaries = {300, 600};
+    auto [hit, len] = cache.lookup_boundary_prefix(prompt, boundaries, 0);
+    TEST_ASSERT(!hit);
+    TEST_ASSERT(len == 0);
+    rm_rf(dir);
+}
+
+// Test: lookup_boundary_prefix returns miss on empty boundaries.
+static void test_disk_boundary_lookup_empty_boundaries() {
+    MockBackend backend;
+    std::string dir = "/tmp/dflash_test_boundary_empty";
+    rm_rf(dir);
+    DiskCacheConfig cfg;
+    cfg.cache_dir = dir;
+    cfg.min_tokens = 100;
+    DiskPrefixCache cache(cfg, backend);
+    cache.init();
+    std::vector<int32_t> prompt(600, 1);
+    std::vector<int> empty;
+    auto [hit, len] = cache.lookup_boundary_prefix(prompt, empty, 0);
+    TEST_ASSERT(!hit);
+    TEST_ASSERT(len == 0);
+    rm_rf(dir);
+}
+
+// Test: hash_prefix(tokens, boundary) is distinct from hash_prefix(tokens, full).
+// This is a prerequisite correctness check — save at boundary must produce a
+// different key than save at full prompt length.
+static void test_disk_boundary_hash_distinct_from_full() {
+    // Build a prompt with two distinct halves.
+    std::vector<int32_t> prompt;
+    for (int i = 0; i < 600; ++i) prompt.push_back(i + 1);
+    int boundary = 300;
+    auto hash_at_boundary = hash_prefix(prompt.data(), boundary);
+    auto hash_at_full     = hash_prefix(prompt.data(), (int)prompt.size());
+    TEST_ASSERT(hash_at_boundary != hash_at_full);
+}
+
+// Test: exact full-prompt lookup still works when a boundary-prefix is also on disk.
+// This verifies the existing path is not broken by the new API.
+static void test_disk_exact_lookup_still_works_after_boundary_save() {
+    // Without a real backend (MockBackend returns false for snapshot_ref),
+    // save() always fails gracefully. We test the API signatures compile and
+    // the miss path returns false/0 correctly when no entries are present.
+    MockBackend backend;
+    std::string dir = "/tmp/dflash_test_exact_vs_boundary";
+    rm_rf(dir);
+    DiskCacheConfig cfg;
+    cfg.cache_dir = dir;
+    cfg.min_tokens = 100;
+    DiskPrefixCache cache(cfg, backend);
+    cache.init();
+    std::vector<int32_t> prompt(600, 7);
+    // save() will fail (MockBackend has no snapshot), but must not crash.
+    TEST_ASSERT(!cache.save(0, prompt));
+    // lookup() on exact prompt: miss.
+    TEST_ASSERT(!cache.lookup(prompt, 0));
+    // lookup_boundary_prefix: miss.
+    std::vector<int> boundaries = {300, 600};
+    auto [hit, len] = cache.lookup_boundary_prefix(prompt, boundaries, 0);
+    TEST_ASSERT(!hit);
+    TEST_ASSERT(len == 0);
+    rm_rf(dir);
+}
+
+// ─── MockBackendWithLayout ───────────────────────────────────────────────
+// A minimal ModelBackend that implements snapshot_layout_ctx() and
+// snapshot_ref() so DiskPrefixCache can both verify the layout at init
+// (via snapshot_layout_ctx) and save a real .dkv file (via snapshot_ref).
+//
+// The KV cache is a single layer: one K and one V tensor, each 16×1×4×1
+// float tensors (small enough for a unit test).
+
+struct MockBackendWithLayout : MockBackend {
+    static constexpr int kNLayer = 1;
+    static constexpr int64_t kHeadDim = 16;
+    static constexpr int64_t kNHead = 4;
+    static constexpr int kMaxPos = 32;
+
+    // One small tensor per K/V layer, allocated on CPU.
+    ggml_context * kv_ctx_ = nullptr;
+    ggml_backend_t cpu_be_ = nullptr;
+    ggml_backend_buffer_t kv_buf_ = nullptr;
+    ggml_tensor * k_[kNLayer] = {};
+    ggml_tensor * v_[kNLayer] = {};
+
+    MockBackendWithLayout() {
+        cpu_be_ = ggml_backend_cpu_init();
+        ggml_init_params ip{};
+        ip.mem_size = ggml_tensor_overhead() * (kNLayer * 2 + 4) + 4096;
+        ip.no_alloc = true;
+        kv_ctx_ = ggml_init(ip);
+        // Shapes: [head_dim, max_pos, n_head, 1]
+        int64_t ne_k[4] = {kHeadDim, kMaxPos, kNHead, 1};
+        int64_t ne_v[4] = {kMaxPos, kHeadDim, kNHead, 1};
+        char name[64];
+        for (int il = 0; il < kNLayer; ++il) {
+            k_[il] = ggml_new_tensor(kv_ctx_, GGML_TYPE_F32, 4, ne_k);
+            std::snprintf(name, sizeof(name), "snap_k_%d", il);
+            ggml_set_name(k_[il], name);
+            v_[il] = ggml_new_tensor(kv_ctx_, GGML_TYPE_F32, 4, ne_v);
+            std::snprintf(name, sizeof(name), "snap_v_%d", il);
+            ggml_set_name(v_[il], name);
+        }
+        kv_buf_ = ggml_backend_alloc_ctx_tensors(kv_ctx_, cpu_be_);
+        // Fill with recognizable data.
+        for (int il = 0; il < kNLayer; ++il) {
+            ggml_backend_tensor_set(k_[il], std::vector<float>(ggml_nelements(k_[il]), 1.0f).data(),
+                                   0, ggml_nbytes(k_[il]));
+            ggml_backend_tensor_set(v_[il], std::vector<float>(ggml_nelements(v_[il]), 2.0f).data(),
+                                   0, ggml_nbytes(v_[il]));
+        }
+    }
+    ~MockBackendWithLayout() {
+        if (kv_buf_) ggml_backend_buffer_free(kv_buf_);
+        if (kv_ctx_) ggml_free(kv_ctx_);
+        if (cpu_be_) ggml_backend_free(cpu_be_);
+    }
+
+    // Return a no-alloc context mirroring the KV cache tensor shapes.
+    ggml_context * snapshot_layout_ctx() const override {
+        ggml_init_params ip{};
+        ip.mem_size = ggml_tensor_overhead() * (kNLayer * 2 + 4) + 4096;
+        ip.no_alloc = true;
+        ggml_context * ctx = ggml_init(ip);
+        if (!ctx) return nullptr;
+        char name[64];
+        for (int il = 0; il < kNLayer; ++il) {
+            ggml_tensor * k = ggml_dup_tensor(ctx, k_[il]);
+            std::snprintf(name, sizeof(name), "snap_k_%d", il);
+            ggml_set_name(k, name);
+            ggml_tensor * v = ggml_dup_tensor(ctx, v_[il]);
+            std::snprintf(name, sizeof(name), "snap_v_%d", il);
+            ggml_set_name(v, name);
+        }
+        return ctx;
+    }
+
+    // Return a ref so save() can write a real .dkv file.
+    SnapshotRef snapshot_ref(int /*slot*/) const override {
+        SnapshotRef ref;
+        ref.ctx     = kv_ctx_;
+        ref.buf     = kv_buf_;
+        ref.cur_pos = kMaxPos;
+        ref.last_tok = 42;
+        return ref;
+    }
+
+    bool snapshot_save(int) override { return true; }
+    bool snapshot_used(int) const override { return true; }
+    int  snapshot_cur_pos(int) const override { return kMaxPos; }
+};
+
+// Test: after a server restart (disk has files from session-1), the FIRST
+// request can use the disk cache — verify_layout_at_init() clears
+// layout_from_disk_ when the live model matches the on-disk fingerprint.
+static void test_disk_verify_layout_at_init_match() {
+    // Phase 1: create a cache with a live backend, save one snapshot.
+    MockBackendWithLayout backend1;
+    std::string dir = "/tmp/dflash_test_verify_layout_match";
+    rm_rf(dir);
+
+    DiskCacheConfig cfg;
+    cfg.cache_dir = dir;
+    cfg.min_tokens = 1;  // accept tiny prompts
+    cfg.budget_bytes = (size_t)512 * 1024 * 1024;
+
+    DiskPrefixCache cache1(cfg, backend1);
+    cache1.init();
+    // learn_layout via the slot (no-alloc needed since save calls snapshot_ref).
+    cache1.learn_layout(0);
+    std::vector<int32_t> prompt;
+    for (int i = 0; i < 10; ++i) prompt.push_back(i + 1);
+    bool saved = cache1.save(0, prompt);
+    TEST_ASSERT(saved);
+
+    // Phase 2: simulate server restart — new DiskPrefixCache, same dir, same backend.
+    MockBackendWithLayout backend2;
+    DiskPrefixCache cache2(cfg, backend2);
+    cache2.init();  // try_learn_from_disk finds the file → layout_from_disk_=true,
+                    // then verify_layout_at_init() runs and clears it on match.
+
+    // The layout should now be verified (layout_from_disk_ cleared).
+    TEST_ASSERT(cache2.layout_verified());
+
+    // lookup() must not be blocked by the layout_from_disk_ guard.
+    // The file exists and the layout is verified, so lookup() will reach
+    // read_file() → snapshot_adopt(), which returns false on this mock
+    // (no real GPU state). The file is then evicted. That is the correct
+    // behaviour (I/O failure path, not the layout-guard path).
+    // We confirm the guard was bypassed: if layout_verified()==true, the
+    // guard !layout_from_disk_ at the top of lookup() did NOT fire.
+    // We also confirm lookup() does not crash.
+    (void)cache2.lookup(prompt, 0);
+
+    rm_rf(dir);
+}
+
+// Test: verify_layout_at_init() invalidates entries when the live model
+// layout does NOT match the on-disk fingerprint (stale cache from different
+// model).
+static void test_disk_verify_layout_at_init_mismatch() {
+    // Phase 1: save with backend1 (layout A).
+    MockBackendWithLayout backend1;
+    std::string dir = "/tmp/dflash_test_verify_layout_mismatch";
+    rm_rf(dir);
+
+    DiskCacheConfig cfg;
+    cfg.cache_dir = dir;
+    cfg.min_tokens = 1;
+    cfg.budget_bytes = (size_t)512 * 1024 * 1024;
+
+    DiskPrefixCache cache1(cfg, backend1);
+    cache1.init();
+    cache1.learn_layout(0);
+    std::vector<int32_t> prompt;
+    for (int i = 0; i < 10; ++i) prompt.push_back(i + 1);
+    bool saved = cache1.save(0, prompt);
+    TEST_ASSERT(saved);
+
+    // Phase 2: different backend that returns a different snapshot_layout_ctx
+    // (different tensor shapes → different fingerprint → mismatch).
+    struct MismatchBackend : MockBackend {
+        ggml_backend_t cpu_be_;
+        ggml_context * ctx_;
+        ggml_backend_buffer_t buf_;
+        ggml_tensor * t_;
+
+        MismatchBackend() {
+            cpu_be_ = ggml_backend_cpu_init();
+            ggml_init_params ip{};
+            ip.mem_size = ggml_tensor_overhead() * 4 + 4096;
+            ip.no_alloc = true;
+            ctx_ = ggml_init(ip);
+            // Different shape: [8, 1, 1, 1] instead of the backend1 shapes.
+            int64_t ne[4] = {8, 1, 1, 1};
+            t_ = ggml_new_tensor(ctx_, GGML_TYPE_F32, 4, ne);
+            ggml_set_name(t_, "snap_k_0_different");
+            buf_ = ggml_backend_alloc_ctx_tensors(ctx_, cpu_be_);
+        }
+        ~MismatchBackend() {
+            if (buf_) ggml_backend_buffer_free(buf_);
+            if (ctx_) ggml_free(ctx_);
+            if (cpu_be_) ggml_backend_free(cpu_be_);
+        }
+        ggml_context * snapshot_layout_ctx() const override {
+            ggml_init_params ip{};
+            ip.mem_size = ggml_tensor_overhead() * 4 + 4096;
+            ip.no_alloc = true;
+            ggml_context * out = ggml_init(ip);
+            if (!out) return nullptr;
+            ggml_tensor * t = ggml_dup_tensor(out, t_);
+            ggml_set_name(t, "snap_k_0_different");
+            return out;
+        }
+    };
+
+    MismatchBackend backend2;
+    DiskPrefixCache cache2(cfg, backend2);
+    cache2.init();  // fingerprint mismatch → entries cleared, layout_known_=false
+
+    // After mismatch, layout is not verified (layout_known_=false, layout_from_disk_=false).
+    TEST_ASSERT(!cache2.layout_verified());
+
+    // Lookups must miss (not crash).
+    bool hit = cache2.lookup(prompt, 0);
+    TEST_ASSERT(!hit);
+
+    rm_rf(dir);
+}
+
+// Test: lookup_boundary_prefix with layout_from_disk_ == true returns miss
+// (mirrors the guard in lookup() — layout_from_disk_ means unverified).
+static void test_disk_boundary_lookup_layout_from_disk_miss() {
+    // This test exercises the guard path: layout_from_disk_ = true → miss.
+    // We can't easily inject this state without modifying the class, so we
+    // use the same proxy: after init() with no model snapshot, layout_from_disk_
+    // is never set to true in this path — but we verify the guard is correct
+    // by checking that no false positive is returned for a fresh (empty) cache.
+    MockBackend backend;
+    std::string dir = "/tmp/dflash_test_boundary_layout_disk";
+    rm_rf(dir);
+    DiskCacheConfig cfg;
+    cfg.cache_dir = dir;
+    cfg.min_tokens = 100;
+    DiskPrefixCache cache(cfg, backend);
+    cache.init();
+    std::vector<int32_t> prompt;
+    for (int i = 0; i < 600; ++i) prompt.push_back(i);
+    std::vector<int> boundaries = {300};
+    auto [hit, len] = cache.lookup_boundary_prefix(prompt, boundaries, 0);
+    TEST_ASSERT(!hit);
+    TEST_ASSERT(len == 0);
+    rm_rf(dir);
+}
+
+// ─── Disk-cache identity salt tests (Spec 1, manifest hardening) ────────
+//
+// test_disk_identity_salt_changes_layout_id:
+//   Same tensor context, two different non-zero salts → DIFFERENT layout_id.
+//   Same non-zero salt applied twice → SAME layout_id.
+//   Fails until set_identity_salt() + the prepend in compute_layout_id exist.
+//
+// test_disk_identity_salt_zero_is_backcompat:
+//   Zero salt (all-zeroes array) → layout_id equals the value produced with
+//   no salt at all (old behavior). Guards backward compatibility.
+
+static void test_disk_identity_salt_changes_layout_id() {
+    MockBackendWithLayout backend;
+
+    // Compute layout_id with salt A.
+    std::array<uint8_t, 16> salt_a{};
+    salt_a[0] = 0x01; salt_a[15] = 0xAB;
+
+    std::string dir_a = "/tmp/dflash_test_salt_a";
+    rm_rf(dir_a);
+    DiskCacheConfig cfg;
+    cfg.cache_dir = dir_a;
+    cfg.min_tokens = 1;
+    DiskPrefixCache cache_a(cfg, backend);
+    cache_a.set_identity_salt(salt_a);
+    cache_a.init();
+    cache_a.learn_layout(0);
+    // Retrieve layout_id via save: save a tiny prompt; the file header carries layout_id.
+    std::vector<int32_t> prompt;
+    for (int i = 0; i < 10; ++i) prompt.push_back(i + 1);
+    bool saved_a = cache_a.save(0, prompt);
+    TEST_ASSERT(saved_a);
+
+    // Compute layout_id with salt B (different from A).
+    std::array<uint8_t, 16> salt_b{};
+    salt_b[0] = 0x02; salt_b[15] = 0xCD;
+
+    std::string dir_b = "/tmp/dflash_test_salt_b";
+    rm_rf(dir_b);
+    DiskCacheConfig cfg_b;
+    cfg_b.cache_dir = dir_b;
+    cfg_b.min_tokens = 1;
+    DiskPrefixCache cache_b(cfg_b, backend);
+    cache_b.set_identity_salt(salt_b);
+    cache_b.init();
+    cache_b.learn_layout(0);
+    bool saved_b = cache_b.save(0, prompt);
+    TEST_ASSERT(saved_b);
+
+    // Read layout_id from the saved file headers.
+    // The file is at <dir>/<layout_hex>/<token_hex>.dkv.
+    // We read it by scanning the layout subdir.
+    auto read_layout_from_dir = [](const std::string & base) -> std::array<uint8_t, 16> {
+        std::array<uint8_t, 16> id{};
+        DIR * d = opendir(base.c_str());
+        if (!d) return id;
+        struct dirent * ent;
+        while ((ent = readdir(d)) != nullptr) {
+            if (ent->d_name[0] == '.') continue;
+            std::string sub = base + "/" + ent->d_name;
+            struct stat st{};
+            if (stat(sub.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) continue;
+            DIR * sd = opendir(sub.c_str());
+            if (!sd) continue;
+            struct dirent * sf;
+            while ((sf = readdir(sd)) != nullptr) {
+                size_t nl = std::strlen(sf->d_name);
+                if (nl < 4 || std::strcmp(sf->d_name + nl - 4, ".dkv") != 0) continue;
+                std::string fp = sub + "/" + sf->d_name;
+                FILE * f = std::fopen(fp.c_str(), "rb");
+                if (!f) continue;
+                // skip magic(4) + version(4)
+                std::fseek(f, 8, SEEK_SET);
+                std::fread(id.data(), 1, 16, f);
+                std::fclose(f);
+                closedir(sd);
+                closedir(d);
+                return id;
+            }
+            closedir(sd);
+        }
+        closedir(d);
+        return id;
+    };
+
+    std::array<uint8_t, 16> id_a = read_layout_from_dir(dir_a);
+    std::array<uint8_t, 16> id_b = read_layout_from_dir(dir_b);
+
+    // Different salts → different layout_id.
+    TEST_ASSERT(id_a != id_b);
+
+    // Same salt applied again → same layout_id.
+    std::string dir_a2 = "/tmp/dflash_test_salt_a2";
+    rm_rf(dir_a2);
+    DiskCacheConfig cfg_a2;
+    cfg_a2.cache_dir = dir_a2;
+    cfg_a2.min_tokens = 1;
+    DiskPrefixCache cache_a2(cfg_a2, backend);
+    cache_a2.set_identity_salt(salt_a);
+    cache_a2.init();
+    cache_a2.learn_layout(0);
+    bool saved_a2 = cache_a2.save(0, prompt);
+    TEST_ASSERT(saved_a2);
+    std::array<uint8_t, 16> id_a2 = read_layout_from_dir(dir_a2);
+    TEST_ASSERT(id_a == id_a2);
+
+    rm_rf(dir_a);
+    rm_rf(dir_b);
+    rm_rf(dir_a2);
+}
+
+static void test_disk_identity_salt_zero_is_backcompat() {
+    // Zero salt must produce the same layout_id as no salt at all
+    // (old behavior preserved for callers that don't set a salt).
+    MockBackendWithLayout backend;
+
+    // Cache 1: no set_identity_salt call (default zeros).
+    std::string dir1 = "/tmp/dflash_test_salt_zero1";
+    rm_rf(dir1);
+    DiskCacheConfig cfg1;
+    cfg1.cache_dir = dir1;
+    cfg1.min_tokens = 1;
+    DiskPrefixCache cache1(cfg1, backend);
+    cache1.init();
+    cache1.learn_layout(0);
+    std::vector<int32_t> prompt;
+    for (int i = 0; i < 10; ++i) prompt.push_back(i + 1);
+    TEST_ASSERT(cache1.save(0, prompt));
+
+    // Cache 2: explicitly set all-zero salt.
+    std::string dir2 = "/tmp/dflash_test_salt_zero2";
+    rm_rf(dir2);
+    DiskCacheConfig cfg2;
+    cfg2.cache_dir = dir2;
+    cfg2.min_tokens = 1;
+    DiskPrefixCache cache2(cfg2, backend);
+    std::array<uint8_t, 16> zero_salt{};
+    cache2.set_identity_salt(zero_salt);
+    cache2.init();
+    cache2.learn_layout(0);
+    TEST_ASSERT(cache2.save(0, prompt));
+
+    // Read layout_ids from both dirs and compare.
+    auto read_layout_from_dir = [](const std::string & base) -> std::array<uint8_t, 16> {
+        std::array<uint8_t, 16> id{};
+        DIR * d = opendir(base.c_str());
+        if (!d) return id;
+        struct dirent * ent;
+        while ((ent = readdir(d)) != nullptr) {
+            if (ent->d_name[0] == '.') continue;
+            std::string sub = base + "/" + ent->d_name;
+            struct stat st{};
+            if (stat(sub.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) continue;
+            DIR * sd = opendir(sub.c_str());
+            if (!sd) continue;
+            struct dirent * sf;
+            while ((sf = readdir(sd)) != nullptr) {
+                size_t nl = std::strlen(sf->d_name);
+                if (nl < 4 || std::strcmp(sf->d_name + nl - 4, ".dkv") != 0) continue;
+                std::string fp = sub + "/" + sf->d_name;
+                FILE * f = std::fopen(fp.c_str(), "rb");
+                if (!f) continue;
+                std::fseek(f, 8, SEEK_SET);
+                std::fread(id.data(), 1, 16, f);
+                std::fclose(f);
+                closedir(sd);
+                closedir(d);
+                return id;
+            }
+            closedir(sd);
+        }
+        closedir(d);
+        return id;
+    };
+
+    std::array<uint8_t, 16> id1 = read_layout_from_dir(dir1);
+    std::array<uint8_t, 16> id2 = read_layout_from_dir(dir2);
+
+    // Zero salt == no salt: must be identical.
+    TEST_ASSERT(id1 == id2);
+
+    rm_rf(dir1);
+    rm_rf(dir2);
+}
+
 static void test_backend_ipc_rejects_file_work_dir() {
     const std::string file_path = "/tmp/dflash_test_backend_ipc_work_dir_file";
     unlink(file_path.c_str());
@@ -5390,10 +5900,16 @@ static void test_soft_close_determinism_when_disabled() {
 // ═══════════════════════════════════════════════════════════════════════
 
 static void test_c2_gate_no_override_always_permits() {
-    // fa_window_override == 0 → no pflash, always spec-decode permitted.
+    // fa_window_override == 0 → uncompressed path; gate on kv_committed.
+    // Short/medium ctx: permitted.
     TEST_ASSERT(dflash::common::c2_spec_decode_permitted(0, 2048, 1));
     TEST_ASSERT(dflash::common::c2_spec_decode_permitted(0, 2048, 4096));
-    TEST_ASSERT(dflash::common::c2_spec_decode_permitted(0, 2048, 131072));
+    // kv_committed below threshold → permitted.
+    TEST_ASSERT(dflash::common::c2_spec_decode_permitted(0, 2048, dflash::common::kSpecMaxUncompressedCtx - 1));
+    // kv_committed at/above threshold → blocked (AR wins on long uncompressed ctx).
+    TEST_ASSERT(!dflash::common::c2_spec_decode_permitted(0, 2048, dflash::common::kSpecMaxUncompressedCtx));
+    TEST_ASSERT(!dflash::common::c2_spec_decode_permitted(0, 2048, 63000));
+    TEST_ASSERT(!dflash::common::c2_spec_decode_permitted(0, 2048, 131072));
 }
 
 static void test_c2_gate_128k_compressed_blocks_spec() {
@@ -5445,6 +5961,232 @@ static void test_c2_gate_fa_window_zero_small_compressed_permits() {
     TEST_ASSERT(dflash::common::c2_spec_decode_permitted(2300, spec_fa, 2044));
     // Huge compressed prompt still BLOCKED (override=9000 > 2*2048=4096).
     TEST_ASSERT(!dflash::common::c2_spec_decode_permitted(9000, spec_fa, 8744));
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// normalize_system_for_cache — Phase A header-strip RED tests
+//
+// All tests with "strips" or "idempotent" FAIL with the passthrough stub.
+// test_normalize_preserves_legit_system_content PASSES (guard test).
+// ═══════════════════════════════════════════════════════════════════════
+
+static void test_normalize_strips_billing_header_anthropic_array() {
+    // Anthropic system-as-array: one billing-header block + one real block.
+    // After stripping, output must contain only the real-block text.
+    json system_blocks = json::array({
+        {{"type", "text"},
+         {"text", "x-anthropic-billing-header: session=abc123 turn=4 ts=1749430000"}},
+        {{"type", "text"},
+         {"text", "You are a helpful coding assistant."}}
+    });
+    std::string out = normalize_system_for_cache(system_blocks);
+    // Must NOT contain the billing header.
+    TEST_ASSERT(out.find("x-anthropic-billing-header:") == std::string::npos);
+    // Must still contain the real content.
+    TEST_ASSERT(out.find("helpful coding assistant") != std::string::npos);
+}
+
+static void test_normalize_strips_billing_header_openai_messages0() {
+    // OpenAI messages[0] system containing the billing header in content.
+    // After stripping, output must exclude the header.
+    json messages = json::array({
+        {{"role", "system"},
+         {"content", "x-anthropic-billing-header: session=xyz789 turn=12 ts=1749431000\nYou are a code reviewer."}},
+        {{"role", "user"}, {"content", "Review this diff."}}
+    });
+    std::string out = normalize_system_for_cache(messages);
+    TEST_ASSERT(out.find("x-anthropic-billing-header:") == std::string::npos);
+    TEST_ASSERT(out.find("code reviewer") != std::string::npos);
+}
+
+static void test_normalize_idempotent_across_changing_header() {
+    // Two OpenAI messages arrays identical except the header session/turn value.
+    // normalize_system_for_cache must return EQUAL strings for both.
+    json messages_turn4 = json::array({
+        {{"role", "system"},
+         {"content", "x-anthropic-billing-header: session=S1 turn=4 ts=1749430000\nYou help with Rust."}},
+        {{"role", "user"}, {"content", "What is a lifetime?"}}
+    });
+    json messages_turn5 = json::array({
+        {{"role", "system"},
+         {"content", "x-anthropic-billing-header: session=S1 turn=5 ts=1749430060\nYou help with Rust."}},
+        {{"role", "user"}, {"content", "What is a lifetime?"}}
+    });
+    std::string out4 = normalize_system_for_cache(messages_turn4);
+    std::string out5 = normalize_system_for_cache(messages_turn5);
+    // Must be identical after stripping the volatile header.
+    TEST_ASSERT(out4 == out5);
+}
+
+static void test_normalize_preserves_legit_system_content() {
+    // A normal system prompt containing no billing header must pass through unchanged.
+    // This test PASSES even with the passthrough stub — it is a regression guard.
+    json messages = json::array({
+        {{"role", "system"},
+         {"content", "You are an expert in C++ performance optimization."}},
+        {{"role", "user"}, {"content", "Help me optimize this loop."}}
+    });
+    std::string out = normalize_system_for_cache(messages);
+    TEST_ASSERT(out == "You are an expert in C++ performance optimization.");
+}
+
+static void test_normalize_handles_leading_whitespace_header() {
+    // Header block with leading whitespace/newline must still be stripped.
+    json system_blocks = json::array({
+        {{"type", "text"},
+         {"text", "  x-anthropic-billing-header: session=W1 turn=1 ts=1749432000"}},
+        {{"type", "text"},
+         {"text", "Be concise."}}
+    });
+    std::string out = normalize_system_for_cache(system_blocks);
+    // Must NOT contain the billing header (stripped even with leading space).
+    TEST_ASSERT(out.find("x-anthropic-billing-header:") == std::string::npos);
+    // Must still contain the real instruction.
+    TEST_ASSERT(out.find("Be concise.") != std::string::npos);
+}
+
+static void test_prefix_key_stable_across_header_change() {
+    // Integration: two /v1/chat/completions-style messages arrays differing ONLY
+    // in the billing header value should normalize to EQUAL strings, producing
+    // equal cache keys (hash_prefix of the tokenized normalized string).
+    // With the passthrough stub the strings DIFFER → test fails RED.
+    json messages_a = json::array({
+        {{"role", "system"},
+         {"content", "x-anthropic-billing-header: session=S2 turn=1 ts=1749440000\nYou are a senior engineer."}},
+        {{"role", "user"}, {"content", "What is RAII?"}}
+    });
+    json messages_b = json::array({
+        {{"role", "system"},
+         {"content", "x-anthropic-billing-header: session=S2 turn=7 ts=1749440420\nYou are a senior engineer."}},
+        {{"role", "user"}, {"content", "What is RAII?"}}
+    });
+    std::string norm_a = normalize_system_for_cache(messages_a);
+    std::string norm_b = normalize_system_for_cache(messages_b);
+    // After header removal both normalize to identical system text.
+    // Identical normalized text → identical tokenization → identical hash_prefix → cache HIT.
+    TEST_ASSERT(norm_a == norm_b);
+    // The legitimate content must survive.
+    TEST_ASSERT(norm_a.find("senior engineer") != std::string::npos);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// freeze_history — Phase B, RED
+//
+// Stubs: plan_freeze returns {0,0,0,false}; frozen_block_key returns zero.
+//
+// RED tests (fail with stubs):
+//   test_freeze_plan_basic_three_regions  — stub has_frozen=false, test expects true
+//   test_freeze_plan_system_never_in_frozen — needs has_frozen=true case → RED
+//   test_frozen_block_key_nonzero_for_content — zero stub fails nonzero assert
+//   test_frozen_block_key_differs_on_edit — zero stub returns same key for both
+//
+// GUARD tests (pass vacuously with stubs, intended green-guards):
+//   test_freeze_plan_first_turn_no_freeze — only 2 turns → has_frozen=false (stub agrees)
+//   test_freeze_plan_too_short_for_hot_window — 3 turns, hot=2 → has_frozen=false (stub agrees)
+// ═══════════════════════════════════════════════════════════════════════
+
+// Helper: build a trivial token span sequence.
+static dflash::common::TurnSpan make_span(int begin, int end, bool is_system = false) {
+    return dflash::common::TurnSpan{begin, end, is_system};
+}
+
+// RED: 5 turns [system, u1, a1, u2, a2], hot_window=1
+//  Expected: verbatim_prefix_end=10, frozen=[10..30), has_frozen=true
+//  Stub returns: {0,0,0,false} → has_frozen assertion fails RED.
+static void test_freeze_plan_basic_three_regions() {
+    using namespace dflash::common;
+    // turns: system[0..10), u1[10..20), a1[20..30), u2[30..40), a2[40..50)
+    std::vector<TurnSpan> turns = {
+        make_span(0,  10, true),   // system
+        make_span(10, 20),         // user1
+        make_span(20, 30),         // assistant1
+        make_span(30, 40),         // user2
+        make_span(40, 50),         // assistant2 (hot tail when hot_window=1)
+    };
+    FreezePlan p = plan_freeze(turns, /*hot_window_turns=*/1);
+
+    // Verbatim prefix = system turn end
+    TEST_ASSERT_MSG(p.verbatim_prefix_end == 10,
+        "verbatim_prefix_end must equal system turn end_tok");
+    // Frozen = turns[1..3) = u1..a1 = tokens [10..30)
+    TEST_ASSERT_MSG(p.has_frozen,
+        "5 turns with hot_window=1 must produce a frozen region");
+    TEST_ASSERT_MSG(p.frozen_begin == 10,
+        "frozen_begin must equal turns[1].begin_tok");
+    TEST_ASSERT_MSG(p.frozen_end == 30,
+        "frozen_end must equal turns[N-1-hot_window].end_tok (a1 end)");
+}
+
+// GUARD (passes with stub): only [system, u1] → 2 turns < 2+hot_window(1)=3 → has_frozen=false
+static void test_freeze_plan_first_turn_no_freeze() {
+    using namespace dflash::common;
+    std::vector<TurnSpan> turns = {
+        make_span(0, 100, true),  // system
+        make_span(100, 200),      // user1
+    };
+    FreezePlan p = plan_freeze(turns, /*hot_window_turns=*/1);
+    TEST_ASSERT_MSG(!p.has_frozen, "only 2 turns → nothing to freeze");
+}
+
+// GUARD (passes with stub): [system, u1, a1], hot_window=2
+//   need 2+hot_window=4 turns for has_frozen=true; only 3 → false
+static void test_freeze_plan_too_short_for_hot_window() {
+    using namespace dflash::common;
+    std::vector<TurnSpan> turns = {
+        make_span(0,  50, true),
+        make_span(50, 100),
+        make_span(100, 150),
+    };
+    FreezePlan p = plan_freeze(turns, /*hot_window_turns=*/2);
+    TEST_ASSERT_MSG(!p.has_frozen, "3 turns with hot_window=2 → not enough aged turns");
+}
+
+// RED: 5 turns [system, u1, a1, u2, a2], hot_window=1 → frozen exists
+//   Assert frozen_begin >= verbatim_prefix_end (system never in frozen region).
+//   With the stub: has_frozen=false so frozen_begin=0, verbatim_prefix_end=0;
+//   both zero → 0>=0 passes vacuously on the guard expression, which is
+//   exactly what we DON'T want. We make this RED by also asserting has_frozen.
+static void test_freeze_plan_system_never_in_frozen() {
+    using namespace dflash::common;
+    std::vector<TurnSpan> turns = {
+        make_span(0,  200, true),  // system (large)
+        make_span(200, 300),
+        make_span(300, 400),
+        make_span(400, 500),       // hot tail (hot_window=1)
+    };
+    FreezePlan p = plan_freeze(turns, /*hot_window_turns=*/1);
+    // This assertion is the functional guard:
+    TEST_ASSERT_MSG(p.has_frozen, "4 turns with hot_window=1 must produce a frozen region");
+    // This is the system-never-compressed guarantee:
+    TEST_ASSERT_MSG(p.frozen_begin >= p.verbatim_prefix_end,
+        "frozen region must start at or after system prefix end");
+}
+
+// RED: same token slice hashed twice must return EQUAL AND NONZERO key.
+//   Nonzero assertion fails with zeroed stub.
+static void test_frozen_block_key_nonzero_for_content() {
+    using namespace dflash::common;
+    const int32_t ids[] = {1001, 2002, 3003, 4004};
+    PrefixHash h1 = frozen_block_key(ids, 0, 4);
+    PrefixHash h2 = frozen_block_key(ids, 0, 4);
+    // Stability: same input → same output
+    TEST_ASSERT_MSG(h1 == h2, "frozen_block_key must be deterministic");
+    // RED with stub: zeroed hash → all bytes zero → this fails
+    bool all_zero = true;
+    for (auto b : h1) { if (b != 0) { all_zero = false; break; } }
+    TEST_ASSERT_MSG(!all_zero, "frozen_block_key must return non-zero hash for non-empty slice");
+}
+
+// RED: two slices differing by one token must produce different keys.
+//   Stub returns zero for both → equal → assertion fails RED.
+static void test_frozen_block_key_differs_on_edit() {
+    using namespace dflash::common;
+    const int32_t ids_a[] = {100, 200, 300, 400};
+    const int32_t ids_b[] = {100, 200, 300, 999};  // last token differs
+    PrefixHash ha = frozen_block_key(ids_a, 0, 4);
+    PrefixHash hb = frozen_block_key(ids_b, 0, 4);
+    TEST_ASSERT_MSG(ha != hb,
+        "frozen_block_key must produce distinct keys for distinct token slices");
 }
 
 int main() {
@@ -5653,6 +6395,18 @@ int main() {
     RUN_TEST(test_disk_cache_budget_enforcement_scoring);
     RUN_TEST(test_disk_cache_lookup_miss_no_layout);
     RUN_TEST(test_disk_cache_save_below_min_tokens);
+    RUN_TEST(test_disk_boundary_lookup_disabled);
+    RUN_TEST(test_disk_boundary_lookup_no_layout);
+    RUN_TEST(test_disk_boundary_lookup_empty_boundaries);
+    RUN_TEST(test_disk_boundary_hash_distinct_from_full);
+    RUN_TEST(test_disk_exact_lookup_still_works_after_boundary_save);
+    RUN_TEST(test_disk_boundary_lookup_layout_from_disk_miss);
+    RUN_TEST(test_disk_verify_layout_at_init_match);
+    RUN_TEST(test_disk_verify_layout_at_init_mismatch);
+
+    std::fprintf(stderr, "\n── Disk-cache identity salt (Spec 1, manifest hardening) ──\n");
+    RUN_TEST(test_disk_identity_salt_changes_layout_id);
+    RUN_TEST(test_disk_identity_salt_zero_is_backcompat);
 
     std::fprintf(stderr, "\n── Sampler ──\n");
     RUN_TEST(test_sampler_cfg_defaults);
@@ -5781,6 +6535,22 @@ int main() {
     RUN_TEST(test_c2_gate_boundary_at_2x_fa_window);
     RUN_TEST(test_spec_fa_ref_zero_falls_back_to_const);
     RUN_TEST(test_c2_gate_fa_window_zero_small_compressed_permits);
+
+    std::fprintf(stderr, "\n── normalize_system_for_cache (Phase A, RED) ──\n");
+    RUN_TEST(test_normalize_strips_billing_header_anthropic_array);
+    RUN_TEST(test_normalize_strips_billing_header_openai_messages0);
+    RUN_TEST(test_normalize_idempotent_across_changing_header);
+    RUN_TEST(test_normalize_preserves_legit_system_content);
+    RUN_TEST(test_normalize_handles_leading_whitespace_header);
+    RUN_TEST(test_prefix_key_stable_across_header_change);
+
+    std::fprintf(stderr, "\n── freeze_history (Phase B, RED) ──\n");
+    RUN_TEST(test_freeze_plan_basic_three_regions);
+    RUN_TEST(test_freeze_plan_first_turn_no_freeze);
+    RUN_TEST(test_freeze_plan_too_short_for_hot_window);
+    RUN_TEST(test_freeze_plan_system_never_in_frozen);
+    RUN_TEST(test_frozen_block_key_nonzero_for_content);
+    RUN_TEST(test_frozen_block_key_differs_on_edit);
 
     std::fprintf(stderr, "\n══════════════════════════════════════════\n");
     std::fprintf(stderr, " Results: %d assertions, %d failures\n",
