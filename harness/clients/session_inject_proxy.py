@@ -22,13 +22,11 @@ C++ server route surface (http_server.cpp):
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
-import socket
-import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
-import http.client
 
 
 # POST paths on which extra_body.session_id injection is performed.
@@ -86,7 +84,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.write(b"0\r\n\r\n")
                     self.wfile.flush()
                     break
-                size = "%X\r\n" % len(chunk)
+                size = f"{len(chunk):X}\r\n"
                 self.wfile.write(size.encode("ascii"))
                 self.wfile.write(chunk)
                 self.wfile.write(b"\r\n")
