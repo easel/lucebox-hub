@@ -15,6 +15,7 @@
 
 #include "qwen3_drafter.h"
 #include "qwen3_drafter_model.h"
+#include "qwen3/anchor_params.h"
 #include "common/backend_precision.h"
 #include "internal.h"
 #include "anchor_scan.h"
@@ -665,6 +666,13 @@ static std::vector<int32_t> qwen35_score_and_compress(
 
     const int q0 = std::max(0, S - cfg.query_tokens);
     std::vector<int32_t> query_pool(ids.begin() + q0, ids.end());
+    const auto ap = resolve_anchor_params(n_chunks,
+        env_int("PFLASH_COMPRESS_ANCHOR_RADIUS",   -1),
+        env_int("PFLASH_COMPRESS_MAX_ANCHOR_HITS", -1),
+        env_int("DFLASH_COMPRESS_ANCHOR_RADIUS",   -1),
+        env_int("DFLASH_COMPRESS_MAX_ANCHOR_HITS", -1));
+    const int anchor_radius   = ap.radius;
+    const int max_anchor_hits = ap.max_hits;
     std::vector<uint8_t> forced((size_t)n_chunks, 0);
 
     dflash::qwen3::AnchorScanCfg anchor_cfg = cfg.anchor;
@@ -830,12 +838,27 @@ std::vector<int32_t> drafter_score_and_compress(
     std::sort(chunk_means.begin(), chunk_means.end(),
                       [](auto a, auto b) { return a.first > b.first; });
 
-    // Retrieval tasks often repeat a rare key in the final query and in the
-    // needle span. Exact scores alone can keep the query while dropping the
-    // neighboring answer chunk, so force token-only anchor neighborhoods.
     const CompressCfg cfg = compress_cfg_from_env(n_chunks, n_keep, use_transitive_override);
 
-
+    // Retrieval tasks often repeat a rare key in the final query and in the
+    // needle span. Exact scores alone can keep the query while dropping the
+    // neighboring answer chunk, so force a small token-only anchor neighborhood.
+    // Head/tail forced chunks scale with n_keep so top-K scoring always gets slots.
+    const int h_raw = env_int("DFLASH_COMPRESS_HEAD_CHUNKS", 8);
+    const int t_raw = env_int("DFLASH_COMPRESS_TAIL_CHUNKS", 24);
+    int head_chunks = h_raw, tail_chunks = t_raw;
+    if (head_chunks + tail_chunks >= n_keep) {
+        const int budget = std::max(1, n_keep - 1);
+        head_chunks = std::max(0, h_raw * budget / (h_raw + t_raw));
+        tail_chunks = std::max(0, budget - head_chunks);
+    }
+    const auto ap = resolve_anchor_params(n_chunks,
+        env_int("PFLASH_COMPRESS_ANCHOR_RADIUS",   -1),
+        env_int("PFLASH_COMPRESS_MAX_ANCHOR_HITS", -1),
+        env_int("DFLASH_COMPRESS_ANCHOR_RADIUS",   -1),
+        env_int("DFLASH_COMPRESS_MAX_ANCHOR_HITS", -1));
+    const int anchor_radius   = ap.radius;
+    const int max_anchor_hits = ap.max_hits;
     std::vector<uint8_t> selected_mask((size_t)n_chunks, 0);
     std::vector<uint8_t> forced((size_t)n_chunks, 0);
     for (int c = 0; c < std::min(n_chunks, cfg.head_chunks); ++c) forced[(size_t)c] = 1;
