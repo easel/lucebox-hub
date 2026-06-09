@@ -1,14 +1,14 @@
-updated_at: 2026-06-01T19:28:37-04:00
+updated_at: 2026-06-09T16:27:34-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
   upstream: origin
   writable: easel
 heads:
-  upstream_main: 8305b6c2
-  easel_auto_integration_before_refresh: 371c7bf0
-  current_integration_head_before_refresh: 371c7bf0
-  refreshed_head: see-git-log
+  upstream_main: 50107add
+  easel_auto_integration_before_refresh: 52a569d0
+  current_integration_head_before_refresh: 52a569d0
+  refreshed_head: 5ccd472a
   base_before_run: auto-integration
 stack:
   included:
