@@ -118,11 +118,9 @@ RUN cd /src/server/build \
 # of these reuses the cached CUDA layers above and only re-runs the
 # runtime stage's uv sync (~70s) instead of the full ~25-minute build.
 #
-# `lucebox/`, `luce-bench/`, and `harness/` are intentionally not copied
-# here — they ship in sibling PRs (#335 lucebox-cli, #337 luce-bench).
-# This image is the foundational layer that #335 / #337 layer their
-# Python surfaces on top of (either as follow-up COPY directives in
-# their Dockerfile diffs, or as runtime bind-mounts during dev).
+# Host-side Python tooling (lucebox/, harness/) is intentionally not copied
+# here: this image is the server. Such tooling can layer on top later via a
+# follow-up COPY directive or a runtime bind-mount during dev.
 COPY pyproject.toml uv.lock README.md /src/
 COPY server/pyproject.toml server/README.md /src/server/
 COPY server/scripts /src/server/scripts
@@ -182,11 +180,9 @@ COPY --from=builder /src/optimizations/megakernel/pyproject.toml \
                    /src/optimizations/megakernel/README.md \
                    /opt/lucebox-hub/optimizations/megakernel/
 
-# lucebox/, luce-bench/, harness/ are intentionally absent here. They ship
-# in sibling PRs (#335 lucebox-cli, #337 luce-bench). This image is the
-# foundational base layer; the Python CLI and bench harness layer on top
-# either via a follow-up COPY in #335/#337's Dockerfile diff or via a
-# runtime bind-mount during dev.
+# Host-side Python tooling (lucebox/, harness/) is intentionally absent
+# here: this image is the server base layer. Such tooling can layer on top
+# later via a follow-up COPY directive or a runtime bind-mount during dev.
 
 # server: ship the entrypoint/benchmark scripts, the pyproject + README that uv
 # resolves against, and the pruned build tree (binaries + .so files from the
@@ -206,8 +202,8 @@ COPY --from=builder /src/server/build /opt/lucebox-hub/server/build
 # One copy under share/; a symlink wires in the server search path so
 # we don't duplicate. The C++ server binary resolves
 # <binary>/../share/model_cards = server/build/../share/model_cards =
-# server/share/model_cards. Sibling PR #337 (luce-bench) reads the same
-# share/ tree at /opt/lucebox-hub/share/model_cards once it lands.
+# server/share/model_cards. The canonical copy also lives at
+# /opt/lucebox-hub/share/model_cards for any host-side tooling.
 COPY share/model_cards /opt/lucebox-hub/share/model_cards
 RUN mkdir -p /opt/lucebox-hub/server/share \
     && ln -s /opt/lucebox-hub/share/model_cards \
@@ -254,8 +250,6 @@ ENV UV_LINK_MODE=hardlink \
 # to write `_version.py` into the root-owned workspace source dirs, which
 # fails as a non-root user. With non-editable wheels the venv is
 # self-contained and the build hook only runs once, here, with root.
-# Note: sibling PRs #335 (lucebox-cli) and #337 (luce-bench) re-add
-# their respective workspace members to this list when they land.
 RUN uv sync --no-dev --frozen --no-editable 2>/dev/null \
     || uv sync --no-dev --frozen --no-editable
 

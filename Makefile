@@ -1,4 +1,4 @@
-# Makefile — single entry point for the common dev/CI ops on lucebox-hub.
+# Makefile: single entry point for the common dev/CI ops on lucebox-hub.
 #
 # Most targets shell out to `uv` and `docker buildx bake`. Pre-release
 # software: targets favor simplicity over portability (assumes bash + GNU
@@ -6,19 +6,10 @@
 #
 # Quick start:
 #   make help        # what's available
-#   make test        # workspace pytest (no-op on this PR until #335/#337 land)
 #   make lint        # ruff check + format check
 #   make build       # docker buildx bake cuda12-local --load
 #   make serve       # docker run the local image, gemma-4-26b
-#   make smoke URL=http://localhost:8080  # 3-prompt sanity check
-#   make bench AREAS=all                  # full capability sweep
 #   make clean       # drop containers + dangling images
-#
-# `test`, `smoke`, `bench`, and `profile` depend on the lucebox CLI (#335)
-# and luce-bench (#337) packages — they exist as targets here so the
-# Makefile interface is stable, but they will report "missing" until
-# those siblings land. `build` / `serve` / `shell` / `clean` work on this
-# PR alone.
 
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
@@ -28,19 +19,8 @@ SHELL := /bin/bash
 #   make build DFLASH_CUDA_ARCHES=120
 DFLASH_CUDA_ARCHES ?= 75;80;86;89;90;120
 
-# Where to mount models into the container. Default matches what
-# `lucebox configure` would pick.
+# Where to mount models into the container.
 MODELS_DIR ?= $(HOME)/models
-
-# Server URL for smoke / bench / profile targets.
-URL ?= http://localhost:8080
-
-# Which areas the bench target runs. Defaults to the fast smoke area.
-# Override: `make bench AREAS=all` or `make bench AREAS=ds4-eval,forge`.
-AREAS ?= smoke
-
-# Model id passed to the bench. `default` triggers /v1/models autoresolve.
-MODEL ?= default
 
 # Image name (local tag the buildx bake produces).
 IMAGE ?= lucebox-hub:cuda12
@@ -54,15 +34,6 @@ help:  ## Show this help message.
 .PHONY: sync
 sync:  ## uv sync the workspace (incl. dev extras).
 	uv sync --extra dev
-
-.PHONY: test
-test: sync  ## Run all Python tests (lucebox + luce-bench — requires #335/#337).
-	@if [ -d lucebox/tests ] || [ -d luce-bench/tests ]; then \
-		uv run pytest $$(test -d lucebox/tests && echo lucebox/tests) \
-		              $$(test -d luce-bench/tests && echo luce-bench/tests) -q; \
-	else \
-		echo "make test: no Python test dirs yet (lucebox/ and luce-bench/ ship in #335/#337)"; \
-	fi
 
 .PHONY: lint
 lint: sync  ## Ruff check + format-check (no auto-fix).
@@ -93,18 +64,6 @@ stop:  ## Stop a running lucebox-gemma container.
 .PHONY: shell
 shell:  ## Drop into a bash shell inside the image (debug).
 	docker run --rm -it --gpus all $(IMAGE) shell
-
-.PHONY: smoke
-smoke: sync  ## Run the luce-bench smoke area against URL (default localhost:8080).
-	uv run python -m lucebench --base-url $(URL) --model $(MODEL) --areas smoke
-
-.PHONY: bench
-bench: sync  ## Run the bench AREAS against URL. Default: smoke. Try AREAS=all.
-	uv run python -m lucebench --base-url $(URL) --model $(MODEL) --areas $(AREAS)
-
-.PHONY: profile
-profile: sync  ## Capture a versioned snapshot via lucebox profile.
-	uv run python -m lucebox profile --url $(URL)
 
 .PHONY: ci-trigger-build
 ci-trigger-build:  ## Trigger GH Actions docker build+push for the current branch.

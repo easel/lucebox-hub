@@ -37,8 +37,6 @@ on:
       - server/pyproject.toml
       - pyproject.toml
       - uv.lock
-      # `lucebox.sh` and `lucebox/**` are added by sibling PR #335
-      # (lucebox-cli); revisit once that lands.
   # Manual trigger for one-off rebuilds or pre-release smoke tests. The
   # `push` input controls whether the resulting images land in GHCR or only
   # populate the buildx cache.
@@ -142,9 +140,8 @@ jobs:
             # workflow_dispatch with push:true. The `enable=` gate keeps
             # branch + PR builds from clobbering the published `:cuda12`.
             type=raw,value=${{ matrix.variant }},suffix=,priority=1000,enable=${{ github.event_name == 'release' || (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') || (github.event_name == 'workflow_dispatch' && inputs.push) }}
-            # Pinned version tag — extracts the version from a
-            # `lucebox-v<X.Y.Z>` git tag push, mirroring the hatch-vcs
-            # scheme used by luce-bench and lucebox. Yields e.g.
+            # Pinned version tag: extracts the version from a
+            # `lucebox-v<X.Y.Z>` git tag push via hatch-vcs. Yields e.g.
             # `0.3.0-cuda12` when `lucebox-v0.3.0` is pushed.
             type=match,pattern=lucebox-v(\d+\.\d+\.\d+),group=1
             type=ref,event=branch

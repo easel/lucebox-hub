@@ -28,10 +28,8 @@ line-length = 100
 # benchmark, autotune, and host-CLI stack. Untouched server-adjacent scripts and
 # vendored dependencies stay outside this gate until they are cleaned up.
 #
-# The lucebox/**/*.py include is re-added by #335 (lucebox-cli) when that
-# package lands; #334 (this PR) ships only the docker stack, so there is
-# nothing to lint at the root yet. The `pyproject.toml`-driven ruff config
-# still applies to whatever members add their own include lists.
+# No Python package at the repo root to lint yet; workspace members add
+# their own include lists. The pyproject-driven ruff config still applies.
 include = []
 extend-exclude = [
     "dflash/deps",
