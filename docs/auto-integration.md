@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-09T05:57:28-04:00`
-Current base: `origin/main` `38ed882c`
-Previous integration tip: `d642be52`
-Current integration source tip before this refresh: `d642be52`
-Post-merge integration tip: `3b5344b7`
-refreshed_head: `3b5344b7`
+Last refresh: `2026-06-09T10:07:56-04:00`
+Current base: `origin/main` `b93cc44d`
+Previous integration tip: `3b5344b7`
+Current integration source tip before this refresh: `3b5344b7`
+Post-merge integration tip: `54ad2a80`
+refreshed_head: `54ad2a80`
 
-Latest 2026-06-09 refresh: fetched `origin` and `easel` separately, merged `origin/main` `38ed882c` into `auto-integration`, and then merged PR `#334` (`build(docker): lucebox-hub container image + CI release pipeline`) on top of the refreshed base. The PR #334 merge was clean everywhere except `README.md`, where the current-stack docs were kept because they already carry the newer integrated quick-start / server / benchmark material; the new Dockerfile, `.gitattributes`, and `assets/docker.png` changes were retained. A separate direct-merge probe for PR `#135` (`feat(dflash): native multi-request scheduler with batched target step`) still conflicts in `server/src/internal.h`, `server/src/qwen35/qwen35_target_graph.cpp`, and `server/test/test_dflash.cpp`, so it remains held. Open PR accounting is now 20 non-draft and 4 draft/excluded (`#353`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#352`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs remain `#154`, `#153`, and `#135`. Validation for this refresh: `git diff --check` passed after the merge resolution and the merge commit was created successfully.
+Latest 2026-06-09 refresh: fetched `origin` and `easel` separately, merged updated `origin/main` `b93cc44d` into `auto-integration`, and then merged the advanced open PR `#274` (`feat(pflash): prefill compress up to 128k -> 2-12× prefill (content-dependent), decode at parity`) after resolving conflicts in `server/src/common/dflash_target.h`, `server/src/common/model_backend.h`, `server/src/server/http_server.h`, `server/src/server/http_server.cpp`, and `server/test/test_server_unit.cpp`. The resolution kept both the PR's stochastic-capture / stochastic-override plumbing and the current stack's retry / identity-salt / server-status behavior, and it preserved the new disk-boundary and disk-identity tests alongside the existing backend IPC coverage. Open PR accounting is now 19 non-draft and 4 draft/excluded (`#353`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack shows 16 current open non-draft PR heads integrated: `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs remain `#154`, `#153`, and `#135`. Validation for this refresh: `git diff --check` passed in the merge worktree; `cmake -S server -B /tmp/luce2-pr274-build -G 'Unix Makefiles' -DDFLASH27B_TESTS=ON -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++` failed during CUDA compiler identification because local `ptxas` rejects `sm_52`.
 
 Latest 2026-06-08 late refresh: reconciled an in-flight merge probe for PR `#334` (`build(docker): lucebox-hub container image + CI release pipeline`) against the current stack. The stack already carried the docker/pyproject/lockfile/gitignore content from prior integration, so the merge resolution kept those files on the current-stack side and only retained PR #334's missing `ruff check .` CI gate in `.github/workflows/ci.yml`. Validation for the merge resolution: `git diff --check` passed on the touched files.
 
