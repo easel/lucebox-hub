@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-09T16:27:34-04:00`
+Last refresh: `2026-06-09T18:37:28-04:00`
 Current base: `origin/main` `50107add`
-Previous integration tip: `52a569d0`
-Current integration source tip before this refresh: `52a569d0`
-Post-merge integration tip: `5ccd472a`
-refreshed_head: `5ccd472a`
+Previous integration tip: `cd13fab5`
+Current integration source tip before this refresh: `cd13fab5`
+Post-merge integration tip: `f8375bcc`
+refreshed_head: `f8375bcc`
 
-Latest 2026-06-09 refresh: fetched `origin` and `easel` separately, then merged refreshed `origin/main` `50107add` into `auto-integration`. The merge only conflicted in `README.md`; the Docker section was reconciled by keeping the branch's GHCR CUDA+ROCm summary and the upstream wording that the prebuilt images track `main`. Open PR accounting remains 20 non-draft and 4 draft/excluded (`#353`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack still shows 17 current open non-draft PR heads integrated: `#356`, `#355`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs remain `#154`, `#153`, and `#135`; fresh direct-merge probes still show them conflict-heavy (`#154`: 11 unmerged paths, `#153`: 9, `#135`: 3). Validation for this refresh: `git diff --check` passed after the README merge resolution. No broader build/test rerun was attempted because the delta is limited to the upstream-base merge and manifest refresh.
+Latest 2026-06-09 refresh: fetched `origin` and `easel` separately, then merged PR `#357` (`fix(pflash): adaptive anchor_radius eliminates 64K NIAH cliff`) into `auto-integration`. The merge added the pure `resolve_anchor_params()` helper plus a small test target (`server/test/test_anchor_params.cpp`) and the corresponding `server/CMakeLists.txt` wiring; it resolved cleanly except for the local CMake nesting repair needed around the test block. Open PR accounting remains 20 non-draft and 4 draft/excluded (`#353`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack now shows 16 current open non-draft PR heads integrated: `#357`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs are now `#356`, `#355`, `#154`, `#153`, and `#135`; `#356`/`#355` advanced to merge-commit heads (`75551f6b`, `efe4b017`) and are no longer exact-head represented, while the legacy `#154`/`#153`/`#135` blockers remain conflict-heavy. Validation for this refresh: `git diff --check` passed after the merge resolution, but `cmake -S server -B /tmp/luce2-build-anchor-86 -DDFLASH27B_TESTS=ON -DDFLASH27B_FA_ALL_QUANTS=OFF -DCMAKE_CUDA_ARCHITECTURES=86` still fails here during CUDA compiler identification because `ptxas` rejects the default `sm_52` compiler-id probe before project compilation. No broader build/test rerun was completed beyond that blocked configure attempt.
 
 Latest 2026-06-08 late refresh: reconciled an in-flight merge probe for PR `#334` (`build(docker): lucebox-hub container image + CI release pipeline`) against the current stack. The stack already carried the docker/pyproject/lockfile/gitignore content from prior integration, so the merge resolution kept those files on the current-stack side and only retained PR #334's missing `ruff check .` CI gate in `.github/workflows/ci.yml`. Validation for the merge resolution: `git diff --check` passed on the touched files.
 
