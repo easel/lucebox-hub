@@ -153,9 +153,7 @@ python3 harness/client_test_runner.py bench \
 
 ## Quick Start With Docker
 
-Prebuilt CUDA and ROCm images on GHCR (`ghcr.io/luce-org/lucebox-hub`)
-track `main`. No toolkit, no build step: pull, mount your weights, serve.
-OpenAI-compatible API on `:8000`.
+Prebuilt CUDA and ROCm images on GHCR (`ghcr.io/luce-org/lucebox-hub`) track `main`. No toolkit or build step: pull, mount your weights, serve. OpenAI-compatible API on `:8000`.
 
 <table>
 <tr>
@@ -166,8 +164,7 @@ OpenAI-compatible API on `:8000`.
 | NVIDIA (CUDA 12+) | `:cuda12` |
 | AMD (ROCm 6+) | `:rocm` |
 
-Strix Halo (gfx1151), RX 7900, RTX 20xx-50xx. Full walkthrough in the
-[Docker blog](https://lucebox.com/blog/docker).
+Drop a GGUF model target into `server/models/` first, then `:8000/v1/chat/completions`. Supports Strix Halo (gfx1151), RX 7900, and RTX 20xx-50xx. Full tutorial in the [Docker blog](https://lucebox.com/blog/docker).
 
 </td>
 <td width="62%" valign="middle">
