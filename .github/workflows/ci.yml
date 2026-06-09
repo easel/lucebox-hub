@@ -19,6 +19,9 @@ jobs:
         # full sync and builds megakernel against torch.
         run: bash scripts/check_uv_workspace.sh
 
+      - name: Lint Python surfaces touched by lucebox tooling
+        run: uv run --frozen --extra dev ruff check .
+
       - name: Verify bundled model cards match share/ (drift guard)
         run: bash scripts/check_card_bundle_drift.sh
 
