@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-09T12:13:36-04:00`
-Current base: `origin/main` `b93cc44d`
-Previous integration tip: `3b5344b7`
-Current integration source tip before this refresh: `97464e67`
-Post-merge integration tip: `6d10bbce`
-refreshed_head: `6d10bbce`
+Last refresh: `2026-06-09T14:23:39-04:00`
+Current base: `origin/main` `e51cf568`
+Previous integration tip: `6d10bbce`
+Current integration source tip before this refresh: `6d10bbce`
+Post-merge integration tip: `4fedb1bd`
+refreshed_head: `4fedb1bd`
 
-Latest 2026-06-09 refresh: fetched `origin` and `easel` separately, confirmed `origin/main` `b93cc44d` was already represented, and then merged the advanced open PR `#334` (`build(docker): lucebox-hub container image + CI release pipeline`) into `auto-integration` with a clean two-file merge of `.github/workflows/docker.yml` and `Dockerfile`. Open PR accounting remains 19 non-draft and 4 draft/excluded (`#353`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack shows 16 current open non-draft PR heads integrated: `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#334`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs remain `#154`, `#153`, and `#135`. Validation for this refresh: `git diff --check` passed on the merge result; no further build/test rerun was attempted because the delta is limited to Docker workflow and Dockerfile wiring and the PR itself already reported green CI/prebuild checks.
+Latest 2026-06-09 refresh: fetched `origin` and `easel` separately, merged refreshed `origin/main` `e51cf568` into `auto-integration`, and then promoted open PRs `#356` (`fix(pflash): tighten drafter tail-capture view-bounds guard (bug #42)`) and `#355` (`feat(docker): ROCm/HIP image variant (:rocm)`) on top of that base. Open PR accounting is now 20 non-draft and 4 draft/excluded (`#353`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#356`, `#355`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs remain `#154`, `#153`, and `#135`. Validation for this refresh: `git diff --check` passed on both merge results; `python3 -m py_compile` passed over the touched Python files from the docker stack update. No broader build/test rerun was attempted because the delta is concentrated in Docker packaging, README/docs, and small Python harness adjustments.
 
 Latest 2026-06-08 late refresh: reconciled an in-flight merge probe for PR `#334` (`build(docker): lucebox-hub container image + CI release pipeline`) against the current stack. The stack already carried the docker/pyproject/lockfile/gitignore content from prior integration, so the merge resolution kept those files on the current-stack side and only retained PR #334's missing `ruff check .` CI gate in `.github/workflows/ci.yml`. Validation for the merge resolution: `git diff --check` passed on the touched files.
 
