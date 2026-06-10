@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-10T15:47:27-04:00`
-Current base: `origin/main` `946eb387`
-Previous integration tip: `b4fe8642`
-Current integration source tip before this refresh: `b4fe8642`
-Post-merge integration tip: `2b431d82`
-refreshed_head: `2b431d82`
+Last refresh: `2026-06-10T17:54:44-04:00`
+Current base: `origin/main` `9f0377ce`
+Previous integration tip: `b622541d`
+Current integration source tip before this refresh: `b622541d`
+Post-merge integration tip: `bbb3caff`
+refreshed_head: `bbb3caff`
 
-Latest 2026-06-10 refresh: fetched `origin` and `easel`, merged refreshed `origin/main` `946eb387` cleanly into `auto-integration`, then merged open PR `#366` (`fix: port POSIX-only files to Windows for HIP builds`) with a 3-file conflict resolution in `server/src/qwen35/qwen35_backend.cpp`, `server/src/qwen35moe/qwen35moe_backend.cpp`, and `server/src/server/disk_prefix_cache.cpp`. Exact-head integration now includes 17 open PR heads: `#366`, `#364`, `#361`, `#359`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#275` (draft/excluded but represented), `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. Remaining open non-draft candidates not yet carried are `#154`, `#153`, and `#135`; draft/excluded open PRs not yet carried are `#353`, `#304`, and `#249`. Validation for this refresh: `git diff --check --cached` passed after the merge conflict resolutions; no repo build/test rerun was attempted in this WSL environment.
+Latest 2026-06-10 refresh: fetched `origin` and `easel`, merged refreshed `origin/main` `9f0377ce` cleanly into `auto-integration`, then merged open PR `#369` (`fix: port POSIX-only files to Windows for HIP builds`) with conflict resolution in `server/src/qwen35/qwen35_backend.cpp` and `server/src/qwen35moe/qwen35moe_backend.cpp` that kept the current-stack side because the substantive Windows HIP hunks were already represented. Exact-head integration now includes 16 open non-draft PR heads: `#369`, `#364`, `#361`, `#359`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#275` (draft/excluded but represented), `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. Remaining open non-draft candidates not yet carried are `#154`, `#153`, and `#135`; draft/excluded open PRs not yet carried are `#353`, `#304`, and `#249`. Validation for this refresh: `git diff --check` passed after the merge resolutions; no repo build/test rerun was attempted in this WSL environment.
 
 Latest 2026-06-10 follow-up: merged `fix-qwen35moe-hybrid-prefix-restore` into `auto-integration`, preserving the hybrid snapshot-restore path in `server/src/qwen35moe/qwen35moe_backend.cpp` while preferring the public `generate(req, io)` fallback wrapper and keeping the `ServerConfig` merge additions intact. Validation before commit: `git diff --check --cached` passed; the local CMake build check could not be run from the WSL path because the existing `.docker-build/server` cache was generated under `/workspace/.docker-build/server`. Pushed the resulting merge commit to `easel/auto-integration`.
 
@@ -72,6 +72,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
 | #342 | `missing` | `d49bc49c` | included | Fix main build; restores the missing brace in `server/test/test_server_unit.cpp` so the current stack compiles against the latest base and keeps the unit-test translation unit valid. |
+| #369 | `fix/windows-hip-build-v2` | `6c130ec4` | included / represented | Windows HIP portability refresh; the current stack already carried the substantive changes, so the merge resolved to the current-stack side in `qwen35_backend.cpp` and `qwen35moe_backend.cpp` while preserving PR identity in the stack. |
 | #366 | `fix/windows-hip-build` | `634a173b` | included | Windows HIP portability port; current head is represented after the 3-file conflict resolution in `qwen35_backend.cpp`, `qwen35moe_backend.cpp`, and `disk_prefix_cache.cpp`. |
 | #364 | `feat-scoped-disk-prefix-cache-policy` | `fdd6e88f` | included | Scoped disk prefix cache policy; current head is already represented by the refreshed stack. |
 | #361 | `split/06-manifest-hardening` | `59dfdad8` | included | Binds snapshot identity to model+config (manifest hardening); current head is already represented by the refreshed stack. |
@@ -124,7 +125,7 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 
 This run performed (latest first):
 
-- `git diff --check` passed after the merge resolutions. A configure probe with `cmake -S server -B /tmp/luce2-build-laguna -G Ninja -DDFLASH27B_GPU_BACKEND=cuda -DDFLASH27B_FA_ALL_QUANTS=OFF -DCMAKE_CUDA_ARCHITECTURES=86` failed in this WSL environment because the local toolchain lacks Ninja and C/C++/CUDA compiler detection. Exact-head containment now shows 18 current open non-draft PR heads integrated, with held open non-draft PRs #154, #153, and #135 and draft/excluded open PRs #353, #304, #275, and #249.
+- `git diff --check` passed after the merge resolutions. Exact-head containment now shows 16 current open non-draft PR heads integrated, with held open non-draft PRs #154, #153, and #135 and draft/excluded open PRs #353, #304, and #249. The PR #369 merge was ancestry-only because the current stack already carried the substantive Windows HIP changes; no repo build/test rerun was attempted in this WSL environment.
 
 - `git diff --check` passed after adding the missing #357 manifest row. No source files changed in this refresh; the integration stack already carried PR #357 via the earlier clean merge recorded in `git log`.
 
