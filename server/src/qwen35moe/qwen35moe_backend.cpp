@@ -19,10 +19,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include "common/gguf_mmap.h"
 
 namespace dflash::common {
 
@@ -99,27 +96,15 @@ bool Qwen35MoeBackend::load_target_model(ggml_backend_t backend, TargetWeights &
         }
 
         // Mmap the file
-        int fd = ::open(cfg_.target_path, O_RDONLY);
-        if (fd < 0) {
-            set_last_error("failed to open GGUF file for mmap");
+        GgufMmap _mf;
+        std::string _mferr;
+        if (!_mf.open(cfg_.target_path, _mferr)) {
+            set_last_error("mmap failed on GGUF: " + _mferr);
             gguf_free(gctx);
             return false;
         }
-        struct stat st;
-        if (::fstat(fd, &st) < 0) {
-            ::close(fd);
-            set_last_error("fstat failed on GGUF");
-            gguf_free(gctx);
-            return false;
-        }
-        const size_t file_size = (size_t)st.st_size;
-        void * mmap_addr = ::mmap(nullptr, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
-        ::close(fd);
-        if (mmap_addr == MAP_FAILED) {
-            set_last_error("mmap failed on GGUF");
-            gguf_free(gctx);
-            return false;
-        }
+        const size_t file_size = _mf.size();
+        const void * mmap_addr = _mf.data();
 
         const size_t data_start = gguf_get_data_offset(gctx);
         const auto * file_bytes = (const uint8_t *)mmap_addr;
@@ -263,14 +248,15 @@ bool Qwen35MoeBackend::rebuild_hybrid_from_placement(const MoeHybridPlacement & 
     gguf_init_params gip{};
     gguf_context * gctx = gguf_init_from_file(cfg_.target_path, gip);
     if (!gctx) { err = "gguf reinit failed"; return false; }
-    int fd = ::open(cfg_.target_path, O_RDONLY);
-    if (fd < 0) { gguf_free(gctx); err = "open failed"; return false; }
-    struct stat st;
-    if (::fstat(fd, &st) < 0) { ::close(fd); gguf_free(gctx); err = "fstat failed"; return false; }
-    const size_t file_size = (size_t)st.st_size;
-    void * mmap_addr = ::mmap(nullptr, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    ::close(fd);
-    if (mmap_addr == MAP_FAILED) { gguf_free(gctx); err = "mmap failed"; return false; }
+    GgufMmap _mf;
+    std::string _mferr;
+    if (!_mf.open(cfg_.target_path, _mferr)) {
+        gguf_free(gctx);
+        err = "mmap failed: " + _mferr;
+        return false;
+    }
+    const size_t file_size = _mf.size();
+    const void * mmap_addr = _mf.data();
 
     const size_t data_start = gguf_get_data_offset(gctx);
     const auto * file_bytes = (const uint8_t *)mmap_addr;
@@ -307,7 +293,6 @@ bool Qwen35MoeBackend::rebuild_hybrid_from_placement(const MoeHybridPlacement & 
 
     const bool ok = build_moe_hybrid_storage_from_file(hybrid_cfg, backend, placement, layer_descs,
                                                        layer_file_data, *hybrid, &err, cache_slots);
-    ::munmap(mmap_addr, file_size);
     gguf_free(gctx);
     if (!ok) return false;
     out.moe_hybrid = std::move(hybrid);
