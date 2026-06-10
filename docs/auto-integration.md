@@ -4,14 +4,16 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-09T20:44:34-04:00`
+Last refresh: `2026-06-09T22:49:09-04:00`
 Current base: `origin/main` `d2e58c1b`
-Previous integration tip: `c25d3af2`
-Current integration source tip before this refresh: `c25d3af2`
-Post-merge integration tip: `5c109ef9`
-refreshed_head: `5c109ef9`
+Previous integration tip: `33b8ec1b`
+Current integration source tip before this refresh: `33b8ec1b`
+Post-merge integration tip: `abf68cf8`
+refreshed_head: `abf68cf8`
 
 Latest 2026-06-09 refresh: fetched `origin` and `easel` separately, merged refreshed `origin/main` `d2e58c1b` into `auto-integration`, then merged PR `#358` (`perf(laguna): CUDA-graph replay decode — 113→143 tok/s all-GPU, 101→129 at 60% residency`) and PR `#356` (`fix(pflash): tighten drafter tail-capture view-bounds guard (bug #42)`) on top. #358 carried the new `bench_laguna_spark` target plus laguna graph stability changes; #356 tightened the tail-capture bound and added a boundary regression test. Open PR accounting is now 21 non-draft and 4 draft/excluded (`#353`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack now shows 18 current open non-draft PR heads integrated: `#358`, `#357`, `#356`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#324`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs remain `#154`, `#153`, and `#135`; draft/excluded open PRs are `#353`, `#304`, `#275`, and `#249`. Validation for this refresh: `git diff --check` passed after the merge resolutions, but `cmake -S server -B /tmp/luce2-build-laguna -G Ninja -DDFLASH27B_GPU_BACKEND=cuda -DDFLASH27B_FA_ALL_QUANTS=OFF -DCMAKE_CUDA_ARCHITECTURES=86` still cannot configure here because the local toolchain lacks Ninja and the C/C++/CUDA compiler detection path. No broader build/test rerun was completed beyond that blocked configure attempt.
+
+Latest 2026-06-09 manifest correction: added the missing #357 table row and refreshed the manifest metadata after confirming PR #357 is already carried in the stack via the earlier clean merge recorded in `git log`. No source changes were required for this follow-up.
 
 Latest 2026-06-08 late refresh: reconciled an in-flight merge probe for PR `#334` (`build(docker): lucebox-hub container image + CI release pipeline`) against the current stack. The stack already carried the docker/pyproject/lockfile/gitignore content from prior integration, so the merge resolution kept those files on the current-stack side and only retained PR #334's missing `ruff check .` CI gate in `.github/workflows/ci.yml`. Validation for the merge resolution: `git diff --check` passed on the touched files.
 
@@ -69,6 +71,7 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 |---:|---|---:|---|---|
 | #342 | `missing` | `d49bc49c` | included | Fix main build; restores the missing brace in `server/test/test_server_unit.cpp` so the current stack compiles against the latest base and keeps the unit-test translation unit valid. |
 | #358 | `feat/laguna-cudagraph-replay` | `44eea635` | included | CUDA-graph replay decode for laguna; current head is represented by the stack after merging the laguna graph-stability changes and the new `bench_laguna_spark` target. |
+| #357 | `split/03-anchor-radius-cliff` | `5194f25c` | included | Adaptive `anchor_radius`/`max_anchor_hits` tiering for long-context pflash; current head is represented by the stack after a clean merge. |
 | #356 | `split/02-bug42-tail-guard` | `75551f6b` | included | Tightens the drafter tail-capture view-bounds guard and adds a boundary regression test; current head is represented by the stack after a clean merge. |
 | #346 | `fix/dflash-chain-verify-mask-argmax` | `dcfa10aa` | included | Chained DFlash verify/replay logits fix; current head is now represented by the stack after a clean merge. |
 | #345 | `feat/optimizations-spark` | `fc79c0de` | included | Luce Spark calibrated hot/cold expert residency; updated head is now represented by the stack after a clean merge of the refreshed PR #345 branch. |
@@ -116,6 +119,8 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 This run performed (latest first):
 
 - `git diff --check` passed after the merge resolutions. A configure probe with `cmake -S server -B /tmp/luce2-build-laguna -G Ninja -DDFLASH27B_GPU_BACKEND=cuda -DDFLASH27B_FA_ALL_QUANTS=OFF -DCMAKE_CUDA_ARCHITECTURES=86` failed in this WSL environment because the local toolchain lacks Ninja and C/C++/CUDA compiler detection. Exact-head containment now shows 18 current open non-draft PR heads integrated, with held open non-draft PRs #154, #153, and #135 and draft/excluded open PRs #353, #304, #275, and #249.
+
+- `git diff --check` passed after adding the missing #357 manifest row. No source files changed in this refresh; the integration stack already carried PR #357 via the earlier clean merge recorded in `git log`.
 
 - `git diff --check --cached -- server/test/test_dflash.cpp` passed after resolving the upstream `origin/main` merge conflict in `server/test/test_dflash.cpp`; targeted conflict-marker search found no `<<<<<<<` / `>>>>>>>` markers. This was a merge-only upstream sync, so no repo-wide build or test rerun was needed beyond the conflict-resolution validation.
 
