@@ -24,6 +24,7 @@
 //   blk.<i>.ffn_down.weight                 [hidden, intermediate]  Q8_0 / F16
 
 #include "internal.h"
+#include "common/derived_scalars.h"
 
 #include <cinttypes>
 #include <cstdint>
@@ -349,54 +350,32 @@ bool load_draft_gguf(const std::string & path,
 
     gguf_free(gctx);
 
-    // Structural defense: derive scalar dims from weight tensor shapes and
-    // assert against GGUF-declared metadata (Bug #2 class prevention).
-    // All draft layers have wq/wk (no deltanet mix), so use layer 0.
-    // wq is plain Q-only (no gate), so ne[1] = n_head * head_dim.
-    // fc is [n_target_layers*n_embd, n_embd], so ne[0] = n_target_layers*n_embd.
+    // Structural defense: derive head_dim / n_head / n_head_kv from weight
+    // tensor shapes and assert against GGUF-declared metadata.
+    // All draft layers have wq/wk (no deltanet mix), so layer 0 suffices.
+    // wq: [n_embd, n_head*head_dim], ne[1]=n_head*head_dim, ne[0]=n_embd.
+    // wk: [n_embd, n_head_kv*head_dim], ne[1]=n_head_kv*head_dim.
     {
         const DraftLayer & L0 = out.layers[0];
-        const int64_t derived_q_dim  = L0.wq->ne[1];
-        const int64_t derived_kv_dim = L0.wk->ne[1];
-        const int64_t expected_q_dim  = (int64_t)out.n_head * out.head_dim;
-        const int64_t expected_kv_dim = (int64_t)out.n_head_kv * out.head_dim;
-        if (derived_q_dim != expected_q_dim) {
-            char buf[256];
-            std::snprintf(buf, sizeof(buf),
-                "draft GGUF shape mismatch: blk.0.attn_q.weight->ne[1]=%lld "
-                "!= n_head*head_dim=%d*%d=%lld",
-                (long long)derived_q_dim,
-                out.n_head, out.head_dim, (long long)expected_q_dim);
-            set_last_error(buf);
+        const int64_t exp_q_dim  = (int64_t)out.n_head    * out.head_dim;
+        const int64_t exp_kv_dim = (int64_t)out.n_head_kv * out.head_dim;
+        const int64_t exp_n_embd = (int64_t)out.n_embd;
+        std::string err;
+        if (!dflash::common::verify_derived_scalars(
+                L0.wq->ne[1], L0.wk->ne[1], L0.wq->ne[0],
+                exp_q_dim, exp_kv_dim, exp_n_embd,
+                "blk.0", err)) {
+            set_last_error(err);
             return false;
         }
-        if (derived_kv_dim != expected_kv_dim) {
-            char buf[256];
-            std::snprintf(buf, sizeof(buf),
-                "draft GGUF shape mismatch: blk.0.attn_k.weight->ne[1]=%lld "
-                "!= n_head_kv*head_dim=%d*%d=%lld",
-                (long long)derived_kv_dim,
-                out.n_head_kv, out.head_dim, (long long)expected_kv_dim);
-            set_last_error(buf);
-            return false;
-        }
-        const int64_t derived_n_embd = L0.wq->ne[0];
-        if (derived_n_embd != (int64_t)out.n_embd) {
-            char buf[256];
-            std::snprintf(buf, sizeof(buf),
-                "draft GGUF shape mismatch: blk.0.attn_q.weight->ne[0]=%lld != n_embd=%d",
-                (long long)derived_n_embd, out.n_embd);
-            set_last_error(buf);
-            return false;
-        }
-        // fc: [n_target_layers*n_embd, n_embd] — check fc->ne[0] against derived expectation
+        // fc: [n_target_layers*n_embd, n_embd] — ne[0] = n_target_layers*n_embd.
         if (out.n_target_layers > 0) {
             const int64_t derived_fc_in  = out.fc->ne[0];
             const int64_t expected_fc_in = (int64_t)out.n_target_layers * out.n_embd;
             if (derived_fc_in != expected_fc_in) {
                 char buf[256];
                 std::snprintf(buf, sizeof(buf),
-                    "draft GGUF shape mismatch: dflash.fc.weight->ne[0]=%lld "
+                    "GGUF shape mismatch: dflash.fc.weight->ne[0]=%lld "
                     "!= n_target_layers*n_embd=%d*%d=%lld",
                     (long long)derived_fc_in,
                     out.n_target_layers, out.n_embd, (long long)expected_fc_in);
@@ -405,7 +384,6 @@ bool load_draft_gguf(const std::string & path,
             }
         }
     }
-
     char summary[192];
     std::snprintf(summary, sizeof(summary),
         "draft GGUF loaded: %" PRId64 " tensors, %.2f GiB on GPU",
