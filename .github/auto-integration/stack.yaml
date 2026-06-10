@@ -1,17 +1,18 @@
-updated_at: 2026-06-09T16:27:34-04:00
+updated_at: 2026-06-10T13:45:00-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
   upstream: origin
   writable: easel
 heads:
-  upstream_main: 50107add
-  easel_auto_integration_before_refresh: 52a569d0
-  current_integration_head_before_refresh: 52a569d0
-  refreshed_head: 5ccd472a
+  upstream_main: 49c32da2
+  easel_auto_integration_before_refresh: 44af6c75
+  current_integration_head_before_refresh: 44af6c75
+  refreshed_head: bd6e9520
   base_before_run: auto-integration
 stack:
   included:
+    - {pr: 364, head: fdd6e88f, status: included_represented, note: scoped disk prefix cache policy; exact PR head ancestor after represented merge}
     - {pr: 329, head: 8218333b, status: included_draft, note: plain-text call-verb tool-call parser and SSE/emitter wiring; merged before draft}
     - {pr: 328, head: 6f8bcd43, status: included, note: target-split prefill chunk-size dispatch; ancestor of auto-integration}
     - {pr: 326, head: d799d000, status: included, note: soft-close thinking termination via logit-ratio peek; ancestor of auto-integration}
@@ -121,3 +122,4 @@ notes:
   - origin/main 8305b6c2 remains ancestor of auto-integration.
   - Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs; 29 current non-draft PR heads are exact ancestors plus draft PR329 already represented, and 6 remain blocked/selective-port candidates.
   - No new source slice was promoted this run; #221 was rechecked with Claude/Codex and remains suggested-close/superseded as a direct integration candidate.
+  - 2026-06-10 refresh: merged PR #364 (`fdd6e88f`) into auto-integration as merge commit `bd6e9520` after resolving the only conflict in `server/src/server/http_server.h` by keeping both the existing `started_in_thinking` flag and the new `disk_cache_policy` field. Validation run: `git diff --check` passed; a focused `g++ -std=c++17` syntax probe of `server/http_server.h` stopped at pre-existing repo issues in `adaptive_keep_ratio.h` and duplicate `pflash_router` declarations in `http_server.h`, not at the newly merged disk-prefix-cache change.
