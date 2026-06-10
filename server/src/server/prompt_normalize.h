@@ -23,10 +23,6 @@ using json = nlohmann::json;
 // for the purposes of cache-key construction. Volatile claude-code headers
 // (blocks or lines starting with "x-anthropic-billing-header:") are REMOVED
 // so that two requests differing only in the header value hash identically.
-//
-// This is a PASSTHROUGH STUB (RED phase). It returns content unchanged —
-// i.e. the header is NOT stripped yet. Tests against strip/idempotence
-// will fail RED until GREEN is implemented.
 std::string normalize_system_for_cache(const json & system_or_messages);
 
 }  // namespace dflash::common
