@@ -52,8 +52,11 @@ variable "DFLASH_CUDA_ARCHES" { default = "75;80;86;89;90;120" }
 # gfx90a MI200.)
 variable "DFLASH_HIP_ARCHES" { default = "gfx1151" }
 
-# ROCm base-image tag for the rocm variant. gfx1151 needs >= 6.4.1; bump to a
-# 7.x tag (e.g. "7.0.2") to match a newer host ROCm stack.
+# ROCm base-image tag for the rocm variant. gfx1151 needs >= 6.4.1. Default
+# stays 6.4.1 (7.2.x has shown intermittent problems on Strix Halo), but on a
+# ROCm 7.x HOST driver the 6.4.x userspace can segfault at model load — set
+# ROCM_VERSION=7.2.2 there. Keep the base aligned with the host driver (see
+# Dockerfile.rocm).
 variable "ROCM_VERSION" { default = "6.4.1" }
 
 # Image identity stamped into /opt/lucebox-hub/IMAGE_INFO at build time and
