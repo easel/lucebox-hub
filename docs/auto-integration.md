@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-10T07:15:46-04:00`
-Current base: `origin/main` `1f42436f`
-Previous integration tip: `15490dba`
-Current integration source tip before this refresh: `15490dba`
-Post-merge integration tip: `b8705721`
-refreshed_head: `b8705721`
+Last refresh: `2026-06-10T13:41:26-04:00`
+Current base: `origin/main` `49c32da2`
+Previous integration tip: `efb3fc6b`
+Current integration source tip before this refresh: `efb3fc6b`
+Post-merge integration tip: `799bcc6f`
+refreshed_head: `799bcc6f`
 
-Latest 2026-06-10 refresh: fetched `origin` and `easel`, merged refreshed `origin/main` `1f42436f` cleanly, then merged open PR `#357` (`fix(pflash): size anchor hit_pos storage to max_anchor_hits (cubic P1)`) into the integration stack. Current exact-head integration now includes the 17 open non-draft PR heads `#361`, `#360`, `#359`, `#357`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`; the draft/excluded open PR `#275` remains represented but is not counted toward non-draft accounting. Remaining open non-draft candidates not yet carried are `#349`, `#154`, `#153`, and `#135` (`#349` is the next large MoE prefill stream candidate to probe). Validation for this refresh: `git diff --check` passed after the merges, and no repo build/test rerun was attempted because the run was merge-only and the local WSL toolchain remains incomplete for a full server build.
+Latest 2026-06-10 refresh: fetched `origin` and `easel`, merged refreshed `origin/main` `49c32da2` cleanly into `auto-integration` (merge commit `799bcc6f`), then re-enumerated open PR heads. Exact-head integration now includes 18 open PR heads: `#364`, `#362`, `#361`, `#360`, `#359`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#275` (draft/excluded but represented), `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. Remaining open non-draft candidates not yet carried are `#366`, `#154`, `#153`, and `#135`; draft/excluded open PRs not yet carried are `#353`, `#304`, and `#249`. PR `#366` is held/unsalvageable for now because it is a broad Windows-only HIP portability port (13 files, POSIX-to-Win32 rewrites) that conflicts with this Linux-focused integration tree; no safe slice was promoted. Validation for this refresh: `git diff --check` passed after the merge, and no repo build/test rerun was attempted because the run was merge-only and the local WSL toolchain remains incomplete for a full server build.
 
 Latest 2026-06-10 follow-up: merged `fix-qwen35moe-hybrid-prefix-restore` into `auto-integration`, preserving the hybrid snapshot-restore path in `server/src/qwen35moe/qwen35moe_backend.cpp` while preferring the public `generate(req, io)` fallback wrapper and keeping the `ServerConfig` merge additions intact. Validation before commit: `git diff --check --cached` passed; the local CMake build check could not be run from the WSL path because the existing `.docker-build/server` cache was generated under `/workspace/.docker-build/server`. Pushed the resulting merge commit to `easel/auto-integration`.
 
