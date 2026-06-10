@@ -71,7 +71,8 @@ private:
     // Returns the logits argmax token. Advances committed by 1.
     bool hybrid_forward_one_token(int32_t tok, int kv_pos,
                                   std::vector<float> & act_cur,
-                                  int32_t & argmax_out);
+                                  int32_t & argmax_out,
+                                  std::vector<float> * logits_out = nullptr);
 
     // Batched hybrid forward: processes all tokens layer-by-layer (like prefill).
     // Returns argmax for each token. Much faster than sequential hybrid_forward_one_token.
