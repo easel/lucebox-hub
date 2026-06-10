@@ -2666,6 +2666,67 @@ struct MockBackend : ModelBackend {
     void shutdown() override {}
 };
 
+// ─── MockBackendWithLayout ──────────────────────────────────────────────
+// Extends MockBackend with a real ggml_context so DiskPrefixCache can
+// iterate tensors in compute_layout_id and write a real .dkv file.
+// KV: one layer, K=[16,32,4,1] F32 + V=[32,16,4,1] F32.
+struct MockBackendWithLayout : MockBackend {
+    static constexpr int     kNLayer  = 1;
+    static constexpr int64_t kHeadDim = 16;
+    static constexpr int64_t kNHead   = 4;
+    static constexpr int     kMaxPos  = 32;
+
+    ggml_context         * kv_ctx_ = nullptr;
+    ggml_backend_t         cpu_be_ = nullptr;
+    ggml_backend_buffer_t  kv_buf_ = nullptr;
+    ggml_tensor          * k_[kNLayer] = {};
+    ggml_tensor          * v_[kNLayer] = {};
+
+    MockBackendWithLayout() {
+        cpu_be_ = ggml_backend_cpu_init();
+        ggml_init_params ip{};
+        ip.mem_size = ggml_tensor_overhead() * (kNLayer * 2 + 4) + 4096;
+        ip.no_alloc = true;
+        kv_ctx_ = ggml_init(ip);
+        int64_t ne_k[4] = {kHeadDim, kMaxPos, kNHead, 1};
+        int64_t ne_v[4] = {kMaxPos, kHeadDim, kNHead, 1};
+        char name[64];
+        for (int il = 0; il < kNLayer; ++il) {
+            k_[il] = ggml_new_tensor(kv_ctx_, GGML_TYPE_F32, 4, ne_k);
+            std::snprintf(name, sizeof(name), "snap_k_%d", il);
+            ggml_set_name(k_[il], name);
+            v_[il] = ggml_new_tensor(kv_ctx_, GGML_TYPE_F32, 4, ne_v);
+            std::snprintf(name, sizeof(name), "snap_v_%d", il);
+            ggml_set_name(v_[il], name);
+        }
+        kv_buf_ = ggml_backend_alloc_ctx_tensors(kv_ctx_, cpu_be_);
+        for (int il = 0; il < kNLayer; ++il) {
+            std::vector<float> ones(ggml_nelements(k_[il]), 1.0f);
+            std::vector<float> twos(ggml_nelements(v_[il]), 2.0f);
+            ggml_backend_tensor_set(k_[il], ones.data(), 0, ggml_nbytes(k_[il]));
+            ggml_backend_tensor_set(v_[il], twos.data(), 0, ggml_nbytes(v_[il]));
+        }
+    }
+    ~MockBackendWithLayout() {
+        if (kv_buf_) ggml_backend_buffer_free(kv_buf_);
+        if (kv_ctx_) ggml_free(kv_ctx_);
+        if (cpu_be_) ggml_backend_free(cpu_be_);
+    }
+
+    SnapshotRef snapshot_ref(int /*slot*/) const override {
+        SnapshotRef ref;
+        ref.ctx      = kv_ctx_;
+        ref.buf      = kv_buf_;
+        ref.cur_pos  = kMaxPos;
+        ref.last_tok = 42;
+        return ref;
+    }
+
+    bool snapshot_save(int) override { return true; }
+    bool snapshot_used(int) const override { return true; }
+    int  snapshot_cur_pos(int) const override { return kMaxPos; }
+};
+
 // Helper: recursively remove a directory.
 static void rm_rf(const std::string & path) {
     DIR * dir = opendir(path.c_str());
@@ -3484,6 +3545,142 @@ static void test_disk_identity_salt_zero_is_backcompat() {
     std::array<uint8_t, 16> id2 = read_layout_from_dir(dir2);
 
     // Zero salt == no salt: must be identical.
+    TEST_ASSERT(id1 == id2);
+
+    rm_rf(dir1);
+    rm_rf(dir2);
+}
+
+// ─── Disk-cache identity salt tests (manifest hardening) ────────────────
+//
+// (a) Different salts → different layout_id; same salt → same layout_id.
+// (b) All-zero salt (default) ≡ no salt at all (back-compat).
+
+// Helper: read layout_id from the first .dkv file found under base/.
+static std::array<uint8_t, 16> read_layout_id_from_cache_dir(const std::string & base) {
+    std::array<uint8_t, 16> id{};
+    DIR * d = opendir(base.c_str());
+    if (!d) return id;
+    struct dirent * ent;
+    while ((ent = readdir(d)) != nullptr) {
+        if (ent->d_name[0] == '.') continue;
+        std::string sub = base + "/" + ent->d_name;
+        struct stat st{};
+        if (stat(sub.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) continue;
+        DIR * sd = opendir(sub.c_str());
+        if (!sd) continue;
+        struct dirent * sf;
+        while ((sf = readdir(sd)) != nullptr) {
+            size_t nl = std::strlen(sf->d_name);
+            if (nl < 4 || std::strcmp(sf->d_name + nl - 4, ".dkv") != 0) continue;
+            std::string fp = sub + "/" + sf->d_name;
+            FILE * f = std::fopen(fp.c_str(), "rb");
+            if (!f) continue;
+            std::fseek(f, 8, SEEK_SET);  // skip magic(4) + version(4)
+            std::fread(id.data(), 1, 16, f);
+            std::fclose(f);
+            closedir(sd);
+            closedir(d);
+            return id;
+        }
+        closedir(sd);
+    }
+    closedir(d);
+    return id;
+}
+
+static void test_disk_identity_salt_changes_layout_id() {
+    MockBackendWithLayout backend;
+    std::vector<int32_t> prompt;
+    for (int i = 0; i < 10; ++i) prompt.push_back(i + 1);
+
+    // Salt A: non-zero.
+    std::array<uint8_t, 16> salt_a{};
+    salt_a[0] = 0x01; salt_a[15] = 0xAB;
+
+    std::string dir_a = "/tmp/dflash_test_salt_a";
+    rm_rf(dir_a);
+    {
+        DiskCacheConfig cfg; cfg.cache_dir = dir_a; cfg.min_tokens = 1;
+        DiskPrefixCache cache(cfg, backend);
+        cache.set_identity_salt(salt_a);
+        cache.init();
+        cache.learn_layout(0);
+        TEST_ASSERT(cache.save(0, prompt));
+    }
+
+    // Salt B: different from A.
+    std::array<uint8_t, 16> salt_b{};
+    salt_b[0] = 0x02; salt_b[15] = 0xCD;
+
+    std::string dir_b = "/tmp/dflash_test_salt_b";
+    rm_rf(dir_b);
+    {
+        DiskCacheConfig cfg; cfg.cache_dir = dir_b; cfg.min_tokens = 1;
+        DiskPrefixCache cache(cfg, backend);
+        cache.set_identity_salt(salt_b);
+        cache.init();
+        cache.learn_layout(0);
+        TEST_ASSERT(cache.save(0, prompt));
+    }
+
+    auto id_a = read_layout_id_from_cache_dir(dir_a);
+    auto id_b = read_layout_id_from_cache_dir(dir_b);
+
+    // Different salts → different layout_id.
+    TEST_ASSERT(id_a != id_b);
+
+    // Same salt A applied again → identical layout_id.
+    std::string dir_a2 = "/tmp/dflash_test_salt_a2";
+    rm_rf(dir_a2);
+    {
+        DiskCacheConfig cfg; cfg.cache_dir = dir_a2; cfg.min_tokens = 1;
+        DiskPrefixCache cache(cfg, backend);
+        cache.set_identity_salt(salt_a);
+        cache.init();
+        cache.learn_layout(0);
+        TEST_ASSERT(cache.save(0, prompt));
+    }
+    auto id_a2 = read_layout_id_from_cache_dir(dir_a2);
+    TEST_ASSERT(id_a == id_a2);
+
+    rm_rf(dir_a);
+    rm_rf(dir_b);
+    rm_rf(dir_a2);
+}
+
+static void test_disk_identity_salt_zero_is_backcompat() {
+    // Explicit all-zero salt must produce the same layout_id as no salt call
+    // (default-constructed identity_salt_ is already all-zero).
+    MockBackendWithLayout backend;
+    std::vector<int32_t> prompt;
+    for (int i = 0; i < 10; ++i) prompt.push_back(i + 1);
+
+    std::string dir1 = "/tmp/dflash_test_salt_zero1";
+    rm_rf(dir1);
+    {
+        DiskCacheConfig cfg; cfg.cache_dir = dir1; cfg.min_tokens = 1;
+        DiskPrefixCache cache(cfg, backend);
+        // No set_identity_salt call — stays all-zero.
+        cache.init();
+        cache.learn_layout(0);
+        TEST_ASSERT(cache.save(0, prompt));
+    }
+
+    std::string dir2 = "/tmp/dflash_test_salt_zero2";
+    rm_rf(dir2);
+    {
+        DiskCacheConfig cfg; cfg.cache_dir = dir2; cfg.min_tokens = 1;
+        DiskPrefixCache cache(cfg, backend);
+        std::array<uint8_t, 16> zero_salt{};
+        cache.set_identity_salt(zero_salt);
+        cache.init();
+        cache.learn_layout(0);
+        TEST_ASSERT(cache.save(0, prompt));
+    }
+
+    auto id1 = read_layout_id_from_cache_dir(dir1);
+    auto id2 = read_layout_id_from_cache_dir(dir2);
     TEST_ASSERT(id1 == id2);
 
     rm_rf(dir1);
@@ -6405,6 +6602,10 @@ int main() {
     RUN_TEST(test_disk_verify_layout_at_init_mismatch);
 
     std::fprintf(stderr, "\n── Disk-cache identity salt (Spec 1, manifest hardening) ──\n");
+    RUN_TEST(test_disk_identity_salt_changes_layout_id);
+    RUN_TEST(test_disk_identity_salt_zero_is_backcompat);
+
+    std::fprintf(stderr, "\n── Disk-cache identity salt (manifest hardening) ──\n");
     RUN_TEST(test_disk_identity_salt_changes_layout_id);
     RUN_TEST(test_disk_identity_salt_zero_is_backcompat);
 

@@ -1,6 +1,7 @@
 // Disk-backed prefix cache implementation.
 
 #include "disk_prefix_cache.h"
+#include "common/sha1.h"
 
 #include "ggml.h"
 #include "ggml-backend.h"
@@ -17,62 +18,6 @@
 #include <unistd.h>
 
 namespace dflash::common {
-
-// ─── Inline SHA-1 (same as prefix_cache.cpp) ────────────────────────────
-
-static void sha1_hash(const void * data, size_t len, uint8_t out[20]) {
-    auto rotl = [](uint32_t x, int n) -> uint32_t {
-        return (x << n) | (x >> (32 - n));
-    };
-
-    uint32_t h0 = 0x67452301, h1 = 0xEFCDAB89, h2 = 0x98BADCFE,
-             h3 = 0x10325476, h4 = 0xC3D2E1F0;
-
-    size_t new_len = len + 1;
-    while (new_len % 64 != 56) new_len++;
-    std::vector<uint8_t> msg(new_len + 8, 0);
-    std::memcpy(msg.data(), data, len);
-    msg[len] = 0x80;
-    uint64_t bit_len = (uint64_t)len * 8;
-    for (int i = 0; i < 8; i++) {
-        msg[new_len + i] = (uint8_t)(bit_len >> (56 - 8 * i));
-    }
-
-    for (size_t offset = 0; offset < msg.size(); offset += 64) {
-        uint32_t w[80];
-        for (int i = 0; i < 16; i++) {
-            w[i] = ((uint32_t)msg[offset + 4*i] << 24) |
-                    ((uint32_t)msg[offset + 4*i+1] << 16) |
-                    ((uint32_t)msg[offset + 4*i+2] << 8) |
-                    ((uint32_t)msg[offset + 4*i+3]);
-        }
-        for (int i = 16; i < 80; i++) {
-            w[i] = rotl(w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16], 1);
-        }
-
-        uint32_t a = h0, b = h1, c = h2, d = h3, e = h4;
-        for (int i = 0; i < 80; i++) {
-            uint32_t f, k;
-            if (i < 20)      { f = (b & c) | (~b & d); k = 0x5A827999; }
-            else if (i < 40) { f = b ^ c ^ d;          k = 0x6ED9EBA1; }
-            else if (i < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8F1BBCDC; }
-            else              { f = b ^ c ^ d;          k = 0xCA62C1D6; }
-            uint32_t temp = rotl(a, 5) + f + e + k + w[i];
-            e = d; d = c; c = rotl(b, 30); b = a; a = temp;
-        }
-        h0 += a; h1 += b; h2 += c; h3 += d; h4 += e;
-    }
-
-    auto store32 = [](uint8_t * p, uint32_t v) {
-        p[0] = (uint8_t)(v >> 24); p[1] = (uint8_t)(v >> 16);
-        p[2] = (uint8_t)(v >> 8);  p[3] = (uint8_t)v;
-    };
-    store32(out,     h0);
-    store32(out + 4, h1);
-    store32(out + 8, h2);
-    store32(out + 12, h3);
-    store32(out + 16, h4);
-}
 
 // ─── Utility ────────────────────────────────────────────────────────────
 
@@ -129,20 +74,13 @@ bool DiskPrefixCache::init() {
         return false;
     }
 
-    // Try to learn layout from existing files.
+    // Try to learn layout from existing files (enables first-request disk hits).
     try_learn_from_disk();
 
-    // If we got a layout from disk, verify it against the live model now so
-    // the first request can hit the disk cache without waiting for a save.
-    if (layout_from_disk_) {
-        verify_layout_at_init();
-    }
-
-    std::fprintf(stderr, "[disk-cache] initialized dir=%s budget=%.1f GB layout=%s%s\n",
+    std::fprintf(stderr, "[disk-cache] initialized dir=%s budget=%.1f GB layout=%s\n",
                  config_.cache_dir.c_str(),
                  (double)config_.budget_bytes / (1024.0 * 1024.0 * 1024.0),
-                 layout_known_ ? hex(layout_id_.data(), 16).c_str() : "pending",
-                 layout_from_disk_ ? " (unverified)" : "");
+                 layout_known_ ? hex(layout_id_.data(), 16).c_str() : "pending");
     return true;
 }
 
@@ -169,9 +107,7 @@ void DiskPrefixCache::compute_layout_id(ggml_context * ctx) {
     // Build a single buffer and hash it.
     // Prepend identity_salt_ so that config/model differences (model file,
     // max_ctx, chat_template) rotate the layout_id independently of tensor
-    // structure. All-zero salt (the default) adds 16 zero bytes and produces
-    // the same digest as the old no-salt path only when the salt is truly
-    // zero; a non-zero salt changes the SHA-1 prefix → different layout_id.
+    // structure. All-zero salt (the default) is back-compatible.
     std::vector<uint8_t> buf;
     buf.insert(buf.end(), identity_salt_.begin(), identity_salt_.end());
     for (const auto & ti : tensors) {
@@ -315,42 +251,6 @@ void DiskPrefixCache::try_learn_from_disk() {
     closedir(dir);
 }
 
-// ─── Verify disk layout against live model at init ──────────────────────
-
-void DiskPrefixCache::verify_layout_at_init() {
-    // Only meaningful when we have an unverified disk layout.
-    if (!layout_from_disk_) return;
-
-    ggml_context * live_ctx = backend_.snapshot_layout_ctx();
-    if (!live_ctx) {
-        // Backend doesn't support layout introspection — leave layout_from_disk_
-        // set; first save will call learn_layout() as before.
-        std::fprintf(stderr, "[disk-cache] verify_layout_at_init: backend returned no layout ctx, deferring\n");
-        return;
-    }
-
-    std::array<uint8_t, 16> disk_id = layout_id_;
-    compute_layout_id(live_ctx);
-    ggml_free(live_ctx);
-
-    if (std::memcmp(disk_id.data(), layout_id_.data(), 16) == 0) {
-        // Live model matches disk layout — safe to serve from disk immediately.
-        layout_from_disk_ = false;
-        std::fprintf(stderr, "[disk-cache] layout verified at init: %s (disk entries ready)\n",
-                     hex(layout_id_.data(), 16).c_str());
-    } else {
-        // Model changed — invalidate stale entries.
-        std::fprintf(stderr, "[disk-cache] layout mismatch at init: disk=%s model=%s — invalidating\n",
-                     hex(disk_id.data(), 16).c_str(),
-                     hex(layout_id_.data(), 16).c_str());
-        entries_.clear();
-        total_bytes_ = 0;
-        layout_known_ = false;
-        layout_from_disk_ = false;
-        layout_dir_.clear();
-    }
-}
-
 // ─── Lookup ─────────────────────────────────────────────────────────────
 
 bool DiskPrefixCache::lookup(const std::vector<int32_t> & prompt_ids, int slot) {
@@ -485,49 +385,6 @@ bool DiskPrefixCache::save(int slot, const std::vector<int32_t> & prompt_ids) {
 
     enforce_budget();
     return true;
-}
-
-// ─── Boundary-prefix lookup ─────────────────────────────────────────────
-
-std::pair<bool, int> DiskPrefixCache::lookup_boundary_prefix(
-        const std::vector<int32_t> & effective_prompt,
-        const std::vector<int> & boundaries,
-        int slot) {
-    if (disabled() || !layout_known_ || layout_from_disk_) return {false, 0};
-    if (boundaries.empty()) return {false, 0};
-
-    // Find the longest boundary-prefix that exists on disk, mirroring
-    // PrefixCache::lookup() which iterates all boundaries and keeps the max.
-    std::lock_guard<std::mutex> lock(mu_);
-    int best_len = 0;
-    int best_idx = -1;
-
-    for (int cut : boundaries) {
-        if (cut <= 0 || cut > (int)effective_prompt.size()) continue;
-        PrefixHash hash = hash_prefix(effective_prompt.data(), cut);
-        int idx = find_entry(hash);
-        if (idx >= 0 && cut > best_len) {
-            best_len = cut;
-            best_idx = idx;
-        }
-    }
-
-    if (best_idx < 0) return {false, 0};
-
-    auto & entry = entries_[best_idx];
-    if (!read_file(entry.path, slot)) {
-        // Corrupt file — evict.
-        std::remove(entry.path.c_str());
-        total_bytes_ -= entry.file_size;
-        entries_.erase(entries_.begin() + best_idx);
-        return {false, 0};
-    }
-
-    entry.last_used = now_unix();
-    entry.hits++;
-    std::fprintf(stderr, "[disk-cache] boundary-prefix hit boundary=%d (of %zu total)\n",
-                 best_len, effective_prompt.size());
-    return {true, best_len};
 }
 
 // ─── Continued checkpoints ──────────────────────────────────────────────
