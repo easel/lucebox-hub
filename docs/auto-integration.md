@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-10T00:52:10-04:00`
-Current base: `origin/main` `d2e58c1b`
-Previous integration tip: `7e3efcd6`
-Current integration source tip before this refresh: `7e3efcd6`
-Post-merge integration tip: `7e3efcd6`
-refreshed_head: `7e3efcd6`
+Last refresh: `2026-06-10T07:15:46-04:00`
+Current base: `origin/main` `1f42436f`
+Previous integration tip: `15490dba`
+Current integration source tip before this refresh: `15490dba`
+Post-merge integration tip: `b8705721`
+refreshed_head: `b8705721`
 
-Latest 2026-06-10 refresh: fetched `origin` and `easel` separately; `origin/main` `d2e58c1b` is still already represented, and the current integration stack remained at `7e3efcd6` before this docs-only update. Open PR accounting is now 20 non-draft and 4 draft/excluded (`#353`, `#304`, `#275`, `#249`). Exact-head containment against the refreshed stack shows 17 current open non-draft PR heads integrated: `#358`, `#357`, `#356`, `#349`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The held open non-draft PRs remain `#154`, `#153`, and `#135`; draft/excluded open PRs are `#353`, `#304`, `#275`, and `#249`. Validation for this refresh: `git diff --check` passed after updating the manifest, and no source/build/test rerun was needed because the stack was already aligned with upstream main and the open PR head set.
+Latest 2026-06-10 refresh: fetched `origin` and `easel`, merged refreshed `origin/main` `1f42436f` cleanly, then merged open PR `#357` (`fix(pflash): size anchor hit_pos storage to max_anchor_hits (cubic P1)`) into the integration stack. Current exact-head integration now includes the 17 open non-draft PR heads `#361`, `#360`, `#359`, `#357`, `#344`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`; the draft/excluded open PR `#275` remains represented but is not counted toward non-draft accounting. Remaining open non-draft candidates not yet carried are `#349`, `#154`, `#153`, and `#135` (`#349` is the next large MoE prefill stream candidate to probe). Validation for this refresh: `git diff --check` passed after the merges, and no repo build/test rerun was attempted because the run was merge-only and the local WSL toolchain remains incomplete for a full server build.
 
 Latest 2026-06-09 manifest correction: added the missing #357 table row and refreshed the manifest metadata after confirming PR #357 is already carried in the stack via the earlier clean merge recorded in `git log`. No source changes were required for this follow-up.
 
