@@ -582,6 +582,7 @@ int moe_hybrid_cache_swap_in(MoeHybridLayerStorage & st, int global_expert,
     if (slot < 0) return -1;
     const int evicted = st.spare_global[(size_t)slot];
     if (evicted >= 0) st.hot_local_by_global[(size_t)evicted] = -1;  // evicted -> served cold again
+    if (evicted >= 0 && evicted < 256) st.expert_vram_mask[evicted >> 6] &= ~(1ULL << (evicted & 63));
 
     const int hslot = st.hot_active + slot;  // hot-local index of the spare slot
     auto copy_slice = [&](ggml_tensor * cold_t, ggml_tensor * hot_t, size_t ebytes) {
@@ -600,6 +601,7 @@ int moe_hybrid_cache_swap_in(MoeHybridLayerStorage & st, int global_expert,
     }
 
     st.hot_local_by_global[(size_t)global_expert] = hslot;
+    if (global_expert < 256) st.expert_vram_mask[global_expert >> 6] |= 1ULL << (global_expert & 63);
     st.spare_global[(size_t)slot] = global_expert;
     st.spare_lru[(size_t)slot] = ++st.lru_clock;
     return hslot;

@@ -81,6 +81,13 @@ private:
                               std::vector<int32_t> & argmax_out,
                               bool capture_features);
 
+    // Batched hybrid forward: processes all tokens layer-by-layer (like prefill).
+    // Returns argmax for each token. Much faster than sequential hybrid_forward_one_token.
+    bool hybrid_forward_batch(const int32_t * tokens, int n_tokens, int base_pos,
+                              std::vector<float> & act_cur,
+                              std::vector<int32_t> & argmax_out,
+                              bool capture_features);
+
     // Pipelined decode: uses cached DeltaNet graphs + optimized FFN loop
     bool run_pipelined_decode_path(int committed, int n_gen,
                                    std::vector<int32_t> & out_tokens,

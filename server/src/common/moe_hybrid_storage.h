@@ -114,6 +114,7 @@ struct MoeHybridLayerStorage {
         }
         return true;
     }
+
     bool fused_gate_up = false;
     size_t gate_expert_bytes = 0;
     size_t up_expert_bytes = 0;

@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "moe_hybrid_ffn_eval.h"
 
 #include "ggml-alloc.h"
@@ -919,6 +920,21 @@ bool eval_moe_batched_prefill_ffn(
     return true;
 }
 
+// MMQ full-batch mul_mat_id on a reduced hot stack is only stable for large
+// batches. Small batches (spec verify/replay, <=~24 tokens) spread n_used*n_tokens
+// slots over thousands of hot experts; that extreme imbalance hits an unbounded
+// stream-k tile load in the MMQ kernel and faults (observed on sm_86, not just
+// sm_75). Prefill chunks (>=64 tokens) are dense enough and run clean, so keep
+// the sm_80+ fast path for them and route small batches through the proven
+// <=4-token MMVQ sub-batch path.
+static bool mmq_full_batch_ok(const MoeHybridConfig & cfg, int n_tokens) {
+    static const int min_tokens = [](){
+        const char * v = std::getenv("DFLASH_MMQ_FULL_BATCH_MIN");
+        return v ? std::atoi(v) : 64;
+    }();
+    return cfg.mmq_safe_full_batch && n_tokens >= min_tokens;
+}
+
 static bool eval_moe_hybrid_ffn_batched_core(
     ggml_backend_t                  gpu_backend,
     ggml_backend_t                  cpu_backend,
@@ -1166,7 +1182,7 @@ bool eval_moe_hot_only_batched(
                           : storage.gate_hot    ? (int)storage.gate_hot->ne[2]
                           : 0;
     static const int MMQ_SAFE_SUB_BATCH = 4;
-    if (!cfg.mmq_safe_full_batch
+    if (!mmq_full_batch_ok(cfg, n_tokens)
         && n_hot_stack > 0 && n_hot_stack < cfg.n_expert && n_tokens > MMQ_SAFE_SUB_BATCH) {
         std::vector<float> sub_out;
         for (int t0 = 0; t0 < n_tokens; t0 += MMQ_SAFE_SUB_BATCH) {
@@ -1218,7 +1234,7 @@ bool eval_moe_hot_only_batched(
     // ── Slow path: build graph (first call or size mismatch) ──
     // Try to build and cache for this n_tokens size.
     // Cache when: sub-batch size (legacy), full stack (all hot), or full-batch safe (sm_80+).
-    if (cfg.mmq_safe_full_batch || n_tokens == MMQ_SAFE_SUB_BATCH
+    if (mmq_full_batch_ok(cfg, n_tokens) || n_tokens == MMQ_SAFE_SUB_BATCH
         || (n_hot_stack == 0 || n_hot_stack >= cfg.n_expert)) {
         if (build_cached_hot_batched_graph(cached, gpu_backend, storage, desc, cfg, n_tokens)) {
             // Successfully cached — use it immediately
@@ -1335,7 +1351,7 @@ bool eval_moe_hybrid_ffn_batched(
                           : storage.gate_hot    ? (int)storage.gate_hot->ne[2]
                           : 0;
     static const int MMQ_SAFE_SUB_BATCH = 4;
-    if (!cfg.mmq_safe_full_batch
+    if (!mmq_full_batch_ok(cfg, n_tokens)
         && n_hot_stack > 0 && n_hot_stack < cfg.n_expert && n_tokens > MMQ_SAFE_SUB_BATCH) {
         const int n_embd = cfg.n_embd;
         const int n_used = cfg.n_expert_used;
