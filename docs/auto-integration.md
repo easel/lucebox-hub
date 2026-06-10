@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-10T13:41:26-04:00`
-Current base: `origin/main` `49c32da2`
-Previous integration tip: `efb3fc6b`
-Current integration source tip before this refresh: `efb3fc6b`
-Post-merge integration tip: `799bcc6f`
-refreshed_head: `799bcc6f`
+Last refresh: `2026-06-10T15:47:27-04:00`
+Current base: `origin/main` `946eb387`
+Previous integration tip: `b4fe8642`
+Current integration source tip before this refresh: `b4fe8642`
+Post-merge integration tip: `2b431d82`
+refreshed_head: `2b431d82`
 
-Latest 2026-06-10 refresh: fetched `origin` and `easel`, merged refreshed `origin/main` `49c32da2` cleanly into `auto-integration` (merge commit `799bcc6f`), then re-enumerated open PR heads. Exact-head integration now includes 18 open PR heads: `#364`, `#362`, `#361`, `#360`, `#359`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#275` (draft/excluded but represented), `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. Remaining open non-draft candidates not yet carried are `#366`, `#154`, `#153`, and `#135`; draft/excluded open PRs not yet carried are `#353`, `#304`, and `#249`. PR `#366` is held/unsalvageable for now because it is a broad Windows-only HIP portability port (13 files, POSIX-to-Win32 rewrites) that conflicts with this Linux-focused integration tree; no safe slice was promoted. Validation for this refresh: `git diff --check` passed after the merge, and no repo build/test rerun was attempted because the run was merge-only and the local WSL toolchain remains incomplete for a full server build.
+Latest 2026-06-10 refresh: fetched `origin` and `easel`, merged refreshed `origin/main` `946eb387` cleanly into `auto-integration`, then merged open PR `#366` (`fix: port POSIX-only files to Windows for HIP builds`) with a 3-file conflict resolution in `server/src/qwen35/qwen35_backend.cpp`, `server/src/qwen35moe/qwen35moe_backend.cpp`, and `server/src/server/disk_prefix_cache.cpp`. Exact-head integration now includes 17 open PR heads: `#366`, `#364`, `#361`, `#359`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#275` (draft/excluded but represented), `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. Remaining open non-draft candidates not yet carried are `#154`, `#153`, and `#135`; draft/excluded open PRs not yet carried are `#353`, `#304`, and `#249`. Validation for this refresh: `git diff --check --cached` passed after the merge conflict resolutions; no repo build/test rerun was attempted in this WSL environment.
 
 Latest 2026-06-10 follow-up: merged `fix-qwen35moe-hybrid-prefix-restore` into `auto-integration`, preserving the hybrid snapshot-restore path in `server/src/qwen35moe/qwen35moe_backend.cpp` while preferring the public `generate(req, io)` fallback wrapper and keeping the `ServerConfig` merge additions intact. Validation before commit: `git diff --check --cached` passed; the local CMake build check could not be run from the WSL path because the existing `.docker-build/server` cache was generated under `/workspace/.docker-build/server`. Pushed the resulting merge commit to `easel/auto-integration`.
 
@@ -72,6 +72,10 @@ The current stack contains 26 exact current open non-draft PR heads plus promote
 | PR | Head branch | Head | State | Notes |
 |---:|---|---:|---|---|
 | #342 | `missing` | `d49bc49c` | included | Fix main build; restores the missing brace in `server/test/test_server_unit.cpp` so the current stack compiles against the latest base and keeps the unit-test translation unit valid. |
+| #366 | `fix/windows-hip-build` | `634a173b` | included | Windows HIP portability port; current head is represented after the 3-file conflict resolution in `qwen35_backend.cpp`, `qwen35moe_backend.cpp`, and `disk_prefix_cache.cpp`. |
+| #364 | `feat-scoped-disk-prefix-cache-policy` | `fdd6e88f` | included | Scoped disk prefix cache policy; current head is already represented by the refreshed stack. |
+| #361 | `split/06-manifest-hardening` | `59dfdad8` | included | Binds snapshot identity to model+config (manifest hardening); current head is already represented by the refreshed stack. |
+| #359 | `split/04-gguf-scalar-assert` | `532efc0a` | included | Derives scalars from weights and asserts against GGUF metadata; current head is already represented by the refreshed stack. |
 | #358 | `feat/laguna-cudagraph-replay` | `44eea635` | included | CUDA-graph replay decode for laguna; current head is represented by the stack after merging the laguna graph-stability changes and the new `bench_laguna_spark` target. |
 | #357 | `split/03-anchor-radius-cliff` | `5194f25c` | included | Adaptive `anchor_radius`/`max_anchor_hits` tiering for long-context pflash; current head is represented by the stack after a clean merge. |
 | #356 | `split/02-bug42-tail-guard` | `75551f6b` | included | Tightens the drafter tail-capture view-bounds guard and adds a boundary regression test; current head is represented by the stack after a clean merge. |
