@@ -197,7 +197,9 @@ static ggml_tensor * build_gemma4_attn_block(
     ggml_tensor * attn_mask_full,
     ggml_tensor * attn_mask_swa,
     int kv_start,
-    int n_tokens)
+    int n_tokens,
+    ggml_tensor * kv_idx_full = nullptr,   // [n_tokens] I32 absolute rows (graph input)
+    ggml_tensor * kv_idx_swa  = nullptr)   // [n_tokens] I32 ring rows pos%swa_size (graph input)
 {
     const int head_dim   = gemma4_head_dim(w, il);
     const int n_head     = w.n_head;
@@ -254,47 +256,62 @@ static ggml_tensor * build_gemma4_attn_block(
         const int write_pos = is_swa ? (kv_start % cache_len) : kv_start;
         ggml_tensor * Kcur_T = ggml_permute(ctx, Kcur, 0, 2, 1, 3);
         ggml_tensor * Vcur_T = ggml_permute(ctx, Vcur, 0, 2, 1, 3);
+        ggml_tensor * kvi = is_swa ? kv_idx_swa : kv_idx_full;
+        if (kvi) {
+            // CUDA-graph-stable append: dst is the whole cache tensor (stable
+            // pointer), the row index is a graph INPUT (data changes per step,
+            // pointer doesn't). A write_pos-offset view changes node properties
+            // every step, which resets the ggml-cuda CUDA-graph warmup and
+            // forfeits replay. For SWA layers the caller fills the index with
+            // (pos % swa_size), which also handles ring wrap-around mid-chunk
+            // correctly (the offset-view path wrote a contiguous block).
+            ggml_tensor * Krows = ggml_cont(ctx, Kcur_T);
+            ggml_tensor * Vrows = ggml_cont(ctx, Vcur_T);
+            ggml_build_forward_expand(gf, ggml_set_rows(ctx, cache_k, Krows, kvi));
+            ggml_build_forward_expand(gf, ggml_set_rows(ctx, cache_v, Vrows, kvi));
+        } else {
+            const int first_n = is_swa ? std::min(n_tokens, cache_len - write_pos)
+                                       : n_tokens;
+            const int wrap_n  = is_swa ? (n_tokens - first_n) : 0;
 
-        const int first_n = is_swa ? std::min(n_tokens, cache_len - write_pos)
-                                   : n_tokens;
-        const int wrap_n  = is_swa ? (n_tokens - first_n) : 0;
+            ggml_tensor * k_slot = ggml_view_3d(ctx, cache_k,
+                head_dim, first_n, n_head_kv,
+                cache_k->nb[1], cache_k->nb[2],
+                cache_k->nb[1] * (size_t)write_pos);
+            ggml_tensor * v_slot = ggml_view_3d(ctx, cache_v,
+                head_dim, first_n, n_head_kv,
+                cache_v->nb[1], cache_v->nb[2],
+                cache_v->nb[1] * (size_t)write_pos);
+            ggml_tensor * k_src = ggml_view_3d(ctx, Kcur_T,
+                head_dim, first_n, n_head_kv,
+                Kcur_T->nb[1], Kcur_T->nb[2], 0);
+            ggml_tensor * v_src = ggml_view_3d(ctx, Vcur_T,
+                head_dim, first_n, n_head_kv,
+                Vcur_T->nb[1], Vcur_T->nb[2], 0);
+            ggml_build_forward_expand(gf, ggml_cpy(ctx, k_src, k_slot));
+            ggml_build_forward_expand(gf, ggml_cpy(ctx, v_src, v_slot));
 
-        ggml_tensor * k_slot = ggml_view_3d(ctx, cache_k,
-            head_dim, first_n, n_head_kv,
-            cache_k->nb[1], cache_k->nb[2],
-            cache_k->nb[1] * (size_t)write_pos);
-        ggml_tensor * v_slot = ggml_view_3d(ctx, cache_v,
-            head_dim, first_n, n_head_kv,
-            cache_v->nb[1], cache_v->nb[2],
-            cache_v->nb[1] * (size_t)write_pos);
-        ggml_tensor * k_src = ggml_view_3d(ctx, Kcur_T,
-            head_dim, first_n, n_head_kv,
-            Kcur_T->nb[1], Kcur_T->nb[2], 0);
-        ggml_tensor * v_src = ggml_view_3d(ctx, Vcur_T,
-            head_dim, first_n, n_head_kv,
-            Vcur_T->nb[1], Vcur_T->nb[2], 0);
-        ggml_build_forward_expand(gf, ggml_cpy(ctx, k_src, k_slot));
-        ggml_build_forward_expand(gf, ggml_cpy(ctx, v_src, v_slot));
-
-        if (wrap_n > 0) {
-            GGML_ASSERT(wrap_n <= cache_len && "Gemma4 SWA prefill chunk exceeds ring capacity");
-            ggml_tensor * k_wrap_slot = ggml_view_3d(ctx, cache_k,
-                head_dim, wrap_n, n_head_kv,
-                cache_k->nb[1], cache_k->nb[2], 0);
-            ggml_tensor * v_wrap_slot = ggml_view_3d(ctx, cache_v,
-                head_dim, wrap_n, n_head_kv,
-                cache_v->nb[1], cache_v->nb[2], 0);
-            ggml_tensor * k_wrap_src = ggml_view_3d(ctx, Kcur_T,
-                head_dim, wrap_n, n_head_kv,
-                Kcur_T->nb[1], Kcur_T->nb[2],
-                Kcur_T->nb[1] * (size_t)first_n);
-            ggml_tensor * v_wrap_src = ggml_view_3d(ctx, Vcur_T,
-                head_dim, wrap_n, n_head_kv,
-                Vcur_T->nb[1], Vcur_T->nb[2],
-                Vcur_T->nb[1] * (size_t)first_n);
-            ggml_build_forward_expand(gf, ggml_cpy(ctx, k_wrap_src, k_wrap_slot));
-            ggml_build_forward_expand(gf, ggml_cpy(ctx, v_wrap_src, v_wrap_slot));
+            if (wrap_n > 0) {
+                GGML_ASSERT(wrap_n <= cache_len && "Gemma4 SWA prefill chunk exceeds ring capacity");
+                ggml_tensor * k_wrap_slot = ggml_view_3d(ctx, cache_k,
+                    head_dim, wrap_n, n_head_kv,
+                    cache_k->nb[1], cache_k->nb[2], 0);
+                ggml_tensor * v_wrap_slot = ggml_view_3d(ctx, cache_v,
+                    head_dim, wrap_n, n_head_kv,
+                    cache_v->nb[1], cache_v->nb[2], 0);
+                ggml_tensor * k_wrap_src = ggml_view_3d(ctx, Kcur_T,
+                    head_dim, wrap_n, n_head_kv,
+                    Kcur_T->nb[1], Kcur_T->nb[2],
+                    Kcur_T->nb[1] * (size_t)first_n);
+                ggml_tensor * v_wrap_src = ggml_view_3d(ctx, Vcur_T,
+                    head_dim, wrap_n, n_head_kv,
+                    Vcur_T->nb[1], Vcur_T->nb[2],
+                    Vcur_T->nb[1] * (size_t)first_n);
+                ggml_build_forward_expand(gf, ggml_cpy(ctx, k_wrap_src, k_wrap_slot));
+                ggml_build_forward_expand(gf, ggml_cpy(ctx, v_wrap_src, v_wrap_slot));
+            }
         }
+
     }
     // else: KV-sharing layer — cache already written by source layer
 
@@ -356,7 +373,9 @@ static ggml_tensor * build_gemma4_layer(
     ggml_tensor * per_layer_input,  // [n_embd_per_layer, n_tokens] or nullptr
     int kv_start,
     int n_tokens,
-    int capture_idx = -1)  // >=0: write to target_feat at this capture slot
+    int capture_idx = -1,  // >=0: write to target_feat at this capture slot
+    ggml_tensor * kv_idx_full = nullptr,
+    ggml_tensor * kv_idx_swa  = nullptr)
 {
     const Gemma4Layer & L = w.layers[il];
     ggml_tensor * inp_f32 = graph_tensor_f32(ctx, inp);
@@ -367,7 +386,7 @@ static ggml_tensor * build_gemma4_layer(
     // Attention
     cur = build_gemma4_attn_block(ctx, gf, w, L, cache, il, cur,
                                     positions, attn_mask_full, attn_mask_swa,
-                                    kv_start, n_tokens);
+                                    kv_start, n_tokens, kv_idx_full, kv_idx_swa);
 
     // Post-attn norm
     if (L.attn_post_norm) {
@@ -593,13 +612,14 @@ bool build_gemma4_layer_step(
     return ggml_gallocr_alloc_graph(sg.alloc, sg.gf);
 }
 
-bool compute_gemma4_split_argmax(
+bool compute_gemma4_split_projection(
     ggml_backend_t          backend,
     const Gemma4Weights &   w,
     ggml_tensor *           act,
     int                     token_offset,
     int                     n_tokens,
-    std::vector<int32_t> &  out_argmax) {
+    std::vector<int32_t> *  out_argmax,
+    std::vector<float> *    out_logits) {
     ggml_init_params ip{};
     ip.mem_size = ggml_tensor_overhead() * 64 + ggml_graph_overhead() + 1024 * 1024;
     ip.no_alloc = true;
@@ -617,9 +637,17 @@ bool compute_gemma4_split_argmax(
         cur = ggml_tanh(ctx, cur);
         cur = ggml_scale(ctx, cur, w.final_logit_softcap);
     }
-    cur = ggml_argmax(ctx, cur);
-    ggml_set_output(cur);
-    ggml_build_forward_expand(gf, cur);
+    ggml_tensor * logits = cur;
+    ggml_tensor * argmax = nullptr;
+    if (out_logits) {
+        ggml_set_output(logits);
+        ggml_build_forward_expand(gf, logits);
+    }
+    if (out_argmax) {
+        argmax = ggml_argmax(ctx, logits);
+        ggml_set_output(argmax);
+        ggml_build_forward_expand(gf, argmax);
+    }
 
     ggml_gallocr_t alloc = ggml_gallocr_new(ggml_backend_get_default_buffer_type(backend));
     if (!alloc || !ggml_gallocr_alloc_graph(alloc, gf)) {
@@ -632,12 +660,30 @@ bool compute_gemma4_split_argmax(
         ggml_free(ctx);
         return false;
     }
-    out_argmax.resize((size_t)n_tokens);
-    ggml_backend_tensor_get(cur, out_argmax.data(), 0,
-                            sizeof(int32_t) * (size_t)n_tokens);
+    if (out_argmax) {
+        out_argmax->resize((size_t)n_tokens);
+        ggml_backend_tensor_get(argmax, out_argmax->data(), 0,
+                                sizeof(int32_t) * (size_t)n_tokens);
+    }
+    if (out_logits) {
+        out_logits->resize((size_t)w.n_vocab * (size_t)n_tokens);
+        ggml_backend_tensor_get(logits, out_logits->data(), 0,
+                                sizeof(float) * (size_t)w.n_vocab * (size_t)n_tokens);
+    }
     ggml_gallocr_free(alloc);
     ggml_free(ctx);
     return true;
+}
+
+bool compute_gemma4_split_argmax(
+    ggml_backend_t          backend,
+    const Gemma4Weights &   w,
+    ggml_tensor *           act,
+    int                     token_offset,
+    int                     n_tokens,
+    std::vector<int32_t> &  out_argmax) {
+    return compute_gemma4_split_projection(
+        backend, w, act, token_offset, n_tokens, &out_argmax, nullptr);
 }
 
 bool gemma4_step(
@@ -650,9 +696,16 @@ bool gemma4_step(
     int                     kv_start,
     std::vector<float> &    out_logits)
 {
-    // Allocate graph context
+    // Allocate graph context. Persistent thread_local arena: rebuilt graphs
+    // land at identical addresses every step, so the ggml-cuda CUDA-graph
+    // cache (keyed on nodes[0], memcmps node properties) can replay the
+    // captured graph instead of re-launching every kernel per token.
+    const size_t arena_size = ggml_tensor_overhead() * 16384 + ggml_graph_overhead() + 16 * 1024 * 1024;
+    static thread_local std::vector<uint8_t> g_arena;
+    if (g_arena.size() < arena_size) g_arena.resize(arena_size);
     ggml_init_params ip{};
-    ip.mem_size = ggml_tensor_overhead() * 16384 + ggml_graph_overhead() + 16 * 1024 * 1024;
+    ip.mem_size = arena_size;
+    ip.mem_buffer = g_arena.data();
     ip.no_alloc = true;
     ggml_context * ctx = ggml_init(ip);
     ggml_cgraph * gf = ggml_new_graph_custom(ctx, 16384, false);
@@ -662,6 +715,18 @@ bool gemma4_step(
     ggml_set_input(ie);
     ggml_tensor * pp = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, n_tokens);
     ggml_set_input(pp);
+
+    // K/V append row indices (set_rows path; data-only per step -> stable
+    // node properties -> CUDA-graph replay). DFLASH_GEMMA4_NO_KVPAD=1 restores
+    // the legacy offset-view cpy append.
+    static const bool g_no_kvpad = (std::getenv("DFLASH_GEMMA4_NO_KVPAD") != nullptr);
+    ggml_tensor * kvi_full = nullptr, * kvi_swa = nullptr;
+    if (!g_no_kvpad) {
+        kvi_full = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, n_tokens);
+        ggml_set_input(kvi_full);
+        kvi_swa = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, n_tokens);
+        ggml_set_input(kvi_swa);
+    }
 
     // Token IDs input (for per-layer embedding lookup)
     ggml_tensor * tok_ids = nullptr;
@@ -736,7 +801,8 @@ bool gemma4_step(
         }
         cur = build_gemma4_layer(ctx, gf, w, cache, il, cur, pp,
                                    mk_full_f16, mk_swa_f16, pl_input,
-                                   kv_start, n_tokens, cap_idx);
+                                   kv_start, n_tokens, cap_idx,
+                                   kvi_full, kvi_swa);
     }
 
     // Final norm
@@ -777,6 +843,17 @@ bool gemma4_step(
     std::vector<int32_t> pos((size_t)n_tokens);
     for (int i = 0; i < n_tokens; ++i) pos[i] = kv_start + i;
     ggml_backend_tensor_set(pp, pos.data(), 0, ggml_nbytes(pp));
+    if (kvi_full) {
+        // Full layers append at the absolute position; SWA layers at the ring
+        // slot. Per-token modular indices also land chunks that cross the
+        // ring wrap boundary correctly (the offset-view path wrote one
+        // contiguous block).
+        ggml_backend_tensor_set(kvi_full, pos.data(), 0, ggml_nbytes(kvi_full));
+        GGML_ASSERT(swa_size > 0);
+        std::vector<int32_t> ring((size_t)n_tokens);
+        for (int i = 0; i < n_tokens; ++i) ring[i] = (kv_start + i) % swa_size;
+        ggml_backend_tensor_set(kvi_swa, ring.data(), 0, ggml_nbytes(kvi_swa));
+    }
 
     // Set token IDs for per-layer embedding
     if (tok_ids && token_ids) {
