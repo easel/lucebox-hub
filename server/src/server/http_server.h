@@ -217,6 +217,7 @@ struct ServerConfig {
     int         disk_cache_min_tokens = 512; // only persist >= this many tokens
     int         disk_cache_continued_interval = 10240; // continued checkpoint every N tokens
     int         disk_cache_cold_max_tokens = 10240;    // cold prefix for prompts longer than this
+    DiskPrefixCachePolicy disk_cache_policy;
 
     // Optional Jinja chat template (overrides the hardcoded ChatFormat::QWEN3
     // / LAGUNA renderer when non-empty). Used for tool-using agents that need
@@ -309,6 +310,7 @@ struct ParsedRequest {
     // before any explicit `<think>` opener route to reasoning_content
     // instead of leaking into content.
     bool                      started_in_thinking = false;
+    DiskPrefixCachePolicy     disk_cache_policy;
 };
 
 // Build the /props response body. Exposed (non-static) so unit tests
@@ -418,6 +420,7 @@ private:
 
     // Track prompt tokens for each snapshot slot (for shutdown save).
     std::unordered_map<int, std::vector<int32_t>> slot_tokens_;
+    std::vector<std::vector<int32_t>> recent_disk_prompts_;
 
     // FlowKV freeze-history: per-message compression cache.
     // Key: SHA-1 hash of the drafter-token slice for an aged message.
