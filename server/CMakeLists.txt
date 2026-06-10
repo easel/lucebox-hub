@@ -634,6 +634,8 @@ if(DFLASH27B_TESTS)
         add_executable(test_drafter_tail_capture_guard_red
             test/test_drafter_tail_capture_guard.cpp)
         # No TAIL_GUARD_USE_NEW_FORMULA — uses old (buggy) guard, expected to FAIL.
+        add_test(NAME test_drafter_tail_capture_guard_red COMMAND test_drafter_tail_capture_guard_red)
+        set_tests_properties(test_drafter_tail_capture_guard_red PROPERTIES WILL_FAIL TRUE)
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_anchor_params.cpp")
         add_executable(test_anchor_params test/test_anchor_params.cpp)
