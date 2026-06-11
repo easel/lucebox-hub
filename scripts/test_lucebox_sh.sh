@@ -501,14 +501,17 @@ STUB
     rc=$(grep -oE 'RC=[0-9]+$' <<<"$out" | tail -1 | sed 's/^RC=//')
     rc="${rc:-99}"
     rm -rf "$sandbox"
+    # The auto-detect block is entered (so any `set -u` regression on
+    # DRAFT_FAMILY_GLOB will trip) and then the entrypoint refuses to
+    # auto-pick — the deliberate safety added in PR #334's cubic round.
+    # We require: no set-u leak, the refuse warn fired, and the shim
+    # was NOT exec'd (a silent multi-target auto-pick would be the bug).
     if grep -qE 'unbound variable|syntax error' <<<"$out"; then
         report fail "$label" "leak: $(grep -E 'unbound variable|syntax error' <<<"$out" | head -3)"
-    elif [ "$rc" != "0" ]; then
-        report fail "$label" "exit $rc; output: $(head -5 <<<"$out")"
-    elif ! grep -qF "[shim] dflash_server" <<<"$out"; then
-        report fail "$label" "shim never executed; output: $(head -10 <<<"$out")"
-    elif ! grep -qF "Multiple candidate targets" <<<"$out"; then
-        report fail "$label" "multi-target warn missing — did the auto-detect block fire?"
+    elif ! grep -qF "Refusing to auto-select" <<<"$out"; then
+        report fail "$label" "refuse-to-auto-pick warn missing — did the auto-detect block fire?  rc=$rc output: $(head -5 <<<"$out")"
+    elif grep -qF "[shim] dflash_server" <<<"$out"; then
+        report fail "$label" "shim was exec'd despite multi-target refuse"
     else
         report ok "$label"
     fi

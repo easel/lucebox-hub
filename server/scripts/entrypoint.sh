@@ -73,6 +73,15 @@ esac
 # write-failure (read-only FS, etc.) gets a warning and we continue.
 write_host_info() {
     local target="/opt/lucebox-hub/HOST_INFO"
+    # If the target dir doesn't exist (e.g. running the entrypoint outside
+    # the canonical container layout: unit tests, plain `docker run` without
+    # a bind mount), don't try to write — bash's own "No such file or
+    # directory" complaint on the `> "$tmp"` redirect below would leak to
+    # stderr regardless of `2>/dev/null` (that suppresses the command's
+    # stderr, not the redirect itself). HOST_INFO is informational.
+    if [ ! -d "$(dirname "$target")" ]; then
+        return 0
+    fi
     local tmp="${target}.tmp.$$"
     local collected_at
     collected_at=$(date -u +%FT%TZ 2>/dev/null || echo "")
