@@ -886,14 +886,20 @@ if(DFLASH27B_TESTS)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/replay_http_server.cpp")
         # http_server.cpp #includes <curl/curl.h> for its upstream-proxy
         # passthrough; replay_http_server compiles that TU so it must link
-        # libcurl even though the stub backend itself doesn't use it.
-        find_package(CURL REQUIRED)
+        # libcurl even though the stub backend itself doesn't use it. Skip
+        # the target on hosts without libcurl-dev rather than fail configure
+        # — the rest of the build (server unit tests, dflash_server, etc.)
+        # has its own CURL gating and shouldn't be blocked by the test rig.
+        find_package(CURL)
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/replay_http_server.cpp" AND CURL_FOUND)
         add_executable(replay_http_server
             test/replay_http_server.cpp
             test/scenario_store.cpp
             test/stub_model_backend.cpp
             src/server/http_server.cpp
-            src/server/model_card.cpp)
+            src/server/model_card.cpp
+            src/server/prompt_normalize.cpp)
         target_include_directories(replay_http_server PRIVATE
             ${DFLASH27B_SRC_INCLUDE_DIRS}
             ${CMAKE_CURRENT_SOURCE_DIR}/test
