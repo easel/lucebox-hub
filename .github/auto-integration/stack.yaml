@@ -1,19 +1,20 @@
-updated_at: 2026-06-10T20:00:05-04:00
+updated_at: 2026-06-11T13:35:48-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
   upstream: origin
   writable: easel
 heads:
-  upstream_main: 3e12dc9d
-  easel_auto_integration_before_refresh: 08257929
-  current_integration_head_before_refresh: 08257929
-  refreshed_head: c7541e1e
+  upstream_main: 53ca591e
+  easel_auto_integration_before_refresh: 4a170195
+  current_integration_head_before_refresh: 4a170195
+  refreshed_head: 75596783
   base_before_run: auto-integration
-last_refresh_note: Merged PR #335 (feat/lucebox-cli) into auto-integration; kept the branch-side workspace layout and CLI stack.
+last_refresh_note: "Merged PR #343 (test(server): CPU-only HTTP server test rig) into auto-integration; resolved CMake, chat-template, and server unit test conflicts while keeping the upstream base at 53ca591e."
 stack:
   included:
     - {pr: 364, head: fdd6e88f, status: included_represented, note: scoped disk prefix cache policy; exact PR head ancestor after represented merge}
+    - {pr: 343, head: 588fd089, status: included, note: CPU-only HttpServer test rig; merged with manual conflict resolution in server/CMakeLists.txt, chat_template.cpp, and server/test/test_server_unit.cpp (exact PR head not preserved)}
     - {pr: 329, head: 8218333b, status: included_draft, note: plain-text call-verb tool-call parser and SSE/emitter wiring; merged before draft}
     - {pr: 328, head: 6f8bcd43, status: included, note: target-split prefill chunk-size dispatch; ancestor of auto-integration}
     - {pr: 326, head: d799d000, status: included, note: soft-close thinking termination via logit-ratio peek; ancestor of auto-integration}
@@ -119,6 +120,6 @@ stack:
     - .github/auto-integration/stack.yaml YAML lint via file writer
     - full CMake/g++ validation not rerun because no source code changed; prior local blockers remain missing server/deps/llama.cpp plus CUDA compiler-id sm_52 ptxas failure
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; the upstream refresh in this run merged `origin/main` `3e12dc9d` cleanly, and the direct merge probes for PRs #154/#153/#135 were still conflict-heavy.
-  - Open PR enumeration reported 17 non-draft PRs and 3 draft/excluded PRs; 14 current non-draft PR heads are exact ancestors, 3 remain blocked/selective-port candidates (#154, #153, #135), and the draft/excluded open PRs not yet carried are #353, #304, and #249.
-  - No new source slice was promoted this run; the merge of `origin/main` was ancestry-only, so no repo build/test rerun was attempted in this WSL environment.
+  - "Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; this follow-up merged PR #343 on top of the prior upstream refresh, and the direct merge probe was resolved with manual conflict handling."
+  - "Open PR enumeration still reports 16 non-draft PRs and 4 draft/excluded PRs; 9 current non-draft PR heads are exact ancestors, 7 remain held/superseded (#341, #339, #337, #335, #154, #153, #135), and the draft/excluded open PRs not yet carried are #353, #304, and #249."
+  - "git diff --check passed after the merge; build/test rerun is still blocked in this WSL environment because cmake is not installed."

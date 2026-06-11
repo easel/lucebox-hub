@@ -1,5 +1,9 @@
 # Auto-integration manifest
 
+Latest 2026-06-11 follow-up: after the upstream `53ca591e` refresh, merged PR `#343` (`test(server): CPU-only HTTP server test rig (stub backend + scenarios)`) into `auto-integration` with manual conflict resolution in `server/CMakeLists.txt`, `server/src/server/chat_template.cpp`, and `server/test/test_server_unit.cpp`. The merge commit is `75596783`; the CPU-only replay harness is now included in the stack.
+
+2026-06-11 live verification: open PR inventory still totals 20 (`16` non-draft, `4` draft/excluded). Exact-head containment against the current stack now shows 9 open non-draft PR heads already represented: `#369`, `#343`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The remaining 7 non-draft heads are held/superseded: `#341`, `#339`, `#337`, `#335`, `#154`, `#153`, and `#135`. Direct-merge probing of `#343` was resolved with the conflict fixes above; the same reasoning / test coverage is now carried in the stack.
+
 Latest 2026-06-11 refresh: fetched `origin` and `easel`, then merged refreshed `origin/main` `53ca591e` cleanly into `auto-integration` (new merge tip `3118faad`). That upstream refresh brought in PRs #371, #370, #364, and #359; the merge itself was conflict-free.
 
 2026-06-11 live verification: open PR inventory now totals 20 (`16` non-draft, `4` draft/excluded). Exact-head containment against the refreshed stack shows 8 open non-draft PR heads already represented: `#369`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The remaining 8 non-draft heads are held/superseded: `#343`, `#341`, `#339`, `#337`, `#335`, `#154`, `#153`, and `#135`. Direct-merge probing of `#343` still conflicts in `server/CMakeLists.txt`, `server/src/server/chat_template.cpp`, and `server/test/test_server_unit.cpp`, but the same reasoning / test coverage is already present in the stack, so it stays held rather than promoted.
