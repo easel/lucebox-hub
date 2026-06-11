@@ -1,4 +1,4 @@
-updated_at: 2026-06-11T13:35:48-04:00
+updated_at: 2026-06-11T17:52:33-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
@@ -6,13 +6,14 @@ remotes:
   writable: easel
 heads:
   upstream_main: 53ca591e
-  easel_auto_integration_before_refresh: 4a170195
-  current_integration_head_before_refresh: 4a170195
-  refreshed_head: 75596783
+  easel_auto_integration_before_refresh: 52086cf9
+  current_integration_head_before_refresh: 52086cf9
+  refreshed_head: 100713a0
   base_before_run: auto-integration
-last_refresh_note: "Merged PR #343 (test(server): CPU-only HTTP server test rig) into auto-integration; resolved CMake, chat-template, and server unit test conflicts while keeping the upstream base at 53ca591e."
+last_refresh_note: "Merged PR #372 (compose: FlowKV aged-history compression + drafter residency fix — 1.72x vs disk-cache baseline at <=64K) into auto-integration; kept the current stack's qwen3 helper/test implementations on the overlapping files and resolved the server-side admission, skip-park, HTTP wiring, and test additions against upstream base 53ca591e."
 stack:
   included:
+    - {pr: 372, head: 26e0ee33, status: included_represented, note: FlowKV aged-history compose + drafter residency fix; exact PR head preserved as merge parent after selective current-stack retention on overlapping qwen3 helpers/tests}
     - {pr: 364, head: fdd6e88f, status: included_represented, note: scoped disk prefix cache policy; exact PR head ancestor after represented merge}
     - {pr: 343, head: 588fd089, status: included, note: CPU-only HttpServer test rig; merged with manual conflict resolution in server/CMakeLists.txt, chat_template.cpp, and server/test/test_server_unit.cpp (exact PR head not preserved)}
     - {pr: 329, head: 8218333b, status: included_draft, note: plain-text call-verb tool-call parser and SSE/emitter wiring; merged before draft}
