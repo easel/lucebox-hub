@@ -4,14 +4,14 @@ Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-10T17:54:44-04:00`
-Current base: `origin/main` `9f0377ce`
-Previous integration tip: `b622541d`
-Current integration source tip before this refresh: `b622541d`
-Post-merge integration tip: `bbb3caff`
-refreshed_head: `bbb3caff`
+Last refresh: `2026-06-10T20:00:05-04:00`
+Current base: `origin/main` `3e12dc9d`
+Previous integration tip: `08257929`
+Current integration source tip before this refresh: `08257929`
+Post-merge integration tip: `c7541e1e`
+refreshed_head: `c7541e1e`
 
-Latest 2026-06-10 refresh: fetched `origin` and `easel`, merged refreshed `origin/main` `9f0377ce` cleanly into `auto-integration`, then merged open PR `#369` (`fix: port POSIX-only files to Windows for HIP builds`) with conflict resolution in `server/src/qwen35/qwen35_backend.cpp` and `server/src/qwen35moe/qwen35moe_backend.cpp` that kept the current-stack side because the substantive Windows HIP hunks were already represented. Exact-head integration now includes 16 open non-draft PR heads: `#369`, `#364`, `#361`, `#359`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#275` (draft/excluded but represented), `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. Remaining open non-draft candidates not yet carried are `#154`, `#153`, and `#135`; draft/excluded open PRs not yet carried are `#353`, `#304`, and `#249`. Validation for this refresh: `git diff --check` passed after the merge resolutions; no repo build/test rerun was attempted in this WSL environment.
+Latest 2026-06-10 refresh: fetched `origin` and `easel`, then merged refreshed `origin/main` `3e12dc9d` cleanly into `auto-integration` with no tree delta beyond the merge commit. Fresh direct-merge probes against the remaining open candidates reconfirmed the three non-ancestor PRs `#154`, `#153`, and `#135` as conflict-heavy (`dflash/` native-MTP / scheduler / runtime overlaps); the draft/excluded open PRs remain `#353`, `#304`, and `#249`. Exact-head integration now includes 14 open non-draft PR heads: `#369`, `#364`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The draft PR `#275` is still represented in the stack but excluded from open non-draft accounting. Validation for this refresh: `git diff --check` passed after the merge, and no repo build/test rerun was attempted in this WSL environment because the merge was ancestry-only.
 
 Latest 2026-06-10 follow-up: merged `fix-qwen35moe-hybrid-prefix-restore` into `auto-integration`, preserving the hybrid snapshot-restore path in `server/src/qwen35moe/qwen35moe_backend.cpp` while preferring the public `generate(req, io)` fallback wrapper and keeping the `ServerConfig` merge additions intact. Validation before commit: `git diff --check --cached` passed; the local CMake build check could not be run from the WSL path because the existing `.docker-build/server` cache was generated under `/workspace/.docker-build/server`. Pushed the resulting merge commit to `easel/auto-integration`.
 
@@ -125,7 +125,7 @@ Closed, upstreamed, or no-longer-open PRs still represented by the stack/base in
 
 This run performed (latest first):
 
-- `git diff --check` passed after the merge resolutions. Exact-head containment now shows 16 current open non-draft PR heads integrated, with held open non-draft PRs #154, #153, and #135 and draft/excluded open PRs #353, #304, and #249. The PR #369 merge was ancestry-only because the current stack already carried the substantive Windows HIP changes; no repo build/test rerun was attempted in this WSL environment.
+- `git diff --check` passed after the merge. Exact-head containment now shows 14 current open non-draft PR heads integrated, with held open non-draft PRs #154, #153, and #135 and draft/excluded open PRs #353, #304, and #249. The current merge of `origin/main` was ancestry-only, and the direct merge probes for #154/#153/#135 stayed conflict-heavy; no repo build/test rerun was attempted in this WSL environment.
 
 - `git diff --check` passed after adding the missing #357 manifest row. No source files changed in this refresh; the integration stack already carried PR #357 via the earlier clean merge recorded in `git log`.
 

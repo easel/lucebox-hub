@@ -1,14 +1,14 @@
-updated_at: 2026-06-10T13:45:00-04:00
+updated_at: 2026-06-10T20:00:05-04:00
 repository: Luce-Org/lucebox-hub
 integration_branch: auto-integration
 remotes:
   upstream: origin
   writable: easel
 heads:
-  upstream_main: 49c32da2
-  easel_auto_integration_before_refresh: 44af6c75
-  current_integration_head_before_refresh: 44af6c75
-  refreshed_head: bd6e9520
+  upstream_main: 3e12dc9d
+  easel_auto_integration_before_refresh: 08257929
+  current_integration_head_before_refresh: 08257929
+  refreshed_head: c7541e1e
   base_before_run: auto-integration
 stack:
   included:
@@ -118,8 +118,6 @@ stack:
     - .github/auto-integration/stack.yaml YAML lint via file writer
     - full CMake/g++ validation not rerun because no source code changed; prior local blockers remain missing server/deps/llama.cpp plus CUDA compiler-id sm_52 ptxas failure
 notes:
-  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; direct merge probes happened in /tmp/luce-auto-cron-20260601-191740/probe-pr-*.
-  - origin/main 8305b6c2 remains ancestor of auto-integration.
-  - Open PR enumeration reported 35 non-draft PRs and 5 draft/excluded PRs; 29 current non-draft PR heads are exact ancestors plus draft PR329 already represented, and 6 remain blocked/selective-port candidates.
-  - No new source slice was promoted this run; #221 was rechecked with Claude/Codex and remains suggested-close/superseded as a direct integration candidate.
-  - 2026-06-10 refresh: merged PR #364 (`fdd6e88f`) into auto-integration as merge commit `bd6e9520` after resolving the only conflict in `server/src/server/http_server.h` by keeping both the existing `started_in_thinking` flag and the new `disk_cache_policy` field. Validation run: `git diff --check` passed; a focused `g++ -std=c++17` syntax probe of `server/http_server.h` stopped at pre-existing repo issues in `adaptive_keep_ratio.h` and duplicate `pflash_router` declarations in `http_server.h`, not at the newly merged disk-prefix-cache change.
+  - Primary checkout /home/erik/Projects/luce2 was clean at start on auto-integration; the upstream refresh in this run merged `origin/main` `3e12dc9d` cleanly, and the direct merge probes for PRs #154/#153/#135 were still conflict-heavy.
+  - Open PR enumeration reported 17 non-draft PRs and 3 draft/excluded PRs; 14 current non-draft PR heads are exact ancestors, 3 remain blocked/selective-port candidates (#154, #153, #135), and the draft/excluded open PRs not yet carried are #353, #304, and #249.
+  - No new source slice was promoted this run; the merge of `origin/main` was ancestry-only, so no repo build/test rerun was attempted in this WSL environment.
