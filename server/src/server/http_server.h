@@ -19,6 +19,7 @@
 #include "tool_memory.h"
 #include "prefix_cache.h"
 #include "disk_prefix_cache.h"
+#include "freeze_history.h"
 #include "api_types.h"
 #include "placement/draft_residency.h"
 #include "placement/remote_draft_config.h"

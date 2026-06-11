@@ -291,6 +291,7 @@ add_library(dflash_common STATIC
     src/server/sse_emitter.cpp
     src/server/prefix_cache.cpp
     src/server/disk_prefix_cache.cpp
+    src/server/freeze_history.cpp
     # ── Jinja chat-template engine (from llama.cpp common/jinja/) ──
     # Used by render_chat_template_jinja() to support --chat-template-file
     # in dflash_server. Mirrors llama.cpp's common_chat_template plumbing.
@@ -633,6 +634,31 @@ if(DFLASH27B_TESTS)
         target_link_libraries(test_anchor_params PRIVATE dflash_common)
         add_test(NAME anchor_params COMMAND test_anchor_params)
     endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_early_exit_score_range.cpp")
+        add_executable(test_drafter_early_exit_score_range
+            test/test_drafter_early_exit_score_range.cpp)
+        target_include_directories(test_drafter_early_exit_score_range PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+        add_test(NAME test_drafter_early_exit_score_range
+            COMMAND test_drafter_early_exit_score_range)
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_anchor_transitive.cpp")
+        add_executable(test_anchor_transitive
+            test/test_anchor_transitive.cpp
+            src/qwen3/anchor_scan.cpp)
+        target_include_directories(test_anchor_transitive PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/qwen3)
+        add_test(NAME test_anchor_transitive
+            COMMAND test_anchor_transitive)
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_warm_path_regression.cpp")
+        add_executable(test_drafter_warm_path_regression
+            test/test_drafter_warm_path_regression.cpp)
+        target_include_directories(test_drafter_warm_path_regression PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+        add_test(NAME test_drafter_warm_path_regression
+            COMMAND test_drafter_warm_path_regression)
+    endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_drafter_tail_capture_guard.cpp")
         # GREEN phase: built with TAIL_GUARD_USE_NEW_FORMULA — must pass after Bug #42 fix.
         add_executable(test_drafter_tail_capture_guard
@@ -645,8 +671,6 @@ if(DFLASH27B_TESTS)
         add_executable(test_drafter_tail_capture_guard_red
             test/test_drafter_tail_capture_guard.cpp)
         # No TAIL_GUARD_USE_NEW_FORMULA — uses old (buggy) guard, expected to FAIL.
-        add_test(NAME test_drafter_tail_capture_guard_red COMMAND test_drafter_tail_capture_guard_red)
-        set_tests_properties(test_drafter_tail_capture_guard_red PROPERTIES WILL_FAIL TRUE)
     endif()
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_draft_vs_reference.cpp")
         add_executable(test_draft_vs_reference test/test_draft_vs_reference.cpp)
