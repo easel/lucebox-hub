@@ -2,6 +2,8 @@
 
 Latest 2026-06-11 refresh: merged PR #335 (feat/lucebox-cli) into auto-integration. Resolved the only conflicts by keeping the branch-side workspace layout and CLI stack in .github/workflows/ci.yml, lefthook.yml, and pyproject.toml. Validation so far: git diff --check passed after staging the conflict resolutions and the merge commit was created cleanly.
 
+2026-06-11 live verification: GitHub branch tips still match the local refs (`easel/auto-integration` at `d0420361`, `origin/main` at `3e12dc9d`), so no branch refresh was needed this run. Open PR inventory remains 21 total: 17 non-draft PRs (`#369`, `#364`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#274`, `#154`, `#153`, `#152`, `#142`, `#137`, `#135`, `#94`, and `#48`) and 4 draft/excluded PRs (`#353`, `#304`, `#275`, and `#249`). Of the non-draft set, 14 are already exact-head represented in the stack and the remaining three (`#154`, `#153`, and `#135`) are still held as conflict-heavy non-ancestors.
+
 Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
