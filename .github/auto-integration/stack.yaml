@@ -10,6 +10,7 @@ heads:
   current_integration_head_before_refresh: 08257929
   refreshed_head: c7541e1e
   base_before_run: auto-integration
+last_refresh_note: Merged PR #335 (feat/lucebox-cli) into auto-integration; kept the branch-side workspace layout and CLI stack.
 stack:
   included:
     - {pr: 364, head: fdd6e88f, status: included_represented, note: scoped disk prefix cache policy; exact PR head ancestor after represented merge}

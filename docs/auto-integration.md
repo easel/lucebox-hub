@@ -1,5 +1,7 @@
 # Auto-integration manifest
 
+Latest 2026-06-11 refresh: merged PR #335 (feat/lucebox-cli) into auto-integration. Resolved the only conflicts by keeping the branch-side workspace layout and CLI stack in .github/workflows/ci.yml, lefthook.yml, and pyproject.toml. Validation so far: git diff --check passed after staging the conflict resolutions and the merge commit was created cleanly.
+
 Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
