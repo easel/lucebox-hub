@@ -1,19 +1,19 @@
 # Auto-integration manifest
 
-Latest 2026-06-11 refresh: merged PR #335 (feat/lucebox-cli) into auto-integration. Resolved the only conflicts by keeping the branch-side workspace layout and CLI stack in .github/workflows/ci.yml, lefthook.yml, and pyproject.toml. Validation so far: git diff --check passed after staging the conflict resolutions and the merge commit was created cleanly.
+Latest 2026-06-11 refresh: fetched `origin` and `easel`, then merged refreshed `origin/main` `53ca591e` cleanly into `auto-integration` (new merge tip `3118faad`). That upstream refresh brought in PRs #371, #370, #364, and #359; the merge itself was conflict-free.
 
-2026-06-11 live verification: GitHub branch tips still match the local refs (`easel/auto-integration` at `d0420361`, `origin/main` at `3e12dc9d`), so no branch refresh was needed this run. Open PR inventory remains 21 total: 17 non-draft PRs (`#369`, `#364`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#274`, `#154`, `#153`, `#152`, `#142`, `#137`, `#135`, `#94`, and `#48`) and 4 draft/excluded PRs (`#353`, `#304`, `#275`, and `#249`). Of the non-draft set, 14 are already exact-head represented in the stack and the remaining three (`#154`, `#153`, and `#135`) are still held as conflict-heavy non-ancestors.
+2026-06-11 live verification: open PR inventory now totals 20 (`16` non-draft, `4` draft/excluded). Exact-head containment against the refreshed stack shows 8 open non-draft PR heads already represented: `#369`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The remaining 8 non-draft heads are held/superseded: `#343`, `#341`, `#339`, `#337`, `#335`, `#154`, `#153`, and `#135`. Direct-merge probing of `#343` still conflicts in `server/CMakeLists.txt`, `server/src/server/chat_template.cpp`, and `server/test/test_server_unit.cpp`, but the same reasoning / test coverage is already present in the stack, so it stays held rather than promoted.
 
 Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-10T20:00:05-04:00`
-Current base: `origin/main` `3e12dc9d`
-Previous integration tip: `08257929`
-Current integration source tip before this refresh: `08257929`
-Post-merge integration tip: `c7541e1e`
-refreshed_head: `c7541e1e`
+Last refresh: `2026-06-11T11:21:36-04:00`
+Current base: `origin/main` `53ca591e`
+Previous integration tip: `7a8027df`
+Current integration source tip before this refresh: `7a8027df`
+Post-merge integration tip: `3118faad`
+refreshed_head: `3118faad`
 
 Latest 2026-06-10 refresh: fetched `origin` and `easel`, then merged refreshed `origin/main` `3e12dc9d` cleanly into `auto-integration` with no tree delta beyond the merge commit. Fresh direct-merge probes against the remaining open candidates reconfirmed the three non-ancestor PRs `#154`, `#153`, and `#135` as conflict-heavy (`dflash/` native-MTP / scheduler / runtime overlaps); the draft/excluded open PRs remain `#353`, `#304`, and `#249`. Exact-head integration now includes 14 open non-draft PR heads: `#369`, `#364`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The draft PR `#275` is still represented in the stack but excluded from open non-draft accounting. Validation for this refresh: `git diff --check` passed after the merge, and no repo build/test rerun was attempted in this WSL environment because the merge was ancestry-only.
 
