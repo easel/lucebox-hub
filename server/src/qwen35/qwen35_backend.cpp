@@ -901,10 +901,23 @@ GenerateResult Qwen35Backend::restore_and_generate_impl(int slot,
         result.prefill_s = std::chrono::duration<double>(
             std::chrono::steady_clock::now() - t_prefill_start).count();
     } else if (prompt_len > 0 && prompt_len < snap_pos) {
-        // Cached more than the request — should never happen in practice.
-        result.error = "snapshot_longer_than_prompt";
-        out_io.emit(-1);
-        return result;
+        // The slot's snapshot covers more KV than the new prompt. This is
+        // routine with agent clients (Letta, Hermes, ...) that edit or
+        // summarize their history between turns. Fall back to a fresh full
+        // prefill instead of failing the request with zero tokens.
+        std::fprintf(stderr,
+            "[pc] snapshot longer than prompt (snap=%d > prompt=%d) — "
+            "fresh prefill fallback\n", snap_pos, prompt_len);
+        reset_recurrent_state(cache_);
+        cache_.cur_pos = 0;
+        auto t_prefill_start = std::chrono::steady_clock::now();
+        committed = do_prefill(req.prompt, out_io, req.snap_pos, req.snap_slot);
+        if (committed < 0) {
+            result.error = "prefill";
+            return result;
+        }
+        result.prefill_s = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_prefill_start).count();
     }
     if (out_io.should_cancel()) {
         result.ok = true;
@@ -1103,6 +1116,19 @@ int Qwen35Backend::do_prefill(const std::vector<int32_t> & tokens,
         }
 
         start += n_tokens;
+    }
+
+    // End-of-prefill snapshot: scoped disk-cache saves (auto/fixed policy)
+    // request snap_pos == prompt end, which never falls inside a chunk so the
+    // boundary branch above cannot fire. Taking the snapshot here changes
+    // nothing about the prefill computation; it only persists the final state
+    // (cache_.cur_pos == committed).
+    if (snap_slot >= 0 && snap_pos == committed) {
+        if (snapshot_save(snap_slot)) {
+            std::printf("[snap] end-of-prefill slot=%d cur_pos=%d\n",
+                        snap_slot, committed);
+            std::fflush(stdout);
+        }
     }
 
     return committed;
