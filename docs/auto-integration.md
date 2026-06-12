@@ -1,19 +1,19 @@
 # Auto-integration manifest
 
-Latest 2026-06-11 follow-up: after the upstream `53ca591e` base, merged PR `#372` (`compose: FlowKV aged-history compression + drafter residency fix — 1.72x vs disk-cache baseline at <=64K`) into `auto-integration` with the server-side admission, skip-park, HTTP/server wiring, and test additions. The merge commit is `100713a0`; the overlapping qwen3 helper/test files were kept from the current stack because they already carried the broader implementations.
+Latest 2026-06-11 follow-up: after refreshing `origin/main` `53ca591e`, merged PR `#337` (`feat(luce-bench): in-tree bench harness + multi-turn agent_recorded + LLM judge`) into `auto-integration`. The merge commit is `6b6e096e`; the only textual merge conflict was `.github/workflows/ci.yml`, where the current stack already carried the PR's drift-guard step and we kept the existing CI job layout while preserving the harness/lucebox/uv workspace additions from the PR stack. Validation for this refresh: `git diff --check` passed and `python3` successfully parsed `.github/workflows/ci.yml` as YAML.
 
-2026-06-11 live verification: open PR inventory totals 21 (`17` non-draft, `4` draft/excluded). Exact-head containment against the current stack now shows 10 open non-draft PR heads already represented: `#372`, `#369`, `#343`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The remaining 7 non-draft heads are held/superseded: `#341`, `#339`, `#337`, `#335`, `#154`, `#153`, and `#135`. Draft/excluded open PRs remain `#353`, `#304`, `#275`, and `#249`.
+2026-06-11 live verification: open PR inventory totals 21 (`17` non-draft, `4` draft/excluded). Exact-head containment against the current stack now shows 12 open non-draft PR heads already represented: `#372`, `#369`, `#343`, `#337`, `#276`, `#275`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The remaining 9 non-draft heads are held/superseded: `#353`, `#341`, `#339`, `#335`, `#304`, `#249`, `#154`, `#153`, and `#135`. Draft/excluded open PRs remain `#353`, `#304`, `#275`, and `#249`.
 
 Repository: `Luce-Org/lucebox-hub`
 Integration branch: `auto-integration`
 Writable remote: `easel`
 Upstream remote: `origin` / `Luce-Org`
-Last refresh: `2026-06-11T17:52:33-04:00`
+Last refresh: `2026-06-11T18:00:00-04:00`
 Current base: `origin/main` `53ca591e`
-Previous integration tip: `52086cf9`
-Current integration source tip before this refresh: `52086cf9`
-Post-merge integration tip: `100713a0`
-refreshed_head: `100713a0`
+Previous integration tip: `929fd933`
+Current integration source tip before this refresh: `929fd933`
+Post-merge integration tip: `6b6e096e`
+refreshed_head: `6b6e096e`
 
 Latest 2026-06-10 refresh: fetched `origin` and `easel`, then merged refreshed `origin/main` `3e12dc9d` cleanly into `auto-integration` with no tree delta beyond the merge commit. Fresh direct-merge probes against the remaining open candidates reconfirmed the three non-ancestor PRs `#154`, `#153`, and `#135` as conflict-heavy (`dflash/` native-MTP / scheduler / runtime overlaps); the draft/excluded open PRs remain `#353`, `#304`, and `#249`. Exact-head integration now includes 14 open non-draft PR heads: `#369`, `#364`, `#343`, `#341`, `#339`, `#337`, `#335`, `#276`, `#274`, `#152`, `#142`, `#137`, `#94`, and `#48`. The draft PR `#275` is still represented in the stack but excluded from open non-draft accounting. Validation for this refresh: `git diff --check` passed after the merge, and no repo build/test rerun was attempted in this WSL environment because the merge was ancestry-only.
 
