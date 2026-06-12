@@ -47,7 +47,6 @@ jobs:
         # entrypoint's draft-resolution block through every family-glob
         # branch — all on the bare runner without docker/nvidia/systemd.
         run: bash scripts/test_lucebox_sh.sh
-
   build:
     name: Build (cmake + uv sync --extra megakernel)
     runs-on: ubuntu-latest
