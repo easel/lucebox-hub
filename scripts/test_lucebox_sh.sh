@@ -504,12 +504,16 @@ STUB
     # The auto-detect block is entered (so any `set -u` regression on
     # DRAFT_FAMILY_GLOB will trip) and then the entrypoint refuses to
     # auto-pick — the deliberate safety added in PR #334's cubic round.
-    # We require: no set-u leak, the refuse warn fired, and the shim
-    # was NOT exec'd (a silent multi-target auto-pick would be the bug).
+    # We require: no set-u leak, the refuse warn fired, a non-zero exit
+    # (so a future regression that logs the warning but still returns 0
+    # cannot slip past — the container MUST fail to start, not silently
+    # auto-pick a stale GGUF), and the shim was NOT exec'd.
     if grep -qE 'unbound variable|syntax error' <<<"$out"; then
         report fail "$label" "leak: $(grep -E 'unbound variable|syntax error' <<<"$out" | head -3)"
     elif ! grep -qF "Refusing to auto-select" <<<"$out"; then
         report fail "$label" "refuse-to-auto-pick warn missing — did the auto-detect block fire?  rc=$rc output: $(head -5 <<<"$out")"
+    elif [ "$rc" = "0" ]; then
+        report fail "$label" "refuse warn fired but rc=0 — entrypoint must exit non-zero on multi-target refuse"
     elif grep -qF "[shim] dflash_server" <<<"$out"; then
         report fail "$label" "shim was exec'd despite multi-target refuse"
     else
