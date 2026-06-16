@@ -11,7 +11,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from lucebox.download import DEFAULT_PRESET, PRESETS, resolve_preset, status
+from lucebox.download import (
+    DEFAULT_PRESET,
+    PRESETS,
+    recommend_preset,
+    resolve_preset,
+    status,
+)
+from lucebox.types import HostFacts
 
 from lucebox import download
 
@@ -299,3 +306,18 @@ def test_status_target_only_preset_reports_draft_as_present(tmp_path, monkeypatc
     monkeypatch.setattr(download, "_file_meta", _meta)
     # Target absent → target_present False, draft_present True (nothing to download).
     assert status(cfg, pres) == {"target_present": False, "draft_present": True}
+
+
+def test_recommend_preset_tiers() -> None:
+    """First-run preset recommendation is a pure VRAM-tier function.
+
+    22 GB+ → the Lucebox default (qwen3.6-27b); 16-21 GB → laguna-xs.2;
+    below 16 GB → None (the registered presets need ≥16 GB, so we punt to
+    an explicit choice rather than recommend something that can't run).
+    """
+    assert recommend_preset(HostFacts(vram_gb=24)) == "qwen3.6-27b"
+    assert recommend_preset(HostFacts(vram_gb=22)) == "qwen3.6-27b"
+    assert recommend_preset(HostFacts(vram_gb=20)) == "laguna-xs.2"
+    assert recommend_preset(HostFacts(vram_gb=16)) == "laguna-xs.2"
+    assert recommend_preset(HostFacts(vram_gb=12)) is None
+    assert recommend_preset(HostFacts(vram_gb=0)) is None
