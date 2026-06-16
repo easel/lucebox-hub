@@ -24,7 +24,7 @@ line-length = 100
 # server-internal and optimization Python (server/scripts, optimizations/*)
 # carries pre-existing style debt and is added to `include` as it is cleaned
 # up. Vendored deps stay excluded permanently (extend-exclude below).
-include = ["harness/**/*.py", "scripts/**/*.py"]
+include = ["harness/**/*.py", "scripts/**/*.py", "lucebox/**/*.py"]
 extend-exclude = [
     "dflash/deps",
     "megakernel",

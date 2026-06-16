@@ -14,12 +14,11 @@ Subcommand inventory:
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-from dataclasses import asdict, replace
+from dataclasses import replace
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -68,7 +67,7 @@ def _load_or_build() -> config_mod.Config:  # type: ignore[name-defined]
     # Overlay live host facts. When ``config.toml`` exists without a
     # ``[host]`` block (the common case — operators don't hand-edit
     # host facts), ``cfg.host`` defaults to a zero-filled ``HostFacts``
-    # and autotune/profile decisions silently fall through to the
+    # and the DFLASH_* serve heuristic silently falls through to the
     # "no VRAM signal" path. Re-probe from env so the wrapper-exported
     # LUCEBOX_HOST_* facts always win over the persisted (possibly
     # absent) snapshot.
@@ -129,9 +128,6 @@ def print_serve_argv() -> None:
     spec = docker_run.server_run_spec(cfg)
     for tok in spec.argv():
         print(tok)
-
-
-# ── autotune ───────────────────────────────────────────────────────────────
 
 
 # ── config sub-app ─────────────────────────────────────────────────────────

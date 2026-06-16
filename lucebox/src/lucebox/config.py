@@ -423,12 +423,11 @@ def config_get(key: str | None = None, *, path: Path | None = None) -> dict[str,
 
 
 def live_config(preset_name: str | None = None) -> Config:
-    """Build a fresh Config from current host facts + heuristic autotune.
+    """Build a fresh Config from current host facts + the DFLASH_* heuristic.
 
-    Renamed from the older `_build_default_config` so callers outside
-    `cli.py` (the new `autotune` subcommand, the `models` sub-app) can
-    reuse the same materialization without duplicating the host probe +
-    autotune apply + env-override logic.
+    Used as the no-config fallback in ``cli._load_or_build`` and reused by
+    the ``models`` sub-app, so the host probe + heuristic + env-override
+    logic lives in one place rather than being duplicated per caller.
 
     When ``preset_name`` is set, the returned Config pins ``[model]`` to
     that preset's target_file/draft_file so `lucebox serve` emits the
