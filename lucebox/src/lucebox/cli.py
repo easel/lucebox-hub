@@ -14,6 +14,12 @@ Subcommand inventory:
     profile                — run a luce-bench snapshot via the running container
     smoke                  — hit /props + /v1/chat/completions on a running server
     models                 — list / download presets, activate one
+    claude                 — launch Claude Code pointed at the running server
+    codex                  — launch Codex pointed at the running server
+    opencode               — launch OpenCode pointed at the running server
+    hermes                 — launch Hermes pointed at the running server
+    pi                     — launch Pi pointed at the running server
+    openclaw               — launch OpenClaw pointed at the running server
 """
 
 from __future__ import annotations
@@ -559,6 +565,93 @@ def smoke(
         return
     console.print(f"[red]FAIL[/red]  {result.error}")
     raise typer.Exit(code=1)
+
+
+# ── client launchers ───────────────────────────────────────────────────────
+
+
+def _detect_server_url(cfg_url: str | None) -> str:
+    """Auto-detect a live Lucebox server URL.
+
+    Tries an explicit override first, otherwise probes the standard
+    localhost/docker-host base URLs from profile_mod and takes the first
+    that answers /health within 1s. Falls back to the first probe candidate
+    if nothing answers — lets the client fail with a clearer "server down"
+    error than the auto-detect can give.
+    """
+    if cfg_url:
+        return cfg_url
+    cfg = _load_or_build()
+    bases = profile_mod._server_base_urls(cfg)
+    for candidate in bases:
+        if profile_mod._json_get(candidate + "/health", timeout_s=1.0):
+            return candidate
+    console.print(
+        f"[yellow]warning:[/yellow] no /health response at {bases[0]} "
+        f"— starting client anyway (server may be down)."
+    )
+    return bases[0]
+
+
+def _exec_client(launcher_mod, *, url: str | None, model: str, prompt: str | None) -> None:
+    """Common entry: probe server, exec the harness client launcher."""
+    base_url = _detect_server_url(url)
+    try:
+        rc = launcher_mod.launch(
+            base_url=base_url,
+            model=model,
+            prompt=prompt,
+            interactive=prompt is None,
+        )
+    except FileNotFoundError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(code=127) from e
+    if rc != 0:
+        raise typer.Exit(code=rc)
+
+
+# ── client launcher subcommands ─────────────────────────────────────────────
+# All six verbs (claude/codex/opencode/hermes/pi/openclaw) share the exact
+# same surface — they differ only by which ``harness.clients.<mod>`` they
+# lazily import and the help string. Register them from one factory so the
+# option set stays identical by construction.
+_CLIENT_VERBS: tuple[tuple[str, str, str], ...] = (
+    ("claude", "claude_code", "Claude Code"),
+    ("codex", "codex", "Codex"),
+    ("opencode", "opencode", "OpenCode"),
+    ("hermes", "hermes", "Hermes Agent"),
+    ("pi", "pi", "Pi"),
+    ("openclaw", "openclaw", "OpenClaw"),
+)
+
+
+def _make_client_command(module_name: str, label: str):
+    def _client_command(
+        prompt: Annotated[
+            str | None,
+            typer.Option("--prompt", "-p", help="One-shot prompt (non-interactive)."),
+        ] = None,
+        url: Annotated[
+            str | None,
+            typer.Option(help="Lucebox base URL. Auto-detects localhost / docker host."),
+        ] = None,
+        model: Annotated[
+            str, typer.Option(help="Model ID to advertise.")
+        ] = "luce-dflash",
+    ) -> None:
+        # Lazy import: harness.clients.<mod> is only loaded when the verb runs,
+        # keeping `lucebox --help` cheap and the deps optional.
+        import importlib
+
+        launcher = importlib.import_module(f"harness.clients.{module_name}")
+        _exec_client(launcher, url=url, model=model, prompt=prompt)
+
+    _client_command.__doc__ = f"Launch {label} pointed at the running Lucebox server."
+    return _client_command
+
+
+for _verb, _module_name, _label in _CLIENT_VERBS:
+    app.command(name=_verb)(_make_client_command(_module_name, _label))
 
 
 @app.command()
