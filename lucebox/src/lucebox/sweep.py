@@ -42,28 +42,14 @@ from rich.table import Table
 from lucebox import autotune as autotune_mod
 from lucebox import config as config_mod
 from lucebox.host_facts import from_env
-from lucebox.types import DflashRuntime
+from lucebox.types import BASE_DFLASH_ALLOWLIST, DflashRuntime
 
 # ── allowlist: dflash.* fields written by the sweep per cell ────────────────
-# Kept in sync with cli.DFLASH_ALLOWLIST — we duplicate it locally to
-# avoid an import cycle (cli.py imports this module). ``fa_window`` is
-# included even though it's not part of the strict lucebench snapshot
-# allowlist; the sweep needs to be able to vary it as a per-cell
-# bracket axis for the coding-agent-loop profile.
-DFLASH_ALLOWLIST: tuple[str, ...] = (
-    "budget",
-    "max_ctx",
-    "lazy",
-    "prefix_cache_slots",
-    "prefill_cache_slots",
-    "cache_type_k",
-    "cache_type_v",
-    "prefill_mode",
-    "prefill_keep_ratio",
-    "prefill_threshold",
-    "prefill_drafter",
-    "fa_window",
-)
+# Canonical 11-field base lives in ``lucebox.types`` (shared with cli). The
+# sweep extends it with ``fa_window`` — not part of the strict lucebench
+# snapshot allowlist, but the sweep needs it as a per-cell bracket axis for
+# the coding-agent-loop profile.
+DFLASH_ALLOWLIST: tuple[str, ...] = (*BASE_DFLASH_ALLOWLIST, "fa_window")
 
 
 @dataclasses.dataclass(slots=True)

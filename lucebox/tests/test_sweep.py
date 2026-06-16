@@ -20,6 +20,14 @@ from lucebox.types import DflashRuntime, HostFacts
 
 from lucebox import sweep as sweep_mod
 
+
+def test_sweep_allowlist_extends_cli_allowlist() -> None:
+    """sweep.DFLASH_ALLOWLIST is cli's 11-field base plus ``fa_window``."""
+    from lucebox import cli as cli_mod
+
+    assert sweep_mod.DFLASH_ALLOWLIST == (*cli_mod.DFLASH_ALLOWLIST, "fa_window")
+
+
 # ── fixtures ───────────────────────────────────────────────────────────────
 
 

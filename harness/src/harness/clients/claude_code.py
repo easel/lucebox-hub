@@ -22,12 +22,14 @@ Stdlib only.
 from __future__ import annotations
 
 import os
-import shutil
-import subprocess
-import sys
-from pathlib import Path
 
-DEFAULT_API_KEY = "sk-lucebox"  # Lucebox doesn't auth; placeholder satisfies clients
+from harness.clients._common import (
+    DEFAULT_API_KEY,
+    build_base_parser,
+    exec_client,
+    find_bin,
+    run_main,
+)
 
 
 def claude_env(
@@ -61,28 +63,22 @@ def claude_env(
 
 
 def find_claude_bin() -> str:
-    """Locate the `claude` binary.
+    """Locate the `claude` binary via the shared resolver.
 
-    Search order:
+    Search order (from ``_common.find_bin``):
       1. $CLAUDE_BIN env var (explicit override)
       2. $PATH (typical dev install)
       3. Test-box convention: $CLIENT_WORK_DIR/clients/claude_code/npm/bin/claude
 
-    Raises FileNotFoundError if none of the above resolve.
+    Note: ``find_bin`` requires the resolved path to be an executable regular
+    file (vs. the prior bare ``Path.exists()``), so a $CLAUDE_BIN pointing at
+    a directory or non-executable now fails fast at resolution rather than
+    at exec time.
     """
-    explicit = os.environ.get("CLAUDE_BIN")
-    if explicit and Path(explicit).exists():
-        return explicit
-    on_path = shutil.which("claude")
-    if on_path:
-        return on_path
-    work_dir = os.environ.get("CLIENT_WORK_DIR")
-    if work_dir:
-        candidate = Path(work_dir) / "clients" / "claude_code" / "npm" / "bin" / "claude"
-        if candidate.exists():
-            return str(candidate)
-    raise FileNotFoundError(
-        "claude binary not found. Install Claude Code or set $CLAUDE_BIN to its path."
+    return find_bin(
+        "claude",
+        env_var="CLAUDE_BIN",
+        work_dir_hint="clients/claude_code/npm/bin/claude",
     )
 
 
@@ -128,7 +124,7 @@ def launch(
         if extra_args:
             argv += extra_args
         # Inherit stdin/out/err so the TUI works. No timeout in interactive mode.
-        return subprocess.run(argv, env=env).returncode
+        return exec_client(argv, env, interactive=True)
 
     # Non-interactive: matches `harness/clients/run_claude_code.sh` flags.
     if prompt is None:
@@ -144,16 +140,7 @@ def launch(
         argv += extra_args
     argv += [prompt]
 
-    # Use subprocess.run(..., timeout=) instead of the external `timeout`
-    # binary so we don't depend on a GNU coreutils install on the test
-    # box. On timeout, return 124 to match the conventional GNU
-    # `timeout` exit code that any wrapper script branching on $? expects.
-    try:
-        return subprocess.run(
-            argv, env=env, stdin=subprocess.DEVNULL, timeout=timeout
-        ).returncode
-    except subprocess.TimeoutExpired:
-        return 124
+    return exec_client(argv, env, interactive=False, timeout=timeout)
 
 
 def main() -> int:
@@ -162,32 +149,21 @@ def main() -> int:
     The full TUI flow goes through ``lucebox claude`` (interactive). The
     harness ``run_claude_code.sh`` calls in test (--print) mode. This main
     is a thin wrapper for either."""
-    import argparse
-
-    parser = argparse.ArgumentParser(prog="harness-claude-code")
-    parser.add_argument("--base-url", required=True,
-                        help="Lucebox server, e.g. http://localhost:8080")
-    parser.add_argument("--model", default="luce-dflash")
-    parser.add_argument("--api-key", default=DEFAULT_API_KEY)
-    parser.add_argument("--prompt", default=None,
-                        help="One-shot prompt (non-interactive). Omit for TUI.")
-    parser.add_argument("--timeout", type=int, default=None)
+    parser = build_base_parser("harness-claude-code")
     args, extra = parser.parse_known_args()
 
-    interactive = args.prompt is None
-    try:
-        return launch(
+    return run_main(
+        lambda: launch(
             base_url=args.base_url,
             model=args.model,
             api_key=args.api_key,
             prompt=args.prompt,
             timeout=args.timeout,
             extra_args=extra or None,
-            interactive=interactive,
-        )
-    except FileNotFoundError as e:
-        print(f"[harness-claude-code] {e}", file=sys.stderr)
-        return 127
+            interactive=args.prompt is None,
+        ),
+        prog="harness-claude-code",
+    )
 
 
 if __name__ == "__main__":

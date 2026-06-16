@@ -9,15 +9,16 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 from pathlib import Path
 
 from harness.clients._common import (
     DEFAULT_API_KEY,
     DEFAULT_MODEL_ID,
+    build_base_parser,
     exec_client,
     find_bin,
     mktempdir,
+    run_main,
 )
 
 
@@ -160,20 +161,13 @@ def launch(
 
 
 def main() -> int:
-    import argparse
-
-    parser = argparse.ArgumentParser(prog="harness-opencode")
-    parser.add_argument("--base-url", required=True)
-    parser.add_argument("--model", default=DEFAULT_MODEL_ID)
-    parser.add_argument("--api-key", default=DEFAULT_API_KEY)
-    parser.add_argument("--prompt", default=None)
-    parser.add_argument("--timeout", type=int, default=None)
+    parser = build_base_parser("harness-opencode")
     parser.add_argument("--max-ctx", type=int, default=32768)
     parser.add_argument("--max-tokens", type=int, default=4096)
     args, extra = parser.parse_known_args()
 
-    try:
-        return launch(
+    return run_main(
+        lambda: launch(
             base_url=args.base_url,
             model=args.model,
             api_key=args.api_key,
@@ -183,13 +177,10 @@ def main() -> int:
             max_ctx=args.max_ctx,
             max_tokens=args.max_tokens,
             extra_args=extra or None,
-        )
-    except FileNotFoundError as e:
-        print(f"[harness-opencode] {e}", file=sys.stderr)
-        return 127
-    except FileExistsError as e:
-        print(f"[harness-opencode] {e}", file=sys.stderr)
-        return 2
+        ),
+        prog="harness-opencode",
+        handle_file_exists=True,
+    )
 
 
 if __name__ == "__main__":

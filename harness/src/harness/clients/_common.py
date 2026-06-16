@@ -8,10 +8,13 @@ setup, exec convention.
 
 from __future__ import annotations
 
+import argparse
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 DEFAULT_API_KEY = "sk-lucebox"
@@ -84,3 +87,46 @@ def exec_client(
         ).returncode
     except subprocess.TimeoutExpired:
         return 124
+
+
+def build_base_parser(prog: str, *, default_timeout: int | None = None) -> argparse.ArgumentParser:
+    """Argparse parser with the args every client ``main()`` shares.
+
+    Each launcher's CLI accepts the same base wiring
+    (``--base-url``/``--model``/``--api-key``/``--prompt``/``--timeout``);
+    clients add their own knobs to the returned parser before parsing. Pass
+    ``default_timeout`` to override the ``None`` default (hermes uses 420).
+    """
+    parser = argparse.ArgumentParser(prog=prog)
+    parser.add_argument("--base-url", required=True)
+    parser.add_argument("--model", default=DEFAULT_MODEL_ID)
+    parser.add_argument("--api-key", default=DEFAULT_API_KEY)
+    parser.add_argument("--prompt", default=None)
+    parser.add_argument("--timeout", type=int, default=default_timeout)
+    return parser
+
+
+def run_main(
+    launch: Callable[[], int],
+    *,
+    prog: str,
+    handle_file_exists: bool = False,
+) -> int:
+    """Invoke a launcher's ``launch`` closure with the shared error tail.
+
+    Every client ``main()`` ends the same way: call ``launch(...)`` and map a
+    missing binary (``FileNotFoundError``) to exit 127, printing a ``[prog]``-
+    prefixed message to stderr. ``opencode`` additionally maps a refused
+    config overwrite (``FileExistsError``) to exit 2 — opt in via
+    ``handle_file_exists=True``.
+    """
+    try:
+        return launch()
+    except FileNotFoundError as e:
+        print(f"[{prog}] {e}", file=sys.stderr)
+        return 127
+    except FileExistsError as e:
+        if not handle_file_exists:
+            raise
+        print(f"[{prog}] {e}", file=sys.stderr)
+        return 2

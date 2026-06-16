@@ -364,19 +364,18 @@ fi
 # previous version of this test inlined the block instead of sourcing
 # the real file, and silently passed even when the shipped script was
 # broken. So this test invokes server/scripts/entrypoint.sh directly.
-test_entrypoint_serve_path() {
-    local label="$1" target_name="$2" draft_file="$3"
-    local sandbox draft_dir models_dir bin_dir shim_dir
+# Build the shared entrypoint-serve sandbox: a synthetic DFLASH_DIR layout
+# plus the `dflash_server` + `nvidia-smi` shims used by the three serve-path
+# tests below. Assigns sandbox/models_dir/draft_dir/bin_dir/shim_dir into the
+# CALLER'S scope (bash dynamic scoping) — the caller must `local`-declare
+# them first. Mirrors the _make_docker_shim factoring above.
+_make_entrypoint_sandbox() {
     sandbox=$(mktemp -d)
     models_dir="$sandbox/models"
     draft_dir="$models_dir/draft"
     bin_dir="$sandbox/build"
     shim_dir="$sandbox/bin"
     mkdir -p "$draft_dir" "$bin_dir" "$shim_dir"
-    # Synthetic target (must be a real file at least 5 GB to pass the
-    # auto-detect block, OR we set DFLASH_TARGET explicitly to skip it).
-    touch "$models_dir/$target_name"
-    touch "$draft_dir/$draft_file"
     # `dflash_server` shim — print argv and exit 0 instead of running.
     cat > "$bin_dir/dflash_server" <<'STUB'
 #!/usr/bin/env bash
@@ -398,6 +397,16 @@ esac
 exit 0
 STUB
     chmod +x "$shim_dir/nvidia-smi"
+}
+
+test_entrypoint_serve_path() {
+    local label="$1" target_name="$2" draft_file="$3"
+    local sandbox draft_dir models_dir bin_dir shim_dir
+    _make_entrypoint_sandbox
+    # Synthetic target (must be a real file at least 5 GB to pass the
+    # auto-detect block, OR we set DFLASH_TARGET explicitly to skip it).
+    touch "$models_dir/$target_name"
+    touch "$draft_dir/$draft_file"
 
     local out rc
     out=$(
@@ -455,35 +464,12 @@ test_entrypoint_multi_target() {
         return
     fi
     local sandbox draft_dir models_dir bin_dir shim_dir
-    sandbox=$(mktemp -d)
-    models_dir="$sandbox/models"
-    draft_dir="$models_dir/draft"
-    bin_dir="$sandbox/build"
-    shim_dir="$sandbox/bin"
-    mkdir -p "$draft_dir" "$bin_dir" "$shim_dir"
+    _make_entrypoint_sandbox
     # Two qwen3.6-shaped targets ≥5 GB each — exactly the layout that
     # broke on sindri (Qwen3.6-27B + Qwen3.6-35B-A3B-UD-Q4_K_M).
     truncate -s 6G "$models_dir/Qwen3.6-27B-Q4_K_M.gguf"
     truncate -s 6G "$models_dir/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"
     touch "$draft_dir/dflash-draft-3.6-test.gguf"
-    cat > "$bin_dir/dflash_server" <<'STUB'
-#!/usr/bin/env bash
-printf '[shim] dflash_server'
-for a in "$@"; do printf ' %q' "$a"; done
-printf '\n'
-exit 0
-STUB
-    chmod +x "$bin_dir/dflash_server"
-    cat > "$shim_dir/nvidia-smi" <<'STUB'
-#!/usr/bin/env bash
-case "$*" in
-  *"--query-gpu=memory.total"*) echo 24576 ;;
-  -L|*-L*) echo "GPU 0: Fake (UUID: 0)" ;;
-  *) echo "ok" ;;
-esac
-exit 0
-STUB
-    chmod +x "$shim_dir/nvidia-smi"
 
     local out rc
     out=$(
@@ -532,33 +518,10 @@ test_entrypoint_multi_target "entrypoint serve: multi-target auto-detect (no DRA
 test_entrypoint_draft_is_file() {
     local label="$1"
     local sandbox draft_dir models_dir bin_dir shim_dir
-    sandbox=$(mktemp -d)
-    models_dir="$sandbox/models"
-    draft_dir="$models_dir/draft"
-    bin_dir="$sandbox/build"
-    shim_dir="$sandbox/bin"
-    mkdir -p "$draft_dir" "$bin_dir" "$shim_dir"
+    _make_entrypoint_sandbox
     touch "$models_dir/Qwen3.6-27B-Q4_K_M.gguf"
     # DFLASH_DRAFT points at a FILE (not a directory).
     touch "$draft_dir/dflash-draft-3.6-test.gguf"
-    cat > "$bin_dir/dflash_server" <<'STUB'
-#!/usr/bin/env bash
-printf '[shim] dflash_server'
-for a in "$@"; do printf ' %q' "$a"; done
-printf '\n'
-exit 0
-STUB
-    chmod +x "$bin_dir/dflash_server"
-    cat > "$shim_dir/nvidia-smi" <<'STUB'
-#!/usr/bin/env bash
-case "$*" in
-  *"--query-gpu=memory.total"*) echo 24576 ;;
-  -L|*-L*) echo "GPU 0: Fake (UUID: 0)" ;;
-  *) echo "ok" ;;
-esac
-exit 0
-STUB
-    chmod +x "$shim_dir/nvidia-smi"
 
     local out rc
     out=$(
@@ -599,6 +562,8 @@ test_entrypoint_host_info_json() {
     source <(awk '/^_json_str_or_null\(\) \{/,/^\}/' "$ENTRYPOINT")
     # shellcheck disable=SC1090
     source <(awk '/^_json_int_or_null\(\) \{/,/^\}/' "$ENTRYPOINT")
+    # shellcheck disable=SC1090
+    source <(awk '/^_trim\(\) \{/,/^\}/' "$ENTRYPOINT")
     # shellcheck disable=SC1090
     source <(awk '/^_emit_gpu_array\(\) \{/,/^\}/' "$ENTRYPOINT")
     # shellcheck disable=SC1090
@@ -1003,6 +968,13 @@ test_routes_to_exec_when_running() {
         report fail "$label" "exec argv missing tail 'lucebox config get model.preset'; got: $(head -3 <<<"$out")"
         return
     fi
+    # The exec path must forward the LUCEBOX_* scalar env subset (shared
+    # with the docker-run path via _append_scalar_env). Pin LUCEBOX_IMAGE=
+    # so a regression in that helper is caught here.
+    if ! grep -q 'LUCEBOX_IMAGE=' <<<"$out"; then
+        report fail "$label" "exec argv missing 'LUCEBOX_IMAGE=' scalar env; got: $(head -3 <<<"$out")"
+        return
+    fi
     report ok "$label"
 }
 test_routes_to_exec_when_running "config get routes to docker exec when container running"
@@ -1127,6 +1099,55 @@ test_usage_mentions_exec_routing() {
     report ok "$label"
 }
 test_usage_mentions_exec_routing "usage documents docker exec routing + --no-exec flag"
+
+# ── TTY flag selection. Regression guard for the process-substitution bug:
+# _set_tty_flags must run in the CALLER's scope so `[ -t 1 ]` inspects the
+# real terminal. If it is ever moved back behind `< <(...)` or `$(...)`,
+# fd 1 becomes a pipe and it emits -i even on a real tty, silently dropping
+# docker's -t and breaking the interactive client TUIs (lucebox claude …).
+# The rest of this suite runs non-tty, so only this test exercises the -it
+# branch — via a real PTY allocated by python's pty.fork.
+test_tty_flags_selection() {
+    local label="$1" fn out
+    fn=$(awk '/^_set_tty_flags\(\) \{/,/^\}/' "$SCRIPT")
+
+    # (a) non-tty (stdin /dev/null, stdout a pipe) → -i
+    out=$(bash -c "$fn"$'\n''f=(); _set_tty_flags f; printf "%s" "${f[*]}"' </dev/null 2>/dev/null)
+    if [ "$out" != "-i" ]; then
+        report fail "$label" "non-tty expected -i, got '$out'"
+        return
+    fi
+
+    # (b) real tty on fd0+fd1 (python pty.fork) → -it
+    out=$(python3 - "$SCRIPT" <<'PY' 2>/dev/null
+import os, pty, re, sys
+src = open(sys.argv[1]).read()
+fn = re.search(r'^_set_tty_flags\(\) \{.*?^\}', src, re.S | re.M).group(0)
+script = fn + '\nf=(); _set_tty_flags f; printf "TTYFLAG=%s\\n" "${f[*]}"\n'
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvp("bash", ["bash", "-c", script])
+buf = b""
+try:
+    while True:
+        chunk = os.read(fd, 1024)
+        if not chunk:
+            break
+        buf += chunk
+except OSError:
+    pass
+os.waitpid(pid, 0)
+m = re.search(rb"TTYFLAG=(\S+)", buf)
+sys.stdout.write(m.group(1).decode() if m else "NONE")
+PY
+)
+    if [ "$out" != "-it" ]; then
+        report fail "$label" "real tty expected -it, got '$out'"
+        return
+    fi
+    report ok "$label"
+}
+test_tty_flags_selection "_set_tty_flags: -it on a real tty, -i otherwise"
 
 echo
 if [ "$fail" -eq 0 ]; then

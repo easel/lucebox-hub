@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 import lucebox.cli as cli
+import pytest
 from lucebox.cli import app
 from typer.testing import CliRunner
 
@@ -29,21 +30,6 @@ def test_profile_help_exposes_collapsed_surface() -> None:
     assert "--step" not in result.output
 
 
-def test_default_variant_honors_wrapper_env() -> None:
-    old = os.environ.get("LUCEBOX_VARIANT")
-    try:
-        os.environ["LUCEBOX_VARIANT"] = "integration-props-uv-squared-clean-cuda12"
-
-        assert cli._pick_variant_from_driver(555, "86") == (
-            "integration-props-uv-squared-clean-cuda12"
-        )
-    finally:
-        if old is None:
-            os.environ.pop("LUCEBOX_VARIANT", None)
-        else:
-            os.environ["LUCEBOX_VARIANT"] = old
-
-
 def test_config_subcommand_is_registered() -> None:
     result = CliRunner().invoke(app, ["config", "--help"])
     assert result.exit_code == 0
@@ -64,6 +50,25 @@ def test_autotune_subcommand_is_registered() -> None:
     assert result.exit_code == 0
     assert "--apply" in result.output
     assert "--json" in result.output
+
+
+@pytest.mark.parametrize(
+    "verb", ["claude", "codex", "opencode", "hermes", "pi", "openclaw"]
+)
+def test_client_subcommand_is_registered(verb: str) -> None:
+    """Each client launcher verb is registered and exposes --prompt/--url/--model."""
+    result = CliRunner().invoke(app, [verb, "--help"])
+    assert result.exit_code == 0
+    assert "--prompt" in result.output
+    assert "--url" in result.output
+    assert "--model" in result.output
+
+
+def test_all_client_verbs_present_in_app() -> None:
+    """All six client verbs are wired into the Typer app's command table."""
+    registered = {c.name or c.callback.__name__ for c in app.registered_commands}
+    for verb in ("claude", "codex", "opencode", "hermes", "pi", "openclaw"):
+        assert verb in registered
 
 
 def test_legacy_subcommands_are_removed() -> None:

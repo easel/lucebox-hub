@@ -24,6 +24,15 @@ from typing import Any, Literal
 
 Area = Literal["ds4-eval", "code", "longctx", "agent", "forge"]
 
+# Area names accepted when a single name is passed via ``--areas`` (the
+# function-form parity path in main()). A superset of the ``Area`` Literal /
+# ``--area`` choices: luce-bench also exposes ``smoke``/``gsm8k``/
+# ``agent_recorded`` selectors that aren't in the typed single-area set.
+KNOWN_AREAS = frozenset(
+    {"ds4-eval", "code", "longctx", "agent", "forge",
+     "smoke", "gsm8k", "agent_recorded"}
+)
+
 
 def run_bench(
     *,
@@ -193,18 +202,16 @@ def main() -> int:
         return 2
     if areas_arg is not None:
         if "," in areas_arg or areas_arg == "all":
-            # Sweep mode: signal via area=None and pass the literal
-            # selector through to luce-bench via ``extra_body`` is the
-            # wrong path — we plumb a dedicated kwarg below.
+            # Sweep mode: signal via area=None; the literal selector is
+            # forwarded to luce-bench through the dedicated ``areas`` kwarg
+            # of run_bench below.
             area = None
         else:
             # Single name passed via --areas: treat as --area for
             # function-form parity. Validate against the allowed set.
-            valid = {"ds4-eval", "code", "longctx", "agent", "forge",
-                     "smoke", "gsm8k", "agent_recorded"}
-            if areas_arg not in valid:
+            if areas_arg not in KNOWN_AREAS:
                 print(f"[harness] unknown area {areas_arg!r}; "
-                      f"known: {sorted(valid)}", file=sys.stderr)
+                      f"known: {sorted(KNOWN_AREAS)}", file=sys.stderr)
                 return 2
             area = areas_arg  # type: ignore[assignment]
             areas_arg = None

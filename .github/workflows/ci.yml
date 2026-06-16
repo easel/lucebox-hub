@@ -48,6 +48,12 @@ jobs:
       - name: Typecheck lucebox CLI
         run: uv run --frozen --extra dev python -m mypy --package lucebox
 
+      - name: Unit-test lucebox CLI + harness adapters
+        # The fast workspace sync above is enough: these suites mock the
+        # docker / lucebench / HTTP surfaces, so no torch wheel or GPU is
+        # needed. Keeps the lucebox + harness Python honest on every push.
+        run: uv run --frozen --extra dev pytest lucebox harness -q
+
       - name: Smoke-test lucebox.sh wrapper
         # Catches `set -u` regressions, syntax errors, and stale dispatch
         # handlers in the host-side wrapper + the in-container entrypoint.

@@ -438,14 +438,55 @@ require_systemd() {
 DOCKER_SOCK_PATH="${DOCKER_HOST:-/var/run/docker.sock}"
 DOCKER_SOCK_PATH="${DOCKER_SOCK_PATH#unix://}"
 
+# Append `-e LUCEBOX_HOST_<x>=<val>` for every exported host fact onto the
+# named docker-argv array (bash 4.3+ nameref). The Python side reads these
+# instead of reprobing — see build_orchestrator_argv / cmd_exec_in_container.
+_append_host_env() {
+    # shellcheck disable=SC2178  # nameref to a caller's array, not a string
+    local -n _arr="$1"
+    local var
+    for var in $(compgen -e | grep '^LUCEBOX_HOST_' || true); do
+        _arr+=(-e "$var=${!var}")
+    done
+}
+
+# Append the LUCEBOX_* scalar overrides (image/variant/port/container/models)
+# plus the optional HF_TOKEN guard onto the named docker-argv array. Shared
+# by the docker-run (build_orchestrator_argv) and docker-exec
+# (cmd_exec_in_container) paths so both forward an identical env subset.
+_append_scalar_env() {
+    # shellcheck disable=SC2178  # nameref to a caller's array, not a string
+    local -n _arr="$1"
+    local variant="$2"
+    _arr+=(-e "LUCEBOX_IMAGE=$IMAGE_BASE")
+    _arr+=(-e "LUCEBOX_VARIANT=$variant")
+    _arr+=(-e "LUCEBOX_PORT=$DEFAULT_PORT")
+    _arr+=(-e "LUCEBOX_CONTAINER=$CONTAINER_NAME")
+    _arr+=(-e "LUCEBOX_MODELS=$DEFAULT_MODELS_DIR")
+    [ -n "${HF_TOKEN:-}" ] && _arr+=(-e "HF_TOKEN=$HF_TOKEN")
+    return 0
+}
+
+# Pick docker's interactive flags: -it on a real tty, -i otherwise.
+# Writes into a caller-supplied array via nameref. This MUST run in the
+# caller's scope (not a subshell or `< <(...)` process substitution): the
+# `[ -t 1 ]` test inspects fd 1, and inside a process substitution fd 1 is
+# the pipe to the consumer, not the terminal — which would force -i even on
+# a real tty and break the interactive client TUIs (lucebox claude, etc.).
+_set_tty_flags() {  # usage: _set_tty_flags arrayname
+    # shellcheck disable=SC2178
+    local -n _a="$1"
+    if [ -t 0 ] && [ -t 1 ]; then
+        _a=(-it)
+    else
+        _a=(-i)
+    fi
+}
+
 build_orchestrator_argv() {
     local variant="$1"; shift
     local tty=()
-    if [ -t 0 ] && [ -t 1 ]; then
-        tty=(-it)
-    else
-        tty=(-i)
-    fi
+    _set_tty_flags tty
     local argv=(docker run --rm "${tty[@]}")
     if [ "${LUCEBOX_HOST_GPU_VENDOR:-none}" = "nvidia" ]; then
         argv+=(--gpus all)
@@ -473,20 +514,11 @@ build_orchestrator_argv() {
     argv+=(-w "$PWD")
     argv+=(-e "HOME=$HOME")
     # Host facts — Python side reads these instead of reprobing.
-    local var
-    for var in $(compgen -e | grep '^LUCEBOX_HOST_' || true); do
-        argv+=(-e "$var=${!var}")
-    done
-    # User overrides for image/port/container name propagate too.
-    argv+=(-e "LUCEBOX_IMAGE=$IMAGE_BASE")
-    argv+=(-e "LUCEBOX_VARIANT=$variant")
-    argv+=(-e "LUCEBOX_PORT=$DEFAULT_PORT")
-    argv+=(-e "LUCEBOX_CONTAINER=$CONTAINER_NAME")
-    # Always export the resolved models dir so the in-container CLI sees
-    # the same path the wrapper mounts (don't gate on `LUCEBOX_MODELS` being
-    # set — the XDG default needs to flow through too).
-    argv+=(-e "LUCEBOX_MODELS=$DEFAULT_MODELS_DIR")
-    [ -n "${HF_TOKEN:-}" ] && argv+=(-e "HF_TOKEN=$HF_TOKEN")
+    _append_host_env argv
+    # User overrides for image/port/container/models scalars + HF_TOKEN.
+    # Always exports the resolved models dir so the in-container CLI sees
+    # the same path the wrapper mounts (the XDG default flows through too).
+    _append_scalar_env argv "$variant"
 
     argv+=("${IMAGE_BASE}:${variant}")
     # `lucebox` is the entrypoint subcommand handled by server/scripts/entrypoint.sh
@@ -587,10 +619,7 @@ cmd_serve() {
         -p "$DEFAULT_PORT:8080"
         -v "$HOME:$HOME"
         -v "$fallback_models:/opt/lucebox-hub/server/models")
-    local var
-    for var in $(compgen -e | grep '^LUCEBOX_HOST_' || true); do
-        fallback_argv+=(-e "$var=${!var}")
-    done
+    _append_host_env fallback_argv
     fallback_argv+=("${IMAGE_BASE}:${variant}")
     _serve_and_track "${fallback_argv[@]}"
 }
@@ -952,7 +981,7 @@ cmd_check() {
 
     # Two-column grid: "  name        ✓  detail" — matches the visual
     # style of the lucebench preflight output.
-    local mark detail
+    local mark
     _row() {
         # Brace every var ref so multi-byte glyphs (✓ ✗) don't get parsed
         # as part of the identifier — some bash builds with permissive
@@ -1078,25 +1107,16 @@ _lucebox_container_running() {
 cmd_exec_in_container() {
     require_host_prereqs
     ensure_probed
-    local argv=(docker exec)
-    if [ -t 0 ] && [ -t 1 ]; then
-        argv+=(-it)
-    else
-        argv+=(-i)
-    fi
+    local variant
+    variant=$(pick_variant)
+    local tty=()
+    _set_tty_flags tty
+    local argv=(docker exec "${tty[@]}")
     argv+=(--user "$(id -u):$(id -g)")
     argv+=(-w "$PWD")
     argv+=(-e "HOME=$HOME")
-    local var
-    for var in $(compgen -e | grep '^LUCEBOX_HOST_' || true); do
-        argv+=(-e "$var=${!var}")
-    done
-    argv+=(-e "LUCEBOX_IMAGE=$IMAGE_BASE")
-    argv+=(-e "LUCEBOX_VARIANT=$(pick_variant)")
-    argv+=(-e "LUCEBOX_PORT=$DEFAULT_PORT")
-    argv+=(-e "LUCEBOX_CONTAINER=$CONTAINER_NAME")
-    argv+=(-e "LUCEBOX_MODELS=$DEFAULT_MODELS_DIR")
-    [ -n "${HF_TOKEN:-}" ] && argv+=(-e "HF_TOKEN=$HF_TOKEN")
+    _append_host_env argv
+    _append_scalar_env argv "$variant"
     # The image has no top-level `lucebox` binary on PATH — that name only
     # works as the first arg to /opt/lucebox-hub/server/scripts/entrypoint.sh,
     # which then `exec uv run ... python -m lucebox`s. docker exec bypasses

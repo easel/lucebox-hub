@@ -167,6 +167,15 @@ _json_int_or_null() {
 # `nvidia-smi --query-gpu=index,uuid,pci.bus_id,name,compute_cap,memory.total,power.limit
 #               --format=csv,noheader` produced on the host) into a JSON
 # array. Empty CSV → "[]". Each row becomes one object.
+# Strip leading/trailing whitespace from a string. Pure bash (no sed fork)
+# via prefix/suffix removal of the longest run of spaces or tabs.
+_trim() {
+    local s="$1"
+    s="${s#"${s%%[![:space:]]*}"}"   # leading
+    s="${s%"${s##*[![:space:]]}"}"   # trailing
+    printf '%s' "$s"
+}
+
 _emit_gpu_array() {
     local csv="${LUCEBOX_HOST_GPU_LIST_CSV:-}"
     if [ -z "$csv" ]; then
@@ -182,13 +191,13 @@ _emit_gpu_array() {
         # split on `,` alone and trim whitespace per field so both forms parse.
         local idx uuid pci name cc mem plimit
         IFS=',' read -r idx uuid pci name cc mem plimit <<<"$line"
-        idx=$(printf '%s' "$idx" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
-        uuid=$(printf '%s' "$uuid" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
-        pci=$(printf '%s' "$pci" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
-        name=$(printf '%s' "$name" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
-        cc=$(printf '%s' "$cc" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
-        mem=$(printf '%s' "$mem" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
-        plimit=$(printf '%s' "$plimit" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        idx=$(_trim "$idx")
+        uuid=$(_trim "$uuid")
+        pci=$(_trim "$pci")
+        name=$(_trim "$name")
+        cc=$(_trim "$cc")
+        mem=$(_trim "$mem")
+        plimit=$(_trim "$plimit")
         # Strip units. "24576 MiB" → 24576; "175.00 W" → 175 (truncate).
         local mem_mib vram_gb power_w
         mem_mib=$(printf '%s' "$mem" | awk '{print $1+0}')

@@ -303,6 +303,17 @@ def _from_dict(raw: dict[str, Any]) -> Config:
 # ── save ───────────────────────────────────────────────────────────────────
 
 
+def _atomic_write_doc(path: Path, doc: dict[str, Any]) -> None:
+    """Serialize ``doc`` to TOML and write it to ``path`` atomically.
+
+    Write to a sibling ``.toml.tmp`` then ``replace`` so a crash mid-write
+    never leaves a truncated config.toml. Caller ensures ``path.parent`` exists.
+    """
+    tmp = path.with_suffix(".toml.tmp")
+    tmp.write_bytes(tomli_w.dumps(doc).encode("utf-8"))
+    tmp.replace(path)
+
+
 def save(cfg: Config, path: Path | None = None, *, doc: dict[str, Any] | None = None) -> Path:
     """Persist a Config to ``path``. Only keys present in ``doc`` are written.
 
@@ -315,10 +326,7 @@ def save(cfg: Config, path: Path | None = None, *, doc: dict[str, Any] | None = 
     path.parent.mkdir(parents=True, exist_ok=True)
     if doc is None:
         doc = load_doc(path)
-    # Atomic write.
-    tmp = path.with_suffix(".toml.tmp")
-    tmp.write_bytes(tomli_w.dumps(doc).encode("utf-8"))
-    tmp.replace(path)
+    _atomic_write_doc(path, doc)
     # Silence unused-arg: cfg is the on-disk representation's source of
     # truth for callers that want to round-trip through a Config object,
     # but the sparse write never re-derives keys from it.
@@ -368,9 +376,7 @@ def config_set(key: str, value: Any, *, path: Path | None = None) -> None:
     doc = load_doc(path) if path.exists() else {}
     _doc_set(doc, section, field, _value_to_toml(cast_value))
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".toml.tmp")
-    tmp.write_bytes(tomli_w.dumps(doc).encode("utf-8"))
-    tmp.replace(path)
+    _atomic_write_doc(path, doc)
 
 
 def config_unset(key: str, *, path: Path | None = None) -> bool:
@@ -388,9 +394,7 @@ def config_unset(key: str, *, path: Path | None = None) -> bool:
         # Leave the file in place even when empty — `config set` will
         # repopulate; deleting would surprise users who expect their
         # config dir to exist.
-        tmp = path.with_suffix(".toml.tmp")
-        tmp.write_bytes(tomli_w.dumps(doc).encode("utf-8"))
-        tmp.replace(path)
+        _atomic_write_doc(path, doc)
     return changed
 
 

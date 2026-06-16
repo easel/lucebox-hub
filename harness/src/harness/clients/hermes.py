@@ -7,16 +7,18 @@ working dir to keep the user's real Hermes state untouched.
 
 from __future__ import annotations
 
+import json
 import os
-import sys
 from pathlib import Path
 
 from harness.clients._common import (
     DEFAULT_API_KEY,
     DEFAULT_MODEL_ID,
+    build_base_parser,
     exec_client,
     find_bin,
     mktempdir,
+    run_main,
 )
 
 
@@ -28,8 +30,7 @@ def _yaml_quote(s: str) -> str:
     arbitrary string (paths containing quotes, backslashes, or even
     newlines) into the generated config without a YAML library.
     """
-    import json as _json
-    return _json.dumps(s)
+    return json.dumps(s)
 
 
 def write_config(home: Path, *, base_url: str, model: str, api_key: str,
@@ -150,37 +151,29 @@ def launch(
 
 
 def main() -> int:
-    import argparse
-
-    parser = argparse.ArgumentParser(prog="harness-hermes")
-    parser.add_argument("--base-url", required=True)
-    parser.add_argument("--model", default=DEFAULT_MODEL_ID)
-    parser.add_argument("--api-key", default=DEFAULT_API_KEY)
-    parser.add_argument("--prompt", default=None)
     # Match the 420s wall timeout the shell harness uses (run_hermes.sh):
-    # Hermes agent loops can hang on a misconfigured server, and the
-    # CLI form should fail in roughly the same wall-time window the
-    # shell form does — otherwise an operator who switches mode gets
-    # surprising "stuck" behavior.
-    parser.add_argument("--timeout", type=int, default=420)
+    # Hermes agent loops can hang on a misconfigured server, and the CLI
+    # form should fail in roughly the same wall-time window the shell form
+    # does — otherwise an operator who switches mode gets surprising
+    # "stuck" behavior.
+    parser = build_base_parser("harness-hermes", default_timeout=420)
     parser.add_argument("--max-ctx", type=int, default=98304)
     parser.add_argument("--max-tokens", type=int, default=4096)
     parser.add_argument("--max-turns", type=int, default=40,
                         help="Max agent turns for `hermes chat --max-turns` "
                         "(mirrors HERMES_MAX_TURNS in run_hermes.sh).")
     args, extra = parser.parse_known_args()
-    try:
-        return launch(
+    return run_main(
+        lambda: launch(
             base_url=args.base_url, model=args.model, api_key=args.api_key,
             prompt=args.prompt, timeout=args.timeout,
             interactive=args.prompt is None,
             max_ctx=args.max_ctx, max_tokens=args.max_tokens,
             max_turns=args.max_turns,
             extra_args=extra or None,
-        )
-    except FileNotFoundError as e:
-        print(f"[harness-hermes] {e}", file=sys.stderr)
-        return 127
+        ),
+        prog="harness-hermes",
+    )
 
 
 if __name__ == "__main__":

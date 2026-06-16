@@ -45,6 +45,7 @@ import lucebox.smoke as smoke_mod
 from lucebox import __version__
 from lucebox.config import config_get, config_set, config_unset, live_config
 from lucebox.host_facts import from_env
+from lucebox.types import BASE_DFLASH_ALLOWLIST
 
 app = typer.Typer(
     name="lucebox",
@@ -56,20 +57,9 @@ console = Console()
 
 
 # The strict 11-field allowlist that mirrors lucebench's snapshot
-# config.json. Used by `autotune --apply` to write dflash.* keys.
-DFLASH_ALLOWLIST: tuple[str, ...] = (
-    "budget",
-    "max_ctx",
-    "lazy",
-    "prefix_cache_slots",
-    "prefill_cache_slots",
-    "cache_type_k",
-    "cache_type_v",
-    "prefill_mode",
-    "prefill_keep_ratio",
-    "prefill_threshold",
-    "prefill_drafter",
-)
+# config.json. Used by `autotune --apply` to write dflash.* keys. Canonical
+# definition lives in ``lucebox.types`` (shared with ``sweep``).
+DFLASH_ALLOWLIST: tuple[str, ...] = BASE_DFLASH_ALLOWLIST
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
@@ -620,129 +610,54 @@ def _exec_client(launcher_mod, *, url: str | None, model: str, prompt: str | Non
         raise typer.Exit(code=rc)
 
 
-@app.command()
-def claude(
-    prompt: Annotated[
-        str | None,
-        typer.Option("--prompt", "-p", help="One-shot prompt (non-interactive)."),
-    ] = None,
-    url: Annotated[
-        str | None,
-        typer.Option(help="Lucebox base URL. Auto-detects localhost / docker host."),
-    ] = None,
-    model: Annotated[str, typer.Option(help="Model ID to advertise.")] = "luce-dflash",
-) -> None:
-    """Launch Claude Code pointed at the running Lucebox server."""
-    from harness.clients import claude_code as launcher
-
-    _exec_client(launcher, url=url, model=model, prompt=prompt)
+# ── client launcher subcommands ─────────────────────────────────────────────
+# All six verbs (claude/codex/opencode/hermes/pi/openclaw) share the exact
+# same surface — they differ only by which ``harness.clients.<mod>`` they
+# lazily import and the help string. Register them from one factory so the
+# option set stays identical by construction.
+_CLIENT_VERBS: tuple[tuple[str, str, str], ...] = (
+    ("claude", "claude_code", "Claude Code"),
+    ("codex", "codex", "Codex"),
+    ("opencode", "opencode", "OpenCode"),
+    ("hermes", "hermes", "Hermes Agent"),
+    ("pi", "pi", "Pi"),
+    ("openclaw", "openclaw", "OpenClaw"),
+)
 
 
-@app.command()
-def codex(
-    prompt: Annotated[
-        str | None,
-        typer.Option("--prompt", "-p", help="One-shot prompt (non-interactive)."),
-    ] = None,
-    url: Annotated[
-        str | None,
-        typer.Option(help="Lucebox base URL. Auto-detects localhost / docker host."),
-    ] = None,
-    model: Annotated[str, typer.Option(help="Model ID to advertise.")] = "luce-dflash",
-) -> None:
-    """Launch Codex pointed at the running Lucebox server."""
-    from harness.clients import codex as launcher
+def _make_client_command(module_name: str, label: str):
+    def _client_command(
+        prompt: Annotated[
+            str | None,
+            typer.Option("--prompt", "-p", help="One-shot prompt (non-interactive)."),
+        ] = None,
+        url: Annotated[
+            str | None,
+            typer.Option(help="Lucebox base URL. Auto-detects localhost / docker host."),
+        ] = None,
+        model: Annotated[
+            str, typer.Option(help="Model ID to advertise.")
+        ] = "luce-dflash",
+    ) -> None:
+        # Lazy import: harness.clients.<mod> is only loaded when the verb runs,
+        # keeping `lucebox --help` cheap and the deps optional.
+        import importlib
 
-    _exec_client(launcher, url=url, model=model, prompt=prompt)
+        launcher = importlib.import_module(f"harness.clients.{module_name}")
+        _exec_client(launcher, url=url, model=model, prompt=prompt)
 
-
-@app.command()
-def opencode(
-    prompt: Annotated[
-        str | None,
-        typer.Option("--prompt", "-p", help="One-shot prompt (non-interactive)."),
-    ] = None,
-    url: Annotated[
-        str | None,
-        typer.Option(help="Lucebox base URL. Auto-detects localhost / docker host."),
-    ] = None,
-    model: Annotated[str, typer.Option(help="Model ID to advertise.")] = "luce-dflash",
-) -> None:
-    """Launch OpenCode pointed at the running Lucebox server."""
-    from harness.clients import opencode as launcher
-
-    _exec_client(launcher, url=url, model=model, prompt=prompt)
+    _client_command.__doc__ = f"Launch {label} pointed at the running Lucebox server."
+    return _client_command
 
 
-@app.command()
-def hermes(
-    prompt: Annotated[
-        str | None,
-        typer.Option("--prompt", "-p", help="One-shot prompt (non-interactive)."),
-    ] = None,
-    url: Annotated[
-        str | None,
-        typer.Option(help="Lucebox base URL. Auto-detects localhost / docker host."),
-    ] = None,
-    model: Annotated[str, typer.Option(help="Model ID to advertise.")] = "luce-dflash",
-) -> None:
-    """Launch Hermes Agent pointed at the running Lucebox server."""
-    from harness.clients import hermes as launcher
-
-    _exec_client(launcher, url=url, model=model, prompt=prompt)
-
-
-@app.command()
-def pi(
-    prompt: Annotated[
-        str | None,
-        typer.Option("--prompt", "-p", help="One-shot prompt (non-interactive)."),
-    ] = None,
-    url: Annotated[
-        str | None,
-        typer.Option(help="Lucebox base URL. Auto-detects localhost / docker host."),
-    ] = None,
-    model: Annotated[str, typer.Option(help="Model ID to advertise.")] = "luce-dflash",
-) -> None:
-    """Launch Pi pointed at the running Lucebox server."""
-    from harness.clients import pi as launcher
-
-    _exec_client(launcher, url=url, model=model, prompt=prompt)
-
-
-@app.command()
-def openclaw(
-    prompt: Annotated[
-        str | None,
-        typer.Option("--prompt", "-p", help="One-shot prompt (non-interactive)."),
-    ] = None,
-    url: Annotated[
-        str | None,
-        typer.Option(help="Lucebox base URL. Auto-detects localhost / docker host."),
-    ] = None,
-    model: Annotated[str, typer.Option(help="Model ID to advertise.")] = "luce-dflash",
-) -> None:
-    """Launch OpenClaw pointed at the running Lucebox server."""
-    from harness.clients import openclaw as launcher
-
-    _exec_client(launcher, url=url, model=model, prompt=prompt)
+for _verb, _module_name, _label in _CLIENT_VERBS:
+    app.command(name=_verb)(_make_client_command(_module_name, _label))
 
 
 @app.command()
 def version() -> None:
     """Print lucebox version."""
     print(__version__)
-
-
-def _pick_variant_from_driver(driver_major: int, gpu_sm: str) -> config_mod.Variant:  # type: ignore[name-defined]
-    """Mirrors lucebox.sh::pick_variant. Centralized so Python and bash agree.
-
-    Kept as a thin wrapper around the LUCEBOX_VARIANT env var because
-    the variant tag is picked by the shell wrapper before Python runs;
-    this function exists so legacy callers and tests still resolve.
-    """
-    del driver_major, gpu_sm  # variant pick lives in lucebox.sh
-    return os.environ.get("LUCEBOX_VARIANT", "cuda12")
 
 
 def main() -> None:
