@@ -5,7 +5,7 @@ name = "lucebox"
 # tag get a `.devN+g<sha>` suffix so dev installs are visibly distinct
 # from releases. Single source of truth: the git tag.
 dynamic = ["version"]
-description = "Host-side CLI for the lucebox-hub container: orchestration, autotune + sweep"
+description = "Host-side CLI for the lucebox-hub container: launch, config, model download"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Lucebox" }]

@@ -9,17 +9,7 @@ Subcommand inventory:
     pull                   — docker pull the cuda12 image
     print-run              — emit the docker-run command for the server
     print-serve-argv       — same, raw argv lines (consumed by `lucebox serve`)
-    autotune               — print/persist VRAM-tier DFLASH_* defaults; `--sweep`
-                              empirically tests a per-tier bracket and persists the winner
-    profile                — run a luce-bench snapshot via the running container
-    smoke                  — hit /props + /v1/chat/completions on a running server
     models                 — list / download presets, activate one
-    claude                 — launch Claude Code pointed at the running server
-    codex                  — launch Codex pointed at the running server
-    opencode               — launch OpenCode pointed at the running server
-    hermes                 — launch Hermes pointed at the running server
-    pi                     — launch Pi pointed at the running server
-    openclaw               — launch OpenClaw pointed at the running server
 """
 
 from __future__ import annotations
@@ -35,17 +25,13 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-import lucebox.autotune as autotune_mod
 import lucebox.config as config_mod
 import lucebox.docker_run as docker_run
 import lucebox.download as download_mod
 import lucebox.host_check as host_check
-import lucebox.profile as profile_mod
-import lucebox.smoke as smoke_mod
 from lucebox import __version__
 from lucebox.config import config_get, config_set, config_unset, live_config
 from lucebox.host_facts import from_env
-from lucebox.types import BASE_DFLASH_ALLOWLIST
 
 app = typer.Typer(
     name="lucebox",
@@ -54,12 +40,6 @@ app = typer.Typer(
     add_completion=False,
 )
 console = Console()
-
-
-# The strict 11-field allowlist that mirrors lucebench's snapshot
-# config.json. Used by `autotune --apply` to write dflash.* keys. Canonical
-# definition lives in ``lucebox.types`` (shared with ``sweep``).
-DFLASH_ALLOWLIST: tuple[str, ...] = BASE_DFLASH_ALLOWLIST
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
@@ -152,169 +132,6 @@ def print_serve_argv() -> None:
 
 
 # ── autotune ───────────────────────────────────────────────────────────────
-
-
-@app.command()
-def autotune(
-    apply_: Annotated[
-        bool,
-        typer.Option("--apply", help="Write the 11 dflash.* keys to config.toml."),
-    ] = False,
-    json_out: Annotated[
-        bool,
-        typer.Option("--json", help="Machine-readable output (the asdict of DflashRuntime)."),
-    ] = False,
-    force: Annotated[
-        bool,
-        typer.Option(
-            "--force",
-            help=(
-                "With --apply: overwrite even when a persisted dflash.* key "
-                "already differs from the recommendation (e.g. a sweep-tuned "
-                "value)."
-            ),
-        ),
-    ] = False,
-    sweep: Annotated[
-        bool,
-        typer.Option(
-            "--sweep",
-            help=(
-                "Empirically test a per-VRAM-tier bracket of dflash.* configs "
-                "against the live server and persist the winner. Uses "
-                "`lucebox config set` + `lucebox restart` + `luce-bench "
-                "snapshot` for each cell."
-            ),
-        ),
-    ] = False,
-    yes: Annotated[
-        bool,
-        typer.Option(
-            "--yes",
-            "-y",
-            help="With --sweep: skip the confirmation prompt before starting.",
-        ),
-    ] = False,
-    profile: Annotated[
-        str,
-        typer.Option(
-            "--profile",
-            help=(
-                "With --sweep: which workload profile to use. "
-                "'heuristic' (default) brackets KV-quant axes and scores by "
-                "mean decode_tps from a luce-bench snapshot. "
-                "'coding-agent-loop' brackets max_ctx × fa_window × budget × "
-                "pflash and scores by pass-rate on a real recorded agentic "
-                "session replay, then speed. See `lucebox autotune "
-                "--list-profiles` for the full set."
-            ),
-        ),
-    ] = "heuristic",
-    list_profiles: Annotated[
-        bool,
-        typer.Option(
-            "--list-profiles",
-            help="Print registered autotune profiles + descriptions and exit.",
-        ),
-    ] = False,
-) -> None:
-    """Compute the recommended DflashRuntime for this host.
-
-    By default prints a Rich table comparing live defaults vs the
-    heuristic recommendation. Pass ``--apply`` to persist every value
-    in the 11-field allowlist to config.toml (sparse — only those keys
-    land on disk). ``--json`` dumps the recommendation as JSON for
-    scripting.
-
-    Guard: when ``--apply`` would overwrite a value the user has
-    already persisted (typically from a sweep) with a different
-    recommendation, the command refuses and lists the affected keys.
-    Pass ``--force`` to overwrite anyway.
-
-    ``--sweep`` is the empirical mode: builds a per-tier bracket of
-    candidate dflash.* configs (see ``autotune.candidate_configs``),
-    cycles the server through each one via ``lucebox restart`` +
-    readiness probe, runs ``lucebox profile --level level1`` to capture
-    decode_tps, picks the highest-tps cell as winner, and persists it.
-    Pre-sweep config.toml is backed up to ``.sweep-backup`` and restored
-    on interrupt or failure. ``--sweep`` is mutually exclusive with
-    ``--apply`` (sweep applies its own winner) and ``--json`` (sweep
-    is interactive). Pass ``--yes`` / ``-y`` to skip the confirmation
-    prompt.
-    """
-    if list_profiles:
-        table = Table(title="Autotune profiles")
-        table.add_column("name")
-        table.add_column("scorer")
-        table.add_column("description")
-        for name in sorted(autotune_mod.PROFILES):
-            p = autotune_mod.PROFILES[name]
-            table.add_row(p.name, p.scorer, p.description)
-        console.print(table)
-        return
-
-    if sweep and (apply_ or json_out):
-        console.print(
-            "[red]--sweep is mutually exclusive with --apply and --json[/red]"
-        )
-        raise typer.Exit(code=2)
-    if sweep:
-        from lucebox.sweep import run_sweep
-
-        rc = run_sweep(console=console, yes=yes, profile=profile)
-        if rc != 0:
-            raise typer.Exit(code=rc)
-        return
-
-    host = from_env()
-    cfg = _load_or_build()
-    runtime = autotune_mod.runtime_from_host(host, preset=cfg.model.preset)
-    if json_out:
-        print(json.dumps(asdict(runtime), indent=2))
-        return
-
-    table = Table(title="Recommended DflashRuntime")
-    table.add_column("key")
-    table.add_column("recommendation")
-    for name in DFLASH_ALLOWLIST:
-        table.add_row(name, str(getattr(runtime, name)))
-    console.print(table)
-
-    if apply_:
-        # Drift guard. config_get with no key returns every reachable
-        # dflash.* entry tagged "file" (persisted) or "default" (in-
-        # memory only). Compare the persisted value to the
-        # recommendation; refuse on any drift unless --force.
-        if not force:
-            entries = config_mod.config_get()
-            drift: list[tuple[str, Any, Any]] = []
-            for name in DFLASH_ALLOWLIST:
-                key = f"dflash.{name}"
-                current, origin = entries.get(key, (None, "default"))
-                if origin != "file":
-                    continue  # not persisted → nothing to overwrite
-                recommended = getattr(runtime, name)
-                if current != recommended:
-                    drift.append((name, current, recommended))
-            if drift:
-                console.print(
-                    "[yellow]The following config keys already differ from "
-                    "the recommendation:[/yellow]"
-                )
-                width = max(len(name) for name, _, _ in drift)
-                for name, current, recommended in drift:
-                    console.print(
-                        f"  dflash.{name:<{width}}  current={current!r}  "
-                        f"recommended={recommended!r}"
-                    )
-                console.print("[dim]Pass --force to overwrite.[/dim]")
-                raise typer.Exit(code=1)
-        for name in DFLASH_ALLOWLIST:
-            config_set(f"dflash.{name}", getattr(runtime, name))
-        console.print(
-            f"[green]Applied[/green] {len(DFLASH_ALLOWLIST)} dflash.* keys to "
-            f"{config_mod.default_config_path()}"
-        )
 
 
 # ── config sub-app ─────────────────────────────────────────────────────────
@@ -457,7 +274,7 @@ def models_download(
                 "Pass an explicit preset name (or use --activate to switch).[/yellow]"
             )
             raise typer.Exit(code=2)
-        recommended = autotune_mod.recommend_preset(cfg.host)
+        recommended = download_mod.recommend_preset(cfg.host)
         if recommended is None:
             console.print(
                 "[red]Cannot recommend a preset for this host. "
@@ -512,146 +329,6 @@ def models_download(
             # active preset has no draft.
             config_unset("model.draft_file")
         console.print(f"[green]Activated:[/green] model.preset = {preset}")
-
-
-# ── profile (collapsed wrapper) ────────────────────────────────────────────
-
-
-@app.command()
-def profile(
-    level: Annotated[
-        str,
-        typer.Option("--level", help="Snapshot tier: level0 / level1 / level2 / level3."),
-    ] = "level1",
-    url: Annotated[
-        str,
-        typer.Option("--url", help="Server base URL; auto-detects when empty."),
-    ] = "",
-) -> None:
-    """Run a luce-bench snapshot via the running container.
-
-    Thin wrapper that probes the host, picks an output dir under
-    $XDG_DATA_HOME/lucebox/profile-snapshots, and exec's
-    ``luce-bench snapshot`` inside the running lucebox container. Errors
-    clearly when no container is up (hint: ``lucebox start`` first).
-    """
-    cfg = _load_or_build()
-    rc = profile_mod.run_profile(cfg, level=level, url=url or None, console=console)
-    if rc != 0:
-        raise typer.Exit(code=rc)
-
-
-# ── smoke ──────────────────────────────────────────────────────────────────
-
-
-@app.command()
-def smoke(
-    timeout: Annotated[float, typer.Option(help="Per-request timeout (seconds).")] = 60.0,
-    tools: Annotated[
-        bool,
-        typer.Option("--tools/--no-tools", help="Also require a tool-call response."),
-    ] = True,
-) -> None:
-    """Hit /props + /v1/chat/completions on the running server; report PASS/FAIL."""
-    cfg = _load_or_build()
-    result = smoke_mod.run(cfg, timeout_s=timeout, check_tools=tools)
-    console.print(
-        f"props={result.props_ok}  tools={result.tool_ok}  "
-        f"http={result.http_status}  tokens={result.n_tokens}  "
-        f"wall={result.wall_s:.2f}s"
-    )
-    if result.ok:
-        console.print("[green]PASS[/green]")
-        return
-    console.print(f"[red]FAIL[/red]  {result.error}")
-    raise typer.Exit(code=1)
-
-
-# ── client launchers ───────────────────────────────────────────────────────
-
-
-def _detect_server_url(cfg_url: str | None) -> str:
-    """Auto-detect a live Lucebox server URL.
-
-    Tries an explicit override first, otherwise probes the standard
-    localhost/docker-host base URLs from profile_mod and takes the first
-    that answers /health within 1s. Falls back to the first probe candidate
-    if nothing answers — lets the client fail with a clearer "server down"
-    error than the auto-detect can give.
-    """
-    if cfg_url:
-        return cfg_url
-    cfg = _load_or_build()
-    bases = profile_mod._server_base_urls(cfg)
-    for candidate in bases:
-        if profile_mod._json_get(candidate + "/health", timeout_s=1.0):
-            return candidate
-    console.print(
-        f"[yellow]warning:[/yellow] no /health response at {bases[0]} "
-        f"— starting client anyway (server may be down)."
-    )
-    return bases[0]
-
-
-def _exec_client(launcher_mod, *, url: str | None, model: str, prompt: str | None) -> None:
-    """Common entry: probe server, exec the harness client launcher."""
-    base_url = _detect_server_url(url)
-    try:
-        rc = launcher_mod.launch(
-            base_url=base_url,
-            model=model,
-            prompt=prompt,
-            interactive=prompt is None,
-        )
-    except FileNotFoundError as e:
-        console.print(f"[red]{e}[/red]")
-        raise typer.Exit(code=127) from e
-    if rc != 0:
-        raise typer.Exit(code=rc)
-
-
-# ── client launcher subcommands ─────────────────────────────────────────────
-# All six verbs (claude/codex/opencode/hermes/pi/openclaw) share the exact
-# same surface — they differ only by which ``harness.clients.<mod>`` they
-# lazily import and the help string. Register them from one factory so the
-# option set stays identical by construction.
-_CLIENT_VERBS: tuple[tuple[str, str, str], ...] = (
-    ("claude", "claude_code", "Claude Code"),
-    ("codex", "codex", "Codex"),
-    ("opencode", "opencode", "OpenCode"),
-    ("hermes", "hermes", "Hermes Agent"),
-    ("pi", "pi", "Pi"),
-    ("openclaw", "openclaw", "OpenClaw"),
-)
-
-
-def _make_client_command(module_name: str, label: str):
-    def _client_command(
-        prompt: Annotated[
-            str | None,
-            typer.Option("--prompt", "-p", help="One-shot prompt (non-interactive)."),
-        ] = None,
-        url: Annotated[
-            str | None,
-            typer.Option(help="Lucebox base URL. Auto-detects localhost / docker host."),
-        ] = None,
-        model: Annotated[
-            str, typer.Option(help="Model ID to advertise.")
-        ] = "luce-dflash",
-    ) -> None:
-        # Lazy import: harness.clients.<mod> is only loaded when the verb runs,
-        # keeping `lucebox --help` cheap and the deps optional.
-        import importlib
-
-        launcher = importlib.import_module(f"harness.clients.{module_name}")
-        _exec_client(launcher, url=url, model=model, prompt=prompt)
-
-    _client_command.__doc__ = f"Launch {label} pointed at the running Lucebox server."
-    return _client_command
-
-
-for _verb, _module_name, _label in _CLIENT_VERBS:
-    app.command(name=_verb)(_make_client_command(_module_name, _label))
 
 
 @app.command()

@@ -49,7 +49,7 @@ from rich.progress import (
     TransferSpeedColumn,
 )
 
-from lucebox.types import Config
+from lucebox.types import Config, HostFacts
 
 
 @dataclass(frozen=True, slots=True)
@@ -498,3 +498,18 @@ def status(cfg: Config, preset: ModelPreset | None = None) -> dict[str, bool]:
     else:
         out["draft_present"] = True
     return out
+
+
+def recommend_preset(host: HostFacts) -> str | None:
+    """Pick a default preset for first-run install. None = ask the user.
+
+    Tiers follow the model size catalog: 22 GB+ → Qwen3.6-27B (the
+    Lucebox default), 16-21 GB → Laguna-XS.2 (small target-only). Below
+    16 GB we punt and let the user pick explicitly — the registered
+    presets all need at least 16 GB to run usefully.
+    """
+    if host.vram_gb >= 22:
+        return "qwen3.6-27b"
+    if host.vram_gb >= 16:
+        return "laguna-xs.2"
+    return None
