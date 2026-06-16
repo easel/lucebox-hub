@@ -25,26 +25,21 @@ def test_models_subcommand_is_registered() -> None:
 
 
 @pytest.mark.parametrize(
-    "verb",
-    [
-        "autotune",
-        "sweep",
-        "profile",
-        "smoke",
-        "claude",
-        "codex",
-        "opencode",
-        "hermes",
-        "pi",
-        "openclaw",
-    ],
+    "verb", ["claude", "codex", "opencode", "hermes", "pi", "openclaw"]
 )
-def test_deferred_verbs_are_not_registered(verb: str) -> None:
-    """autotune/sweep, profile/smoke and the client launchers are deferred to
-    follow-up PRs — this core CLI (launch / serve / install / download) must
-    not expose them."""
+def test_client_launcher_verbs_are_not_registered(verb: str) -> None:
+    """The agent-client launchers (claude/codex/...) are deferred to a
+    follow-up PR — this branch adds autotune/profile/smoke but not the
+    harness-backed client verbs."""
     result = CliRunner().invoke(app, [verb, "--help"])
     assert result.exit_code != 0
+
+
+@pytest.mark.parametrize("verb", ["autotune", "profile", "smoke"])
+def test_tuning_verbs_are_registered(verb: str) -> None:
+    """autotune / profile / smoke are part of this tuning + diagnostics PR."""
+    result = CliRunner().invoke(app, [verb, "--help"])
+    assert result.exit_code == 0
 
 
 def test_core_verbs_present_in_app() -> None:
