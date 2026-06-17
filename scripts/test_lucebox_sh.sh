@@ -856,7 +856,7 @@ test_completion_bash "lucebox completion bash completes a known prefix"
 # ── docker exec routing ───────────────────────────────────────────────────
 # When the lucebox container is running, steady-state subcommands must
 # `docker exec` into it (cheap + shares the live server's net namespace) and
-# service-restarting subcommands (serve, pull, ...) must stay on
+# service-restarting subcommands (autotune --sweep, serve, ...) must stay on
 # `docker run`. We mock docker via a PATH shim that:
 #   - on `docker ps -q -f name=^lucebox$` prints a fake container id
 #     (signals "container is running") iff DOCKER_FAKE_RUNNING=1.
@@ -997,6 +997,38 @@ test_routes_to_run_when_not_running() {
 }
 test_routes_to_run_when_not_running "config get falls back to docker run when container not running"
 
+test_sweep_stays_on_run_even_when_running() {
+    local label="$1" sandbox out
+    sandbox=$(mktemp -d -t lucebox-route.XXXXXX)
+    _make_docker_shim "$sandbox" 1
+    out=$(_run_wrapper_capture_docker "$sandbox" autotune --sweep || true)
+    rm -rf "$sandbox"
+    if grep -q '^DOCKER_INVOKED exec' <<<"$out"; then
+        report fail "$label" "autotune --sweep used docker exec — would restart the container it's in"
+        return
+    fi
+    if ! grep -q '^DOCKER_INVOKED run' <<<"$out"; then
+        report fail "$label" "expected 'docker run' for sweep; got: $(head -3 <<<"$out")"
+        return
+    fi
+    report ok "$label"
+}
+test_sweep_stays_on_run_even_when_running "autotune --sweep stays on docker run even when container is up"
+
+test_autotune_no_sweep_uses_exec() {
+    local label="$1" sandbox out
+    sandbox=$(mktemp -d -t lucebox-route.XXXXXX)
+    _make_docker_shim "$sandbox" 1
+    out=$(_run_wrapper_capture_docker "$sandbox" autotune --list-profiles || true)
+    rm -rf "$sandbox"
+    if ! grep -q '^DOCKER_INVOKED exec' <<<"$out"; then
+        report fail "$label" "expected 'docker exec' for autotune --list-profiles; got: $(head -3 <<<"$out")"
+        return
+    fi
+    report ok "$label"
+}
+test_autotune_no_sweep_uses_exec "autotune --list-profiles routes to docker exec when container running"
+
 test_no_exec_flag_forces_run() {
     local label="$1" sandbox out
     sandbox=$(mktemp -d -t lucebox-route.XXXXXX)
@@ -1036,25 +1068,25 @@ test_no_exec_env_forces_run() {
 }
 test_no_exec_env_forces_run "LUCEBOX_NO_EXEC=1 env override forces docker run"
 
-test_models_routes_to_exec() {
+test_smoke_routes_to_exec() {
     local label="$1" sandbox out
     sandbox=$(mktemp -d -t lucebox-route.XXXXXX)
     _make_docker_shim "$sandbox" 1
-    out=$(_run_wrapper_capture_docker "$sandbox" models list || true)
+    out=$(_run_wrapper_capture_docker "$sandbox" smoke || true)
     rm -rf "$sandbox"
     if ! grep -q '^DOCKER_INVOKED exec' <<<"$out"; then
-        report fail "$label" "expected 'docker exec' for models when running; got: $(head -3 <<<"$out")"
+        report fail "$label" "expected 'docker exec' for smoke when running; got: $(head -3 <<<"$out")"
         return
     fi
-    # Confirm the exec'd command tail is `lucebox models list` — the
-    # in-container CLI's argv must NOT be polluted with dispatcher bookkeeping.
-    if ! grep -qE 'lucebox models list' <<<"$out"; then
-        report fail "$label" "exec'd argv missing 'lucebox models list' tail"
+    # Confirm the exec'd command tail is `lucebox smoke` — the in-container
+    # CLI's argv must NOT be polluted with the dispatcher's bookkeeping.
+    if ! grep -qE 'lucebox smoke' <<<"$out"; then
+        report fail "$label" "exec'd argv missing 'lucebox smoke' tail"
         return
     fi
     report ok "$label"
 }
-test_models_routes_to_exec "models list routes to docker exec when container running"
+test_smoke_routes_to_exec "smoke routes to docker exec when container running"
 
 # ── usage mentions exec-when-running ──────────────────────────────────────
 test_usage_mentions_exec_routing() {

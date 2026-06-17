@@ -901,8 +901,8 @@ _lucebox_complete() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     cmds="install uninstall start stop restart enable disable status logs \
-          serve pull update check completion config models \
-          print-run help version"
+          serve pull update check completion config models autotune \
+          profile smoke print-run help version"
     config_verbs="get set unset"
     models_verbs="list download"
     completion_shells="bash zsh fish"
@@ -943,8 +943,8 @@ ZSH
 #   lucebox completion fish | source
 complete -c lucebox -f
 set -l __lucebox_cmds install uninstall start stop restart enable disable \
-    status logs serve pull update check completion config models \
-    print-run help version
+    status logs serve pull update check completion config models autotune \
+    profile smoke print-run help version
 for cmd in $__lucebox_cmds
     complete -c lucebox -n "not __fish_seen_subcommand_from $__lucebox_cmds" -a $cmd
 end
@@ -1136,10 +1136,22 @@ cmd_exec_in_container() {
 # running-server subcommands. Anything that restarts the service, mutates
 # images, or is itself the long-running service must stay on cmd_in_container.
 #
+# `autotune` is a special case: read-only (`autotune` alone, `--list-profiles`)
+# is exec-safe, but `--sweep` restarts the service per cell and MUST stay on
+# the docker-run path (sweeping into the live container would kill it mid-run).
 _lucebox_prefer_exec() {
     local cmd="$1"; shift
     case "$cmd" in
-        config|models|check|print-run|print-serve-argv)
+        config|smoke|models|check|profile|print-run|print-serve-argv)
+            return 0
+            ;;
+        autotune)
+            # Scan the rest of the argv for --sweep. If present, this is a
+            # service-restarting workload and must stay on cmd_in_container.
+            local a
+            for a in "$@"; do
+                [ "$a" = "--sweep" ] && return 1
+            done
             return 0
             ;;
         *)
@@ -1194,6 +1206,10 @@ Provisioning + workloads (delegated to the in-container Python CLI):
   completion <shell>    print shell completion script (bash / zsh / fish)
   models                list / download / activate model presets
   config                read / write keys in .lucebox/config.toml
+  autotune              compute (and optionally apply) VRAM-tier DFLASH_* defaults
+                        — `autotune --sweep` empirically picks a per-tier winner
+  smoke                 hit /v1/chat/completions on a running server
+  profile               run luce-bench snapshot via the running container
   print-run             print the docker-run command for the server
 
 Misc:
@@ -1212,12 +1228,13 @@ Environment overrides:
 
 Container routing:
   When the long-running '$CONTAINER_NAME' container is up, steady-state
-  subcommands (config, models, check, print-run, print-serve-argv)
-  'docker exec' into it instead of starting a fresh container. This avoids
-  the ~1-3s docker-run cold-start AND shares the live server's network
-  namespace so localhost:\$LUCEBOX_PORT reaches the server. Service-restarting
-  commands (serve, pull, update, install, etc.) stay on the host-side /
-  docker-run path. Pass --no-exec (or LUCEBOX_NO_EXEC=1) to force docker-run.
+  subcommands (config, smoke, models, check, profile, print-run,
+  print-serve-argv, autotune without --sweep) 'docker exec' into it instead
+  of starting a fresh container. This avoids the ~1-3s docker-run cold-start
+  AND shares the live server's network namespace so localhost:\$LUCEBOX_PORT
+  reaches the server. Service-restarting commands (autotune --sweep, serve,
+  pull, update, install, etc.) stay on the host-side / docker-run path.
+  Pass --no-exec (or LUCEBOX_NO_EXEC=1) to force the docker-run path.
 EOF
 }
 
