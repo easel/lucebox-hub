@@ -9,6 +9,26 @@ from lucebox.cli import app
 from typer.testing import CliRunner
 
 
+def test_benchmark_subcommand_is_removed() -> None:
+    """The benchmark verb was folded into `autotune --sweep`."""
+    result = CliRunner().invoke(app, ["benchmark", "--help"])
+    assert result.exit_code != 0
+
+
+def test_profile_help_exposes_collapsed_surface() -> None:
+    """The new profile is a ~150-line wrapper; only --level and --url remain."""
+    result = CliRunner().invoke(app, ["profile", "--help"])
+
+    assert result.exit_code == 0
+    assert "--level" in result.output
+    assert "--url" in result.output
+    # Old step-registry knobs are gone.
+    assert "--export-snapshot" not in result.output
+    assert "--force-refresh" not in result.output
+    assert "--dry-run" not in result.output
+    assert "--step" not in result.output
+
+
 def test_config_subcommand_is_registered() -> None:
     result = CliRunner().invoke(app, ["config", "--help"])
     assert result.exit_code == 0
@@ -24,31 +44,29 @@ def test_models_subcommand_is_registered() -> None:
     assert "download" in result.output
 
 
+def test_autotune_subcommand_is_registered() -> None:
+    result = CliRunner().invoke(app, ["autotune", "--help"])
+    assert result.exit_code == 0
+    assert "--apply" in result.output
+    assert "--json" in result.output
+
+
 @pytest.mark.parametrize(
     "verb", ["claude", "codex", "opencode", "hermes", "pi", "openclaw"]
 )
-def test_client_launcher_verbs_are_not_registered(verb: str) -> None:
-    """The agent-client launchers (claude/codex/...) are deferred to a
-    follow-up PR — this branch adds autotune/profile/smoke but not the
-    harness-backed client verbs."""
-    result = CliRunner().invoke(app, [verb, "--help"])
-    assert result.exit_code != 0
-
-
-@pytest.mark.parametrize("verb", ["autotune", "profile", "smoke"])
-def test_tuning_verbs_are_registered(verb: str) -> None:
-    """autotune / profile / smoke are part of this tuning + diagnostics PR."""
+def test_client_subcommand_is_registered(verb: str) -> None:
+    """Each client launcher verb is registered and exposes --prompt/--url/--model."""
     result = CliRunner().invoke(app, [verb, "--help"])
     assert result.exit_code == 0
+    assert "--prompt" in result.output
+    assert "--url" in result.output
+    assert "--model" in result.output
 
 
-def test_core_verbs_present_in_app() -> None:
-    """The core launch/serve surface stays wired into the Typer command table."""
-    registered = {
-        c.name or (c.callback.__name__ if c.callback else "")
-        for c in app.registered_commands
-    }
-    for verb in ("check", "pull", "print-run", "print-serve-argv", "version"):
+def test_all_client_verbs_present_in_app() -> None:
+    """All six client verbs are wired into the Typer app's command table."""
+    registered = {c.name or c.callback.__name__ for c in app.registered_commands}
+    for verb in ("claude", "codex", "opencode", "hermes", "pi", "openclaw"):
         assert verb in registered
 
 
