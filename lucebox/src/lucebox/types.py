@@ -16,26 +16,6 @@ Variant = str
 CtkStatus = Literal["runtime", "cdi", "installed-unwired", "none"]
 
 
-# The strict 11-field allowlist that mirrors lucebench's snapshot
-# config.json. ``cli`` writes exactly these dflash.* keys via
-# ``autotune --apply``; ``sweep`` extends it with ``fa_window`` for its
-# per-cell bracket axis. Defined here (a leaf, cycle-free module) so both
-# importers share one source of truth.
-BASE_DFLASH_ALLOWLIST: tuple[str, ...] = (
-    "budget",
-    "max_ctx",
-    "lazy",
-    "prefix_cache_slots",
-    "prefill_cache_slots",
-    "cache_type_k",
-    "cache_type_v",
-    "prefill_mode",
-    "prefill_keep_ratio",
-    "prefill_threshold",
-    "prefill_drafter",
-)
-
-
 def default_models_dir() -> Path:
     """Resolve the default models directory under the XDG Base Directory spec.
 

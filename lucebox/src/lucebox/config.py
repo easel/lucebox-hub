@@ -422,45 +422,27 @@ def config_get(key: str | None = None, *, path: Path | None = None) -> dict[str,
     return out
 
 
-def live_config(preset_name: str | None = None) -> Config:
+def live_config() -> Config:
     """Build a fresh Config from current host facts + the DFLASH_* heuristic.
 
     Used as the no-config fallback in ``cli._load_or_build`` and reused by
     the ``models`` sub-app, so the host probe + heuristic + env-override
     logic lives in one place rather than being duplicated per caller.
-
-    When ``preset_name`` is set, the returned Config pins ``[model]`` to
-    that preset's target_file/draft_file so `lucebox serve` emits the
-    DFLASH_TARGET / DFLASH_DRAFT envs. Invalid preset names raise
-    ``KeyError`` so the caller can map them to a typer-friendly error.
     """
-    # Lazy imports to avoid the autotune ↔ config ↔ download cycle the
-    # importer would hit if these moved to module scope.
+    # Lazy import to avoid the autotune ↔ config import cycle the importer
+    # would hit if this moved to module scope.
     import lucebox.autotune as autotune_mod
-    import lucebox.download as download_mod
     from lucebox.host_facts import from_env
 
     host = from_env()
-    variant = os.environ.get("LUCEBOX_VARIANT", "cuda12")
-    dflash = autotune_mod.runtime_from_host(host)
     default = Config()
-    model = ModelMeta()
-    if preset_name:
-        preset = download_mod.resolve_preset(preset_name)
-        draft = preset.draft_file or "" if preset.has_draft else ""
-        model = ModelMeta(
-            preset=preset.name,
-            target_file=preset.target_file,
-            draft_file=draft,
-        )
     return replace(
         default,
-        variant=variant,
+        variant=os.environ.get("LUCEBOX_VARIANT", "cuda12"),
         image=os.environ.get("LUCEBOX_IMAGE", default.image),
         container_name=os.environ.get("LUCEBOX_CONTAINER", default.container_name),
         port=int(os.environ.get("LUCEBOX_PORT", str(default.port))),
         models_dir=Path(os.environ.get("LUCEBOX_MODELS", str(default.models_dir))),
-        dflash=dflash,
+        dflash=autotune_mod.runtime_from_host(host),
         host=host,
-        model=model,
     )
